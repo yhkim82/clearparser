@@ -1,6 +1,6 @@
 #summary Dependency parser: data format
 
-ClearParser supports the CoNLL-X [http://nextens.uvt.nl/~conll/#dataformat data format].  Among all the fields, ClearParser requires values for
+Clear dependency parser supports the CoNLL-X [http://nextens.uvt.nl/~conll/#dataformat data format].  Among all the fields, the parser requires values for
 
  * ID: token counter, starting at 1 for each new sentence
  * Form: word form or punctuation symbol
