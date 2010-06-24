@@ -1,15 +1,22 @@
 #summary Dependency parser: data format
 
-CLEAR dependency parser supports 3 data formats.
+ClearParser supports the CoNLL-X [http://nextens.uvt.nl/~conll/#dataformat data format].  Among all the fields, ClearParser requires values for
 
-== CoNLL-X format ==
+ * ID: token counter, starting at 1 for each new sentence
+ * Form: word form or punctuation symbol
+ * Lemma: lemma or stem of word form
+ * POSTAG: fine-grained part-of-speech tag
+ * HEAD: head ID of the current token
+ * DEPREL: dependency relation to the HEAD
 
-Detailed descriptions of CoNLL-X format: [http://nextens.uvt.nl/~conll/#dataformat link]
+Here is an example of this format.  The last two columns (PHEAD, PDEPREL) are not required to be presented.
 
-
-= Details =
-
-Add your content here.  Format your content with:
-  * Text in *bold* or _italic_
-  * Headings, paragraphs, and lists
-  * Automatic links to other wiki pages
+{{{
+1    Pricing        pricing        _    NN     _    2    NMOD    _    _
+2    details        detail         _    NNS    _    3    SBJ     _    _
+3    were           be             _    VBD    _    0    ROOT    _    _
+4    n't            not            _    RB     _    3    ADV     _    _
+5    immediately    immediately    _    RB     _    6    AMOD    _    _
+6    available      available      _    JJ     _    3    PRD     _    _
+7    .              .              _    .      _    3    P       _    _
+}}}
