@@ -1,13 +1,10 @@
-#Dependency parser: data format
+#summary Dependency parser: data format
 
-Currently, Clear dependency parser supports 3 data formats.
+CLEAR dependency parser supports 3 data formats.
 
+== CoNLL-X format ==
 
- for training and 3 data formats for decoding.  For training, the parser requires [http://nextens.uvt.nl/~conll/#dataformat CoNLL-X format].  For decoding, the parser requires
-
-= Introduction =
-
-Add your content here.
+Detailed descriptions of CoNLL-X format: [http://nextens.uvt.nl/~conll/#dataformat link]
 
 
 = Details =
