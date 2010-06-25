@@ -1,0 +1,21 @@
+#summary Guidelines for morphological analyzer
+
+Clear morphological analyzer converts word-forms to their base-forms.  For example, all plural nouns are converted to their singular forms and all  currently supports only English.  More languages will be supported sometime in future.
+<br><br>
+
+== How to run Clear morphological analyzer ==
+
+{{{
+java clear.engine.MorphAnalyze -i <input file> -o <output file>
+}}}
+
+== Input file format ==
+
+ * FORM
+ * POSTAG
+<br>
+
+== Output file format ==
+
+ * FORM
+ * POSTAG
