@@ -53,7 +53,7 @@ Each field is delimited by a tab character (`'\t'`) and each sentence is delimit
 
 == Clear part-of-speech format ==
 
-The Clear part-of-speech format requires two fields.  This format is meant only for decoding.
+The Clear part-of-speech format requires only two fields.  The ID field is counted automatically (starting at 1).  The LEMMA field is filled by using its default morphological analyzer.  This format is meant only for decoding.
 
  * Form: word form or punctuation symbol
  * POSTAG: fine-grained part-of-speech tag
