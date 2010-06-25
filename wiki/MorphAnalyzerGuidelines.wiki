@@ -1,6 +1,6 @@
 #summary Morphological analyzer: guidelines
 
-Clear morphological analyzer converts word-forms to their lemmas using dictionaries and part-of-speech tags.  For example, all plural nouns are converted to their singular forms, all regular/irregular verb-forms are converted to their base-forms, etc.  It uses the [http://wordnet.princeton.edu/wordnet WordNet] dictionaries but implemented slightly different from their <a href="http://wordnet.princeton.edu/wordnet/man/morph.3WN.html">morphological analyzer</a>.  Currently, Clear morphological analyzer only supports English.  More languages will be supported near in the future.
+Clear morphological analyzer converts word-forms to their lemmas using dictionaries and part-of-speech tags.  For example, all plural nouns are converted to their singular forms, all regular/irregular verb-forms are converted to their base-forms, etc.  The analyzer uses the [http://wordnet.princeton.edu/wordnet WordNet] dictionaries but is implemented slightly differently from their [http://wordnet.princeton.edu/wordnet/man/morph.3WN.html morphological analyzer].  Currently, Clear morphological analyzer only supports English; more languages will be supported near in the future.
 <br><br>
 
 == How to run Clear morphological analyzer ==
