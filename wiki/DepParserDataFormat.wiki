@@ -25,10 +25,11 @@ Each field is delimited by a tab character (`'\t'`).  Here is an example of this
 6    available      available      _    JJ     _    3    PRD
 7    .              .              _    .      _    3    P
 }}}
+<br><br>
 
 == Clear dependency format ==
 
-The ClearTab format keeps only fields required for the parser.  The required fields are
+The Clear dependency format keeps only fields required for the parser.  The required fields are
 
  * ID: token counter, starting at 1 for each new sentence
  * Form: word form or punctuation symbol
@@ -36,7 +37,6 @@ The ClearTab format keeps only fields required for the parser.  The required fie
  * POSTAG: fine-grained part-of-speech tag
  * HEAD: head ID of the current token
  * DEPREL: dependency relation to the HEAD
-
 
 Each field is delimited by a tab character (`'\t'`).  Here is an example of this format.  The last two columns (HEAD, DEPREL) are optional for decoding.
 
