@@ -9,7 +9,7 @@ Clear dependency parser supports the CoNLL-X [http://nextens.uvt.nl/~conll/#data
  * HEAD: head ID of the current token
  * DEPREL: dependency relation to the HEAD
 
-Here is an example of this format.  For decoding, the last two columns (HEAD, DEPREL) are not required to be presented.
+Here is an example of this format.  For decoding, the last two columns (HEAD, DEPREL) are optional.
 
 {{{
 1    Pricing        pricing        _    NN     _    2    NMOD
