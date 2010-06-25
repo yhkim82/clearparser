@@ -1,6 +1,6 @@
-#summary Guidelines for morphological analyzer
+#summary Morphological analyzer: guidelines
 
-Clear morphological analyzer converts word-forms to their base-forms.  For example, all plural nouns are converted to their singular forms and all  currently supports only English.  More languages will be supported sometime in future.
+Clear morphological analyzer converts word-forms to their lemmas.  For example, all plural nouns are converted to their singular forms and all regular/irregular verb-forms are converted to their base-forms.  Currently, Clear morphological analyzer only supports English.  More languages will be supported in the future.
 <br><br>
 
 == How to run Clear morphological analyzer ==
@@ -19,3 +19,4 @@ java clear.engine.MorphAnalyze -i <input file> -o <output file>
 
  * FORM
  * POSTAG
+ * LEMMA
