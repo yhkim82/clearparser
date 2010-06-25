@@ -53,12 +53,12 @@ Each field is delimited by a tab character (`'\t'`) and each sentence is delimit
 
 == Clear part-of-speech format ==
 
-The Clear part-of-speech format requires only two fields.  The ID field is counted automatically (starting at 1).  The LEMMA field is filled by using its default morphological analyzer.  This format is meant only for decoding.
+The Clear part-of-speech format requires only two fields.
 
  * Form: word form or punctuation symbol
  * POSTAG: fine-grained part-of-speech tag
 
-Each field is delimited by a tab character (`'\t'`) and each sentence is delimited by a blank line.  Here is an example of this format.
+Each field is delimited by a tab character (`'\t'`) and each sentence is delimited by a blank line.  The ID field is counted automatically (starting at 1).  The LEMMA field is filled by using our default morphological analyzer, the same analyzer we used for training.  Note that this format is meant only for decoding.  Here is an example of this format.
 
 {{{
 Pricing        NN
