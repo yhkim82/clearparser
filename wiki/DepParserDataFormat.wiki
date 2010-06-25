@@ -1,6 +1,11 @@
 #summary Dependency parser: data format
 
-Clear dependency parser supports the CoNLL-X [http://nextens.uvt.nl/~conll/#dataformat data format].  Among all the fields, the parser requires values for
+Clear dependency parser currently supports the CoNLL-X format and the ClearTab format.
+<br><br>
+
+== CoNLL-X format ==
+
+Detailed descriptions about the CoNLL-X data format can be found from the [http://nextens.uvt.nl/~conll/#dataformat link].  Among all the fields, the parser requires values for
 
  * ID: token counter, starting at 1 for each new sentence
  * Form: word form or punctuation symbol
@@ -9,7 +14,7 @@ Clear dependency parser supports the CoNLL-X [http://nextens.uvt.nl/~conll/#data
  * HEAD: head ID of the current token
  * DEPREL: dependency relation to the HEAD
 
-Here is an example of this format.  For decoding, the last two columns (HEAD, DEPREL) are optional.
+Each field is delimited by a tab character (`'\t'`).  Here is an example of this format.  The last two columns (HEAD, DEPREL) are optional for decoding.
 
 {{{
 1    Pricing        pricing        _    NN     _    2    NMOD
@@ -19,4 +24,28 @@ Here is an example of this format.  For decoding, the last two columns (HEAD, DE
 5    immediately    immediately    _    RB     _    6    AMOD
 6    available      available      _    JJ     _    3    PRD
 7    .              .              _    .      _    3    P
+}}}
+
+== ClearTab format ==
+
+The ClearTab format keeps only fields required for the parser.  The required fields are
+
+ * ID: token counter, starting at 1 for each new sentence
+ * Form: word form or punctuation symbol
+ * Lemma: lemma or stem of word form
+ * POSTAG: fine-grained part-of-speech tag
+ * HEAD: head ID of the current token
+ * DEPREL: dependency relation to the HEAD
+
+
+Each field is delimited by a tab character (`'\t'`).  Here is an example of this format.  The last two columns (HEAD, DEPREL) are optional for decoding.
+
+{{{
+1    Pricing        pricing        NN     2    NMOD
+2    details        detail         NNS    3    SBJ
+3    were           be             VBD    0    ROOT
+4    n't            not            RB     3    ADV
+5    immediately    immediately    RB     6    AMOD
+6    available      available      JJ     3    PRD
+7    .              .              .      3    P
 }}}
