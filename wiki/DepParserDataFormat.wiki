@@ -1,11 +1,11 @@
 #summary Dependency parser: data format
 
-Clear dependency parser currently supports the CoNLL-X format and the Clear dependency format.
+Clear dependency parser currently supports the CoNLL-X format, the Clear dependency format, and the Clear part-of-speech format.
 <br><br>
 
 == CoNLL-X format ==
 
-Detailed descriptions about the CoNLL-X data format can be found from the [http://nextens.uvt.nl/~conll/#dataformat link].  Among all the fields, the parser requires values for
+Detailed descriptions about the CoNLL-X data format can be found from [http://nextens.uvt.nl/~conll/#dataformat here].  Among all the fields, the parser requires values for
 
  * ID: token counter, starting at 1 for each new sentence
  * Form: word form or punctuation symbol
@@ -14,7 +14,7 @@ Detailed descriptions about the CoNLL-X data format can be found from the [http:
  * HEAD: head ID of the current token
  * DEPREL: dependency relation to the HEAD
 
-Each field is delimited by a tab character (`'\t'`).  Here is an example of this format.  The last two columns (HEAD, DEPREL) are optional for decoding.
+Each field is delimited by a tab character (`'\t'`) and each sentence is delimited by a blank line.  Here is an example of this format.  The last two columns (HEAD, DEPREL) are optional for decoding.
 
 {{{
 1    Pricing        pricing        _    NN     _    2    NMOD
@@ -29,7 +29,7 @@ Each field is delimited by a tab character (`'\t'`).  Here is an example of this
 
 == Clear dependency format ==
 
-The Clear dependency format keeps only fields required for the parser.  The required fields are
+The Clear dependency format keeps only fields required for the parser.
 
  * ID: token counter, starting at 1 for each new sentence
  * Form: word form or punctuation symbol
@@ -38,7 +38,7 @@ The Clear dependency format keeps only fields required for the parser.  The requ
  * HEAD: head ID of the current token
  * DEPREL: dependency relation to the HEAD
 
-Each field is delimited by a tab character (`'\t'`).  Here is an example of this format.  The last two columns (HEAD, DEPREL) are optional for decoding.
+Each field is delimited by a tab character (`'\t'`) and each sentence is delimited by a blank line.  Here is an example of this format.  The last two columns (HEAD, DEPREL) are optional for decoding.
 
 {{{
 1    Pricing        pricing        NN     2    NMOD
@@ -48,4 +48,24 @@ Each field is delimited by a tab character (`'\t'`).  Here is an example of this
 5    immediately    immediately    RB     6    AMOD
 6    available      available      JJ     3    PRD
 7    .              .              .      3    P
+}}}
+<br>
+
+== Clear part-of-speech format ==
+
+The Clear part-of-speech format requires two fields.  This format is meant only for decoding.
+
+ * Form: word form or punctuation symbol
+ * POSTAG: fine-grained part-of-speech tag
+
+Each field is delimited by a tab character (`'\t'`) and each sentence is delimited by a blank line.  Here is an example of this format.
+
+{{{
+Pricing        NN
+details        NNS
+were           VBD
+n't            RB
+immediately    RB
+available      JJ
+.              .
 }}}
