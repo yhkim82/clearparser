@@ -69,3 +69,12 @@ immediately    RB
 available      JJ
 .              .
 }}}
+<br>
+
+== Clear raw format ==
+
+The Clear raw format takes a sentence per line.
+
+{{{
+Pricing details weren't immediately available.
+}}}
