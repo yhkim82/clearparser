@@ -1,0 +1,100 @@
+#summary Data format
+
+ClearParser supports 5 data formats:  a raw format, a part-of-speech format, a dependency format, a semantic-role format, and the CoNLL-X format.
+<br><br>
+
+== Raw format ==
+
+The raw format contains a sentence per line.  This format is only for decoding and requires to specify a model for the POS tagger and a dictionary for the lemmatizer (see [ConfigGuidelines configuration guidelines] for more details).
+
+{{{
+Pricing details weren't immediately available.
+She bought a car.
+}}}
+
+== Part-of-speech format ==
+
+The part-of-speech format requires 2 fields.
+
+ * Form: word form or punctuation symbol
+ * POSTAG: fine-grained part-of-speech tag
+
+Each field is delimited by a tab character (`'\t'`).  Each sentence is delimited by a blank line.  This format is only for decoding and requires to specify a dictionary for the lemmatizer (see [ConfigGuidelines configuration guidelines] for more details).
+
+{{{
+Pricing        NN
+details        NNS
+were           VBD
+n't            RB
+immediately    RB
+available      JJ
+.              .
+
+She            PRP
+bought         VBD
+a              DT
+car            NN
+.              .
+}}}
+
+== Dependency format ==
+
+The dependency format requires 5 fields.
+
+ * ID: token counter, starting at 1 for each new sentence
+ * Form: word form or punctuation symbol
+ * Lemma: lemma or stem of word form
+ * POSTAG: fine-grained part-of-speech tag
+ * HEAD: head ID of the current token
+ * DEPREL: dependency relation to the HEAD
+
+Each field is delimited by a tab character (`'\t'`).  Each sentence is delimited by a blank line.  The last two columns (HEAD, DEPREL) are optional for dependency decoding.
+
+{{{
+1    Pricing        pricing        NN     2    NMOD
+2    details        detail         NNS    3    SBJ
+3    were           be             VBD    0    ROOT
+4    n't            not            RB     3    ADV
+5    immediately    immediately    RB     6    AMOD
+6    available      available      JJ     3    PRD
+7    .              .              .      3    P
+
+1    She            she            PRP    2    SBJ
+2    bought         buy            VBD    0    ROOT
+3    a              a              DT     4    NMOD
+4    car            car            NN     2    OBJ
+5    .              .              .      2    P
+}}}
+
+== Semantic-role format ==
+
+_Comiing soon_
+
+== CoNLL-X format ==
+
+Detailed descriptions about the CoNLL-X data format can be found from [http://nextens.uvt.nl/~conll/#dataformat here].  Among all the fields, the parser requires values for
+
+ * ID: token counter, starting at 1 for each new sentence
+ * Form: word form or punctuation symbol
+ * Lemma: lemma or stem of word form
+ * POSTAG: fine-grained part-of-speech tag
+ * HEAD: head ID of the current token
+ * DEPREL: dependency relation to the HEAD
+
+Each field is delimited by a tab character (`'\t'`).  Each sentence is delimited by a blank line.  The last two columns (HEAD, DEPREL) are optional for dependency decoding.
+
+{{{
+1    Pricing        pricing        _    NN     _    2    NMOD
+2    details        detail         _    NNS    _    3    SBJ
+3    were           be             _    VBD    _    0    ROOT
+4    n't            not            _    RB     _    3    ADV
+5    immediately    immediately    _    RB     _    6    AMOD
+6    available      available      _    JJ     _    3    PRD
+7    .              .              _    .      _    3    P
+
+1    She            she            _    PRP    _    2    SBJ
+2    bought         buy            _    VBD    _    0    ROOT
+3    a              a              _    DT     _    4    NMOD
+4    car            car            _    NN     _    2    OBJ
+5    .              .              _    .      _    2    P
+}}}
