@@ -5,16 +5,42 @@ Clear dependency parser supports 3 data formats:  a raw format, a part-of-speech
 
 == Raw format ==
 
-The raw format takes a sentence per line.  This format is only for decoding.  Here is an example of this format.
+The raw format consists of a sentence per line.  This format is only for decoding.  Note that the raw format requires to specify a model for the POS tagger and a dictionary for the lemmatizer (see [DepGuidelines dependency parser guidelines] for more details).
+
 
 {{{
 Pricing details weren't immediately available.
 She bought a car.
 }}}
 
+== Part-of-speech format ==
+
+The part-of-speech format requires two fields.
+
+ * Form: word form or punctuation symbol
+ * POSTAG: fine-grained part-of-speech tag
+
+Each field is delimited by a tab character (`'\t'`).  Each sentence is delimited by a blank line.  This format is only for decoding.  Here is an example of this format.
+
+{{{
+Pricing        NN
+details        NNS
+were           VBD
+n't            RB
+immediately    RB
+available      JJ
+.              .
+
+She            PRP
+bought         VBD
+a              DT
+car            NN
+.              .
+}}}
+
 == Dependency format ==
 
-The Clear dependency format keeps only fields required for the parser.
+The dependency format keeps only fields required for the parser.
 
  * ID: token counter, starting at 1 for each new sentence
  * Form: word form or punctuation symbol
@@ -56,27 +82,10 @@ Each field is delimited by a tab character (`'\t'`) and each sentence is delimit
 5    immediately    immediately    _    RB     _    6    AMOD
 6    available      available      _    JJ     _    3    PRD
 7    .              .              _    .      _    3    P
+
+1    She            she            _    PRP    _    2    SBJ
+2    bought         buy            _    VBD    _    0    ROOT
+3    a              a              _    DT     _    4    NMOD
+4    car            car            _    NN     _    2    OBJ
+5    .              .              _    .      _    2    P
 }}}
-<br>
-
-
-
-== Clear part-of-speech format ==
-
-The Clear part-of-speech format requires only two fields.
-
- * Form: word form or punctuation symbol
- * POSTAG: fine-grained part-of-speech tag
-
-The ID field is counted automatically (starting at 1).  The LEMMA field is filled by using our default morphological analyzer, the same analyzer we used for training.  Each field is delimited by a tab character (`'\t'`) and each sentence is delimited by a blank line.  Note that this format is meant only for decoding.  Here is an example of this format.
-
-{{{
-Pricing        NN
-details        NNS
-were           VBD
-n't            RB
-immediately    RB
-available      JJ
-.              .
-}}}
-<br>
