@@ -5,7 +5,7 @@ Clear dependency parser supports 3 data formats:  a raw format, a part-of-speech
 
 == Raw format ==
 
-The raw format consists of a sentence per line.  This format is only for decoding and requires to specify a model for the POS tagger and a dictionary for the lemmatizer (see [DepParserGuidelines dependency parser guidelines] for more details).
+The raw format consists of a sentence per line.  This format is only for decoding and requires to specify a model for the POS tagger and a dictionary for the lemmatizer (see [ConfigGuidelines configuration guidelines] for more details).
 
 
 {{{
