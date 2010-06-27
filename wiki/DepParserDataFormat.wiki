@@ -1,7 +1,15 @@
 #summary Dependency parser: data format
 
-Clear dependency parser currently supports the CoNLL-X format, the Clear dependency format, and the Clear part-of-speech format.
-<br><br>
+Clear dependency parser supports 4 data formats:  a raw format, a token format, a dependency format, and the CoNLL-X format.
+
+== Raw format ==
+
+The raw format takes a sentence per line.  This format is only for decoding.  Here is an example of this format.
+
+{{{
+Pricing details weren't immediately available.
+She bought a car.
+}}}
 
 == CoNLL-X format ==
 
@@ -70,11 +78,3 @@ available      JJ
 .              .
 }}}
 <br>
-
-== Clear raw format ==
-
-The Clear raw format takes a sentence per line.
-
-{{{
-Pricing details weren't immediately available.
-}}}
