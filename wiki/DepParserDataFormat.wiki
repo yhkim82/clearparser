@@ -1,6 +1,7 @@
 #summary Dependency parser: data format
 
-Clear dependency parser supports 4 data formats:  a raw format, a token format, a dependency format, and the CoNLL-X format.
+Clear dependency parser supports 3 data formats:  a raw format, a part-of-speech format, a dependency format, and the CoNLL-X format.
+<br><br>
 
 == Raw format ==
 
@@ -9,6 +10,29 @@ The raw format takes a sentence per line.  This format is only for decoding.  He
 {{{
 Pricing details weren't immediately available.
 She bought a car.
+}}}
+
+== Dependency format ==
+
+The Clear dependency format keeps only fields required for the parser.
+
+ * ID: token counter, starting at 1 for each new sentence
+ * Form: word form or punctuation symbol
+ * Lemma: lemma or stem of word form
+ * POSTAG: fine-grained part-of-speech tag
+ * HEAD: head ID of the current token
+ * DEPREL: dependency relation to the HEAD
+
+Each field is delimited by a tab character (`'\t'`) and each sentence is delimited by a blank line.  Here is an example of this format.  The last two columns (HEAD, DEPREL) are optional for decoding.
+
+{{{
+1    Pricing        pricing        NN     2    NMOD
+2    details        detail         NNS    3    SBJ
+3    were           be             VBD    0    ROOT
+4    n't            not            RB     3    ADV
+5    immediately    immediately    RB     6    AMOD
+6    available      available      JJ     3    PRD
+7    .              .              .      3    P
 }}}
 
 == CoNLL-X format ==
@@ -35,29 +59,7 @@ Each field is delimited by a tab character (`'\t'`) and each sentence is delimit
 }}}
 <br>
 
-== Clear dependency format ==
 
-The Clear dependency format keeps only fields required for the parser.
-
- * ID: token counter, starting at 1 for each new sentence
- * Form: word form or punctuation symbol
- * Lemma: lemma or stem of word form
- * POSTAG: fine-grained part-of-speech tag
- * HEAD: head ID of the current token
- * DEPREL: dependency relation to the HEAD
-
-Each field is delimited by a tab character (`'\t'`) and each sentence is delimited by a blank line.  Here is an example of this format.  The last two columns (HEAD, DEPREL) are optional for decoding.
-
-{{{
-1    Pricing        pricing        NN     2    NMOD
-2    details        detail         NNS    3    SBJ
-3    were           be             VBD    0    ROOT
-4    n't            not            RB     3    ADV
-5    immediately    immediately    RB     6    AMOD
-6    available      available      JJ     3    PRD
-7    .              .              .      3    P
-}}}
-<br>
 
 == Clear part-of-speech format ==
 
