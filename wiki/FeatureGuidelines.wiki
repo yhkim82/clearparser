@@ -1,13 +1,45 @@
 #summary Feature template guidelines
 
-= Introduction =
+ClearParser requires a feature template file in XML.  The following shows a sample feature template (it is not the default feature template).
 
-Add your content here.
+{{{
+<feature_template>
+    <unigram field="f"  node="l0"/>
+    <unigram field="m"  node="l0"/>
+    <unigram field="p"  node="b0"/>
+    <unigram field="d"  node="b0"/>
+    <unigram field="f"  node="l-1"/>
+    <unigram field="f"  node="b-2"/>
+    <unigram field="f"  node="l1"/>
+    <unigram field="f"  node="b2"/>
+    <unigram field="f"  node="l0_hd"/>
+    <unigram field="d"  node="l0_rm"/>
+    <unigram field="d"  node="b0_lm"/>
+    <unigram field="pm" node="l0"/>
+		
+    <bigram field="pp" node0="l0" node1="b0"></bigram>
+    <bigram field="pm" node0="l0" node1="b0"></bigram>
+    <bigram field="mp" node0="l0" node1="b0"></bigram>
+    <bigram field="mm" node0="l0" node1="b0"></bigram>
 
+    <trigram field="ppp" node0="l0_lm" node1="l0" node2="b0"></trigram>
+    <trigram field="ppp" node0="b0"    node1="b1" node2="b2"></trigram>
+</feature_template>
+}}}
 
-= Details =
+<*feature_template*> is the top element that consists of 3 kinds of elements: <*unigram*>, <*bigram*>, and <*trigram*>.
+<br><br>
 
-Add your content here.  Format your content with:
-  * Text in *bold* or _italic_
-  * Headings, paragraphs, and lists
-  * Automatic links to other wiki pages
+== <*unigram*> ==
+
+The <*unigram*> element consists of 2 required attributes.
+ * attribute.*field* ::= f | m | p | d | pm
+  * f: word form
+  * m: lemma
+  * p: part-of-speech tag
+  * d: dependency label
+  * pm: joined feature of part-of-speech tag and lemma
+ * attribute.*node* ::= l# | b# | l#`_`(hd | lm | rm) | b#`_`(hd | lm | rm)
+  * 'l' indicates the last token in _lambda,,1,,_, and 'b' indicates the first token in _beta_.
+  * # indicates an offset from the token (e.g., 'l0' is the last token in _lambda,,1,,_, 'b0' is the first token in _beta_, 'l-1' is the previous token of 'l0', and 'b1' is the next token of 'b0')
+  * `_`(hd | lm | rm) is optional and indicates the head | leftmost dependent | rightmost dependent of the token (e.g., 'l0`_`hd' is the head of 'l0')
