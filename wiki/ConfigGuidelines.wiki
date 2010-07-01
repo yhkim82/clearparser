@@ -21,7 +21,7 @@ ClearParser requires a configuration file in XML.  The following shows contents 
 </configuration>
 }}}
 
-<*configuration*> is the top-level element that consists of 3 elements: <*common*>, <*liblinear*>, and <*predict*>.
+<*configuration*> is the top element that consists of 3 elements: <*common*>, <*liblinear*>, and <*predict*>.
 <br><br>
 
 == <*common*> ==
