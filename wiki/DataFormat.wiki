@@ -1,7 +1,6 @@
 #summary Data format
 
 ClearParser supports 5 data formats:  a raw format, a part-of-speech format, a dependency format, a semantic-role format, and the CoNLL-X format.
-<br><br>
 
 == Raw format ==
 
