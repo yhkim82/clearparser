@@ -21,15 +21,19 @@ ClearParser requires a configuration file in XML.  The following shows contents 
 </configuration>
 }}}
 
-== <common> ==
+<*configuration*> is the top-level element that consists of 3 children: <*common*>, <*liblinear*>, and <*predict*>.
 
-The <common> element is required for both training and decoding.  It has 4 sub-elements.
+== <*common*> ==
 
- * <language> ::= ch | en | hi (Chinese | English | Hindi)
- * <format> ::= raw|pos|dep|srl|conll
- * <lexicon_dir> ::= directory that contains lexicon files (lexicon files are automatically generated during the training)
- * <model_file> ::= name of the LibLinear model file
- * <feature_xml> ::= name of the feature template file in XML
+The <*common*> element is required for both training and decoding, and consists of 5 children.
+
+ * <*language*> ::= ch | en | hi
+   * Specifies a language (ch: Chinese, en: English, hi: Hindi)
+ * <*format*> ::= raw | pos | dep | srl | conll
+   * Specifies a [DataFormat format]
+ * <*lexicon_dir*> ::= directory that contains lexicon files (lexicon files are automatically generated during the training)
+ * <*model_file*> ::= name of the LibLinear model file
+ * <*feature_xml*> ::= name of the feature template file in XML
 
 
 = Details =
