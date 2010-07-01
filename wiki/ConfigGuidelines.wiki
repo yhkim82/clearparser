@@ -1,8 +1,35 @@
 #summary Configuration guidelines
 
-= Introduction =
+ClearParser requires a configuration file in XML.  The following shows contents of the default configuration file (`config/config_default.xml`).
 
-Add your content here.
+{{{
+<configuration>
+    <common>
+        <language>en</language>
+        <format>dep</format>
+        <lexicon_dir>lexicon_en/</lexicon_dir>
+        <model_file>model_en/wsj.mod.s3.c0.1.e0.1</model_file>
+        <feature_xml>model_en/feature_en.xml</feature_xml>
+    </common>
+    <liblinear s="3" c="0.1" e="0.1" B="-1">
+        <trainer>/opt/liblinear-1.51/train</trainer>
+    </liblinear>
+    <predict>
+	<pos_model_file>lib/stanford-models/bidirectional-distsim-wsj-0-18.tagger</pos_model_file>
+        <morph_dict_dir>lib/dict_en/</morph_dict_dir>
+    </predict>
+</configuration>
+}}}
+
+== <common> ==
+
+The <common> element is required for both training and decoding.  It has 4 sub-elements.
+
+ * <language> ::= ch | en | hi (Chinese | English | Hindi)
+ * <format> ::= raw|pos|dep|srl|conll
+ * <lexicon_dir> ::= directory that contains lexicon files (lexicon files are automatically generated during the training)
+ * <model_file> ::= name of the LibLinear model file
+ * <feature_xml> ::= name of the feature template file in XML
 
 
 = Details =
