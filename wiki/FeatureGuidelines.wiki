@@ -33,13 +33,41 @@ ClearParser requires a feature template file in XML.  The following shows a samp
 == <*unigram*> ==
 
 The <*unigram*> element consists of 2 required attributes.
+
  * attribute.*field* ::= f | m | p | d | pm
   * f: word form
   * m: lemma
   * p: part-of-speech tag
   * d: dependency label
-  * pm: joined feature of part-of-speech tag and lemma
+  * pm: joined feature of (POS tag, lemma)
  * attribute.*node* ::= l# | b# | l#`_`(hd | lm | rm) | b#`_`(hd | lm | rm)
   * 'l' indicates the last token in _lambda,,1,,_, and 'b' indicates the first token in _beta_.
   * # indicates an offset from the token (e.g., 'l0' is the last token in _lambda,,1,,_, 'b0' is the first token in _beta_, 'l-1' is the previous token of 'l0', and 'b1' is the next token of 'b0')
-  * `_`(hd | lm | rm) is optional and indicates the head | leftmost dependent | rightmost dependent of the token (e.g., 'l0`_`hd' is the head of 'l0')
+  * `_`(hd | lm | rm) is optional and indicates the _head_ | _leftmost dependent_ | _rightmost dependent_ of the token (e.g., 'l0`_`hd' is the head of 'l0')
+
+== <*bigram*> ==
+
+The <*bigram*> element consists of 3 required attributes.
+
+ * attribute.*field* ::= pp | pm | mp | mm
+  * pp: joined feature of (POS tag of node0, POS tag of node1)
+  * pm: joined feature of (POS tag of node0, lemma of node1)
+  * mp: joined feature of (lemma of node0, POS tag of node1)
+  * mm: joined feature of (lemma of node0, lemma of node1)
+ * attribute.*node0* ::= same as attribute.*node*
+  * left node
+ * attribute.*node1* ::= same as attribute.*node*
+  * right node
+
+== <*trigram*> ==
+
+The <*trigram*> element consists of 4 required attributes.
+
+ * attribute.*field* ::= ppp
+  * ppp: joined feature of (POS tag of node0, POS tag of node1, POS tag of node2)
+ * attribute.*node0* ::= same as attribute.*node*
+  * left node
+ * attribute.*node1* ::= same as attribute.*node*
+  * middle node
+ * attribute.*node2* ::= same as attribute.*node*
+  * right node
