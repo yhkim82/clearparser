@@ -2,7 +2,7 @@
 
 ClearParser supports 5 data formats:  a raw format, a part-of-speech format, a dependency format, a semantic-role format, and the CoNLL-X format.
 
-== Raw (raw) format ==
+== Raw format (raw) ==
 
 The raw format contains a sentence per line.  This format is only for decoding and requires to specify a model for the POS tagger and a dictionary for the lemmatizer (see [ConfigGuidelines configuration guidelines] for more details).
 
@@ -11,7 +11,7 @@ Pricing details weren't immediately available.
 She bought a car.
 }}}
 
-== Part-of-speech (pos) format ==
+== Part-of-speech format (pos) ==
 
 The part-of-speech format requires 2 fields.
 
@@ -36,7 +36,7 @@ car            NN
 .              .
 }}}
 
-== Dependency (dep) format ==
+== Dependency format (dep) ==
 
 The dependency format requires 5 fields.
 
@@ -65,11 +65,11 @@ Each field is delimited by a tab character (`'\t'`).  Each sentence is delimited
 5    .              .              .      2    P
 }}}
 
-== Semantic-role labeling (srl) format ==
+== Semantic-role labeling format (srl) ==
 
 _Coming soon_
 
-== CoNLL-X (conll) format ==
+== CoNLL-X format (conll) ==
 
 Detailed descriptions about the CoNLL-X data format can be found from [http://nextens.uvt.nl/~conll/#dataformat here].  Among all the fields, the parser requires values for
 
