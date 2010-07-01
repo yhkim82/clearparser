@@ -21,24 +21,26 @@ ClearParser requires a configuration file in XML.  The following shows contents 
 </configuration>
 }}}
 
-<*configuration*> is the top-level element that consists of 3 children: <*common*>, <*liblinear*>, and <*predict*>.
+<*configuration*> is the top-level element that consists of 3 elements: <*common*>, <*liblinear*>, and <*predict*>.
 
 == <*common*> ==
 
-The <*common*> element is required for both training and decoding, and consists of 5 children.
+The <*common*> element is required for both training and decoding.  It consists of 5 required elements.
 
  * <*language*> ::= ch | en | hi
    * Specifies a language (ch: Chinese, en: English, hi: Hindi)
  * <*format*> ::= raw | pos | dep | srl | conll
-   * Specifies a [DataFormat format]
- * <*lexicon_dir*> ::= directory that contains lexicon files (lexicon files are automatically generated during the training)
- * <*model_file*> ::= name of the LibLinear model file
- * <*feature_xml*> ::= name of the feature template file in XML
+   * Specifies a [DataFormat data format]
+ * <*lexicon_dir*> ::= absolute or relative path
+   * Specifies a directory path that contains lexicon files (automatically generated during the training)
+ * <*model_file*> ::= absolute or relative path
+   * Specifies a filename of the [http://www.csie.ntu.edu.tw/~cjlin/liblinear/ LibLinear] model
+ * <*feature_xml*> ::= absolute or relative path
+   * Specifies a filename of the [featureGuidelines feature template in XML]
 
+== <*liblinear*> ==
 
-= Details =
+The <*liblinear*> element is required for training.  It consists of 1 required element and 4 optional attributes.
 
-Add your content here.  Format your content with:
-  * Text in *bold* or _italic_
-  * Headings, paragraphs, and lists
-  * Automatic links to other wiki pages
+  * <*trainer*> ::= absolute path to the executable trainer of [http://www.csie.ntu.edu.tw/~cjlin/liblinear/ LibLinear]
+    * For an Unix-system, the executable file usually is under the top directory of LibLinear.   For a Windows-system, it usually is under the [windows] directory of LibLinear.  We could have integrated the Java version of LibLinear for training, but we found the C version of LibLinear to be faster and more memory efficient.
