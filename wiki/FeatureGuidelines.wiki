@@ -5,7 +5,8 @@ ClearParser requires a feature template file in XML.  The following shows a samp
 Currently allows upto 3-gram features.
 l = l0 = l+0 = l-0
 l1 = l+1
-visible="true" -> true, everything else is false
+visible="false" -> false, everything else is true
+if no visible -> true
 
 {{{
 <feature_template>
