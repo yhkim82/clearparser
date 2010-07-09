@@ -10,6 +10,7 @@ import clear.propbank.PBArg;
 import clear.propbank.PBInstance;
 import clear.propbank.PBReader;
 import clear.reader.CoNLLReader;
+import clear.reader.DepReader;
 import clear.srl.SrlNode;
 import clear.srl.SrlTree;
 import clear.util.IOUtil;
@@ -18,7 +19,6 @@ public class Dep2Srl
 {
 	private final String KEY_DELIM = "_";
 	private HashMap<String, PBInstance> m_propbank;
-	HashMap<String, Integer> m_arg0;
 
 	public Dep2Srl(String pbFile, String tokenFile, String tbDir, String depDir, String depExt, String srlDir, String srlExt)
 	{
@@ -65,7 +65,7 @@ public class Dep2Srl
 		for (String depFile : filelist)
 		{
 			System.out.print("\rProcess: "+depFile);
-			CoNLLReader reader = new CoNLLReader(depDir + File.separator + depFile, true);
+			DepReader reader = new DepReader(depDir + File.separator + depFile, true);
 			DepTree   dTree;
 			
 			String  filename = FileExtensionFilter.getFilenameWithoutExtension(depFile);

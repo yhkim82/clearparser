@@ -88,27 +88,20 @@ public class DepParser extends AbstractParser
 	{
 		init(tree);
 		
-		if (i_flag == DepLib.FLAG_PREDICT_BEST)
-			d_tree.copy(predictBest());
-		else
+		while (i_beta < tree.size())	// beta is not empty
 		{
-			while (i_beta < tree.size())	// beta is not empty
-			{
-				d_tree.n_trans++;
-				
-				if (i_lambda == -1)			// lambda_1 is empty: deterministic shift
-					shift(true);	
-				else if (i_flag == DepLib.FLAG_PREDICT_GREEDY)
-					predictGreedy();
-				else
-					train();
-			}
+			d_tree.n_trans++;
 			
-			if (i_flag == DepLib.FLAG_PRINT_TRANSITION)	f_out.println();
+			if (i_lambda == -1)			// lambda_1 is empty: deterministic shift
+				shift(true);	
+			else if (i_flag == DepLib.FLAG_PREDICT)
+				predict();
+			else
+				train();
 		}
 		
-		if (i_flag == DepLib.FLAG_PREDICT_GREEDY || i_flag == DepLib.FLAG_PREDICT_BEST)
-			postProcess();
+		if      (i_flag == DepLib.FLAG_PRINT_TRANSITION)	f_out.println();
+		else if (i_flag == DepLib.FLAG_PREDICT)				postProcess();
 	}
 	
 	/** Trains the dependency tree ({@link DepParser#d_tree}). */
@@ -144,7 +137,7 @@ public class DepParser extends AbstractParser
 	}
 	
 	/** Predicts dependency relations using a greedy algorithm. */
-	private void predictGreedy()
+	private void predict()
 	{
 		JIntDoubleTuple res = c_decode.predict(getFeatureArray());
 		String  label  = (res.i < 0) ? NO_ARC : t_map.indexToLabel(res.i);
@@ -163,83 +156,6 @@ public class DepParser extends AbstractParser
 		else
 			noArc();
 	}
-	
-	/** Predicts dependency relations using the k-best searching algorithm. */
-	private DepTree predictBest()
-	{
-		double threshold = -0.3;		// liblinear
-		
-		if (i_beta >= d_tree.size())	// beta is empty
-			return d_tree;
-
-		d_tree.n_trans++;
-		
-		if (i_lambda == -1)				// lambda_1 is empty: deterministic shift
-		{
-			shift(true);
-			return predictBest();
-		}
-		
-		ArrayList<JIntDoubleTuple> aRes = c_decode.predictAll(getFeatureArray());
-
-		if (aRes.get(0).d < threshold)
-		{
-			noArc();
-			return predictBest();
-		}
-				
-		int     iLambda  = i_lambda;
-		int     iBeta    = i_beta;
-		DepTree dTree    = d_tree.clone();
-		DepTree maxTree  = d_tree.clone();
-		double  maxScore = 0;
-		boolean isNoArc  = false;
-		
-		for (int i=0; i<aRes.size() & i<2; i++)
-		{
-			JIntDoubleTuple res = aRes.get(i);
-			if (res.d < threshold)	break;
-			i_lambda = iLambda;
-			i_beta   = iBeta;
-			d_tree.copy(dTree);
-			
-			String  label  = t_map.indexToLabel(res.i);
-			int     index  = label.indexOf(LB_DELIM);
-			String  trans  = (index > 0) ? label.substring(0,index) : label;
-			String  deprel = (index > 0) ? label.substring(index+1) : "";
-			DepNode lambda = d_tree.get(i_lambda);
-			DepNode beta   = d_tree.get(i_beta);
-			
-			if      (trans.equals( LEFT_ARC) && !d_tree.isAncestor(lambda, beta) && lambda.id != DepLib.ROOT_ID)
-				leftArc (lambda, beta, deprel, res.d);
-			else if (trans.equals(RIGHT_ARC) && !d_tree.isAncestor(beta, lambda))
-				rightArc(lambda, beta, deprel, res.d);
-			else if (trans.equals(SHIFT))
-			{
-				d_tree.d_score += res.d;
-				shift(false);
-			}
-			else if (!isNoArc)
-			{
-				isNoArc = true;
-				noArc();
-			}
-			else
-				continue;
-			
-			DepTree tree = predictBest();
-			double score = tree.getScore();
-			
-			if (score > maxScore)
-			{
-				maxTree.copy(tree);
-				maxScore = score;
-			}
-		}
-		
-		return maxTree;
-	}
-	
 	
 	/** Predicts dependency relations for tokens that have not found their heads. */
 	private void postProcess()
@@ -470,7 +386,6 @@ public class DepParser extends AbstractParser
 		ArrayList<String> s_lemma_pos_2gram   = new ArrayList<String>();
 		ArrayList<String> s_lemma_lemma_2gram = new ArrayList<String>();
 		ArrayList<String> s_pos_pos_pos_3gram = new ArrayList<String>();
-		ArrayList<String> s_dep_pos_pos_3gram = new ArrayList<String>();
 		
 		for (DepFtrToken[] tokens : t_xml.form_1gram)	s_form_1gram  .add(getNode(tokens[0]).form);
 		for (DepFtrToken[] tokens : t_xml.lemma_1gram)	s_lemma_1gram .add(getNode(tokens[0]).lemma);
@@ -525,16 +440,6 @@ public class DepParser extends AbstractParser
 			else													s_pos_pos_pos_3gram.add(node0.pos + FtrLib.TAG_DELIM + node1.pos + FtrLib.TAG_DELIM + node2.pos);
 		}
 		
-		for (DepFtrToken[] tokens : t_xml.dep_pos_pos_3gram)
-		{
-			String deprel = getNode(tokens[0]).getDeprel();
-			DepNode node1 = getNode(tokens[1]);
-			DepNode node2 = getNode(tokens[2]);
-			
-			if (deprel.equals(FtrLib.TAG_NULL) || node1.isNull() || node2.isNull())	s_pos_pos_pos_3gram.add(FtrLib.TAG_NULL);
-			else																	s_pos_pos_pos_3gram.add(deprel + FtrLib.TAG_DELIM + node1.pos + FtrLib.TAG_DELIM + node2.pos);
-		}
-		
 		if (i_flag == DepLib.FLAG_PRINT_LEXICON)	// store features for configuration files
 		{
 			t_map.addForm  (b0.form);
@@ -560,9 +465,6 @@ public class DepParser extends AbstractParser
 			for (String pos_pos_pos_3gram : s_pos_pos_pos_3gram)
 				if (!pos_pos_pos_3gram.equals(FtrLib.TAG_NULL))		t_map.addPosPosPos3gram(pos_pos_pos_3gram);
 			
-			for (String dep_pos_pos_3gram : s_dep_pos_pos_3gram)
-				if (!dep_pos_pos_3gram.equals(FtrLib.TAG_NULL))		t_map.addDepPosPos3gram(dep_pos_pos_3gram);
-			
 			if (b0.isDeprel("P"))									t_map.addPunctuation(b0.form);
 			
 			return null;
@@ -582,7 +484,6 @@ public class DepParser extends AbstractParser
 		for (String lemmaPos   : s_lemma_pos_2gram)		addNgramFeature(arr, lemmaPos  , idx,  7);
 		for (String lemmaLemma : s_lemma_lemma_2gram)	addNgramFeature(arr, lemmaLemma, idx,  8);
 		for (String posPosPos  : s_pos_pos_pos_3gram)	addNgramFeature(arr, posPosPos , idx,  9);
-		for (String depPosPos  : s_dep_pos_pos_3gram)	addNgramFeature(arr, depPosPos , idx, 10);
 		
 		addPunctuationFeatures  (arr, l0.id, b0.id, idx);
 		addUnlabeledRuleFeatures(arr, l0   , b0   , idx);
@@ -620,8 +521,6 @@ public class DepParser extends AbstractParser
 				 beginIndex[0] += t_map.n_lemma_lemma_2gram;	break;
 		case  9: index = t_map.posPosPos3gramToIndex(feature);
 		         beginIndex[0] += t_map.n_pos_pos_pos_3gram;	break;
-		case 10: index = t_map.depPosPos3gramToIndex(feature);
-                 beginIndex[0] += t_map.n_dep_pos_pos_3gram;	break;
 		}
 
 		if (!feature.equals(FtrLib.TAG_NULL) && index > 0)	arr.add(begin+index);

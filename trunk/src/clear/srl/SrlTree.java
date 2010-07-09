@@ -337,7 +337,8 @@ public class SrlTree extends AbstractTree<SrlNode>
 					
 					if (!isComma)
 					{
-						DepTree tree = new DepTree(this);
+					//	DepTree tree = new DepTree(this);
+						DepTree tree = new DepTree();
 						int headId = -1;
 						
 						for (int i=0; i<size; i++)

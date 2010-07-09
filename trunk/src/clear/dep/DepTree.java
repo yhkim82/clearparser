@@ -24,11 +24,7 @@
 package clear.dep;
 
 
-import java.util.ArrayList;
-
 import clear.ftr.FtrMap;
-import clear.srl.SrlNode;
-import clear.srl.SrlTree;
 
 /**
  * Dependency tree.
@@ -51,18 +47,6 @@ public class DepTree extends AbstractTree<DepNode>
 	public DepTree()
 	{
 		add(new DepNode(true));
-		init(0, 0d);
-	}
-	
-	/**
-	 * Initializes the dependency tree with nodes in <code>tree</code>.
-	 * @see DepNode#DepNode(SrlNode)
-	 */
-	public DepTree(SrlTree tree)
-	{
-		for (int i=0; i<tree.size(); i++)
-			add(new DepNode(tree.get(i)));
-		
 		init(0, 0d);
 	}
 	
@@ -151,54 +135,12 @@ public class DepTree extends AbstractTree<DepNode>
 		return curr.hasHead ? get(curr.headId) : new DepNode();
 	}
 	
-	/**
-	 * Returns the leftmost dependent of the <code>currId</code>'th node.
-	 * It searches upto the <code>leftBoundId</code>'th node (inclusive).
-	 * If there is no such dependent, returns a null node.
-	 * @param currId    index of the node to find the leftmost dependent for
-	 * @param leftBound leftmost-index of the node to check (inclusive)
-	 */
-	public DepNode getLeftMostDependent(int currId, int leftBound)
-	{
-		DepNode curr = get(currId);
-		
-		for (int i=leftBound; i<currId; i++)
-		{
-			DepNode node = get(i);
-			if (node.hasHead && node.headId == curr.id)     return node;
-		}
-		
-		return new DepNode();
-	}
-	
 	/** @return the leftmost dependent of the <code>currId</code>'th node. */
 	public DepNode getLeftMostDependent(int currId)
 	{
 		DepNode curr = get(currId);
 		
 		return isRange(curr.leftDepId) ? get(curr.leftDepId) : new DepNode();
-	}
-	
-	/**
-	 * Returns the left-nearest dependent of the <code>currId</code>'th node.
-	 * If there is no such dependent, returns an empty node.
-	 * @param currId index of the current node
-	 */
-	public DepNode getLeftNearestDependent(int currId, int leftBound)
-	{
-		for (int i=currId-1; i>=leftBound; i--)
-		{
-			DepNode node = get(i);
-			if (node.hasHead && node.headId == currId)	return node;
-		}
-		
-		return new DepNode();
-	}
-	
-	/** @return the leftnearest dependent of the <code>currId</code>'th node. */
-	public DepNode getLeftNearestDependent(int currId)
-	{
-		return getLeftNearestDependent(currId, 1);
 	}
 	
 	/**
@@ -220,54 +162,12 @@ public class DepTree extends AbstractTree<DepNode>
 		return -1;
 	}
 	
-	/**
-	 * Returns the rightmost dependent of the <code>currId</code>'th node.
-	 * It searches upto the <code>rightBoundId</code>'th node (inclusive).
-	 * If there is no such dependent, returns a null node.
-	 * @param currId      index of the node to find the rightmost dependent for
-	 * @param rightBound the rightmost-index of the node to check (includsive)
-	 */
-	public DepNode getRightMostDependent(int currId, int rightBound)
-	{
-		DepNode curr = get(currId);
-		
-		for (int i=rightBound; i>currId; i--)
-		{
-			DepNode node = get(i);
-			if (node.hasHead && node.headId == curr.id)     return node;
-		}
-		
-		return new DepNode();
-	}
-	
 	/** @return the rightmost dependent of the <code>currId</code>'th node. */
 	public DepNode getRightMostDependent(int currId)
 	{
 		DepNode curr = get(currId);
 		
 		return isRange(curr.rightDepId) ? get(curr.rightDepId) : new DepNode();
-	}
-	
-	/**
-	 * Returns the right-nearest dependent of the <code>currId</code>'th node.
-	 * If there is no such dependent, returns an empty node.
-	 * @param currId index of the current node
-	 */
-	public DepNode getRightNearestDependent(int currId, int rightBound)
-	{
-		for (int i=currId+1; i<=rightBound; i++)
-		{
-			DepNode node = get(i);
-			if (node.hasHead && node.headId == currId)	return node;
-		}
-		
-		return new DepNode();
-	}
-	
-	/** Returns the right-nearest dependent of the <code>currId</code>'th node. */
-	public DepNode getRightNearestDependent(int currId)
-	{
-		return getRightNearestDependent(currId, size()-1);
 	}
 	
 	/**
@@ -296,30 +196,5 @@ public class DepTree extends AbstractTree<DepNode>
 		for (int i=1; i<size(); i++)	score += get(i).score;
 
 		return score;
-	}
-	
-	/** @return true if <code>currId</code>'th node has children. */
-	public boolean hasChild(int currId)
-	{
-		for (int i=1; i<size(); i++)
-		{
-			if (i == currId)				continue;
-			if (get(i).headId == currId)	return true;
-		}
-		
-		return false;
-	}
-	
-	public ArrayList<DepNode> findRoots()
-	{
-		ArrayList<DepNode> list = new ArrayList<DepNode>();
-		
-		for (int currId=1; currId<size(); currId++)
-		{
-			DepNode curr = get(currId);
-			if (curr.headId == DepLib.ROOT_ID)	list.add(curr);
-		}
-		
-		return list;
 	}
 }

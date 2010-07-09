@@ -60,7 +60,6 @@ public class DepFtrXml
 	static public final String XML_LEMMA_POS   = "mp";
 	static public final String XML_LEMMA_LEMMA = "mm";
 	static public final String XML_POS_POS_POS = "ppp";
-	static public final String XML_DEP_POS_POS = "dpp";
 	static public final char   XML_LAMBDA      = 'l';
 	static public final char   XML_BETA        = 'b';
 	static public final String XML_DELIM_REL   = "_";
@@ -75,7 +74,6 @@ public class DepFtrXml
 	public ArrayList<DepFtrToken[]> lemma_pos_2gram;
 	public ArrayList<DepFtrToken[]> lemma_lemma_2gram;
 	public ArrayList<DepFtrToken[]> pos_pos_pos_3gram;
-	public ArrayList<DepFtrToken[]> dep_pos_pos_3gram;
 	
 	public DepFtrXml(String featureXml)
 	{
@@ -95,7 +93,6 @@ public class DepFtrXml
 		lemma_pos_2gram   = new ArrayList<DepFtrToken[]>();
 		lemma_lemma_2gram = new ArrayList<DepFtrToken[]>();
 		pos_pos_pos_3gram = new ArrayList<DepFtrToken[]>();
-		dep_pos_pos_3gram = new ArrayList<DepFtrToken[]>();
 		
 		try
 		{
@@ -150,7 +147,6 @@ public class DepFtrXml
 			else if (maxToken == 3)		// trigram
 			{
 				if      (field.equals(XML_POS_POS_POS))	pos_pos_pos_3gram.add(tokens);
-				else if (field.equals(XML_DEP_POS_POS))	dep_pos_pos_3gram.add(tokens);
 				else									xmlError(XML_FIELD, field);
 			}
 		}

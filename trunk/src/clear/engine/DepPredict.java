@@ -61,7 +61,7 @@ public class DepPredict extends AbstractEngine
 	/** Lemmatizer dictionary directory */
 	private String s_morphDictDir = null;
 	/** Flag to choose parsing algorithm */
-	private byte   i_flag         = DepLib.FLAG_PREDICT_GREEDY;
+	private byte   i_flag         = DepLib.FLAG_PREDICT;
 	
 	private int[]    n_size_total = new int[10];
 	private double[] d_time       = new double[10];
@@ -159,7 +159,7 @@ public class DepPredict extends AbstractEngine
 			return false;
 		}
 		
-		if (i_flag != DepLib.FLAG_PREDICT_GREEDY && i_flag != DepLib.FLAG_PREDICT_BEST)
+		if (i_flag != DepLib.FLAG_PREDICT && i_flag != DepLib.FLAG_PREDICT_BEST)
 		{
 			System.err.println("Error: invalid <flag = "+i_flag+">.");
 			return false;
@@ -212,7 +212,7 @@ public class DepPredict extends AbstractEngine
 		String usage = "Usage: java clear.engine.DepPredic -t <test file> -o <output file> -c <configuration file> [-f <flag = "+ i_flag+">]";
 		System.out.println(usage);
 		
-		System.out.println("<flag> ::= " + DepLib.FLAG_PREDICT_GREEDY + ": greedy search");
+		System.out.println("<flag> ::= " + DepLib.FLAG_PREDICT + ": greedy search");
 		System.out.println("           " + DepLib.FLAG_PREDICT_BEST   + ": k-best search");
 	}
 	

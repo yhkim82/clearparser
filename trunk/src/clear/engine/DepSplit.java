@@ -39,7 +39,7 @@ import clear.util.IOUtil;
  * </pre>
  * 
  * Flags
- * - {@link DepLib#FLAG_PREDICT_GREEDY}: greedy search
+ * - {@link DepLib#FLAG_PREDICT}: greedy search
  * - {@link DepLib#FLAG_PREDICT_BEST}: k-best search
  * 
  * Algorithms

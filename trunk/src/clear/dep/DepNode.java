@@ -25,7 +25,6 @@ package clear.dep;
 
 import clear.ftr.FtrLib;
 import clear.reader.CoNLLReader;
-import clear.srl.SrlNode;
 
 /**
  * Dependency node.
@@ -58,7 +57,7 @@ public class DepNode
 	/** Initializes the node as a null node. */
 	public DepNode()
 	{
-		init(DepLib.NULL_ID, FtrLib.TAG_NULL, FtrLib.TAG_NULL, FtrLib.TAG_NULL, DepLib.NULL_HEAD_ID, FtrLib.TAG_NULL, 0, false, Integer.MAX_VALUE, -1);
+		init(DepLib.NULL_ID, FtrLib.TAG_NULL, FtrLib.TAG_NULL, FtrLib.TAG_NULL, DepLib.NULL_HEAD_ID, FtrLib.TAG_NULL);
 	}
 	
 	/**
@@ -67,20 +66,20 @@ public class DepNode
 	 */
 	public DepNode(boolean isRoot)
 	{
-		if (isRoot)	init(DepLib.ROOT_ID, DepLib.ROOT_TAG, DepLib.ROOT_TAG, DepLib.ROOT_TAG, DepLib.NULL_HEAD_ID, DepLib.ROOT_TAG, 0, false, Integer.MAX_VALUE, -1);
-		else		init(DepLib.NULL_ID, FtrLib.TAG_NULL, FtrLib.TAG_NULL, FtrLib.TAG_NULL, DepLib.NULL_HEAD_ID, FtrLib.TAG_NULL, 0, false, Integer.MAX_VALUE, -1);
+		if (isRoot)	init(DepLib.ROOT_ID, DepLib.ROOT_TAG, DepLib.ROOT_TAG, DepLib.ROOT_TAG, DepLib.NULL_HEAD_ID, DepLib.ROOT_TAG);
+		else		init(DepLib.NULL_ID, FtrLib.TAG_NULL, FtrLib.TAG_NULL, FtrLib.TAG_NULL, DepLib.NULL_HEAD_ID, FtrLib.TAG_NULL);
 	}
 	
 	/** Calls {@link DepNode#init(int, String, String, String, int, String)}. */
 	public DepNode(int id, String form, String lemma, String pos, int headId, String deprel)
 	{
-		init(id, form, lemma, pos, headId, deprel, 0, false, Integer.MAX_VALUE, -1);
+		init(id, form, lemma, pos, headId, deprel);
 	}
 	
-	/** Initializes the node with values from <code>node</code>. */
-	public DepNode(SrlNode node)
+	/** Initializes the node with parameter values. */
+	public void init(int id, String form, String lemma, String pos, int headId, String deprel)
 	{
-		copy(node);
+		init(id, form, lemma, pos, headId, deprel, 0, false, Integer.MAX_VALUE, -1);
 	}
 	
 	/** Initializes the node with parameter values. */
@@ -106,10 +105,10 @@ public class DepNode
 	 */
 	public void setHead(int headId, String deprel, double score)
 	{
-		this.headId = headId;
-		this.deprel = deprel;
-		this.score  = score;
-		hasHead     = true;
+		this.headId  = headId;
+		this.deprel  = deprel;
+		this.score   = score;
+		this.hasHead = true;
 	}
 	
 	/**
@@ -130,6 +129,7 @@ public class DepNode
 		return node;
 	}
 	
+	/** @return ({@link DepNode#hasHead}) ? {@link DepNode#headId} : {@link DepLib#NULL_HEAD_ID}. */
 	public int getHeadId()
 	{
 		return hasHead ? headId : DepLib.NULL_HEAD_ID;

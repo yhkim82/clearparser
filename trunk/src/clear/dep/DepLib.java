@@ -37,7 +37,7 @@ public class DepLib
 	/** Flag to print transitions */
 	static public final byte FLAG_PRINT_TRANSITION = 2;
 	/** Flag to predict with greedy search */
-	static public final byte FLAG_PREDICT_GREEDY   = 3;
+	static public final byte FLAG_PREDICT   = 3;
 	/** Flag to predict with k-best search */
 	static public final byte FLAG_PREDICT_BEST     = 4;
 	
