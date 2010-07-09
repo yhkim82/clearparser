@@ -40,7 +40,7 @@ abstract public class AbstractParser
 {
 	/** Dependency tree to parse */
 	protected DepTree       d_tree;
-	/** {@link DepLib#FLAG_PRINT_LEXICON}, {@link DepLib#FLAG_PRINT_INSTANCE}}, {@link DepLib#FLAG_PRINT_TRANSITION}, {@link DepLib#FLAG_PREDICT_GREEDY}, {@link DepLib#FLAG_PREDICT_BEST} */
+	/** {@link DepLib#FLAG_PRINT_LEXICON}, {@link DepLib#FLAG_PRINT_INSTANCE}}, {@link DepLib#FLAG_PRINT_TRANSITION}, {@link DepLib#FLAG_PREDICT}, {@link DepLib#FLAG_PREDICT_BEST} */
 	protected byte          i_flag;
 	/** Feature templates */
 	protected DepFtrXml     t_xml;
@@ -82,7 +82,7 @@ abstract public class AbstractParser
 		{
 			f_out = IOUtil.createPrintFileStream(inputFile);
 		}
-		else if (flag == DepLib.FLAG_PREDICT_GREEDY || flag == DepLib.FLAG_PREDICT_BEST)
+		else if (flag == DepLib.FLAG_PREDICT || flag == DepLib.FLAG_PREDICT_BEST)
 		{
 			System.out.print("- Loading lexicon files  : ");
 			t_map    = new FtrMap(lexiconDir);

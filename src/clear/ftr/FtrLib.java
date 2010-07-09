@@ -59,8 +59,6 @@ public class FtrLib
 	static public final String FILE_LEMMA_LEMMA_2GRAM = "lemma_lemma_2gram.txt";
 	/** Name of the file containing "pos1_pos2_pos3" for token[1..3] */
 	static public final String FILE_POS_POS_POS_3GRAM = "pos_pos_pos_3gram.txt";
-	/** Name of the file containing "dep1_pos2_pos3" for token[1..3] */
-	static public final String FILE_DEP_POS_POS_3GRAM = "dep_pos_pos_3gram.txt";
 	/** Name of the file containing punctuation */
 	static public final String FILE_PUNCTUATION       = "punctuation.txt";
 	/** Name of the file containing "pos_pos" rule for token1 and token2 */

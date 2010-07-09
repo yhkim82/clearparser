@@ -3,12 +3,7 @@ package clear.dep;
 public class DepProj
 {
 	public int count = 0;
-	
-	public void project(DepTree tree)
-	{
-		
-	}
-	
+
 	public void detectNonProjective(DepTree tree)
 	{
 		for (int currId=1; currId<tree.size(); currId++)
@@ -42,5 +37,4 @@ public class DepProj
 			
 		}
 	}
-
 }

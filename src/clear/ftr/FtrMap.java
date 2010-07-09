@@ -65,8 +65,6 @@ public class FtrMap
 	protected TObjectIntHashMap<String> m_lemma_lemma_2gram;
 	/** Takes "pos1_pos2_pos3" from token[1..3] as a key and its index as a value */
 	protected TObjectIntHashMap<String> m_pos_pos_pos_3gram;
-	/** Takes "dep1_pos2_pos3" from token[1..3] as a key and its index as a value */
-	protected TObjectIntHashMap<String> m_dep_pos_pos_3gram;
 	/** Takes "punctuation" as a key and its index as a value */
 	protected TObjectIntHashMap<String> m_punctuation;
 	/** Takes "pos_pos" as a key and the rule a a value */
@@ -94,8 +92,6 @@ public class FtrMap
 	public int n_lemma_lemma_2gram;
 	/** Size of {@link FtrMap#m_pos_pos_pos_3gram} + 1 */
 	public int n_pos_pos_pos_3gram;
-	/** Size of {@link FtrMap#m_dep_pos_pos_3gram} + 1 */
-	public int n_dep_pos_pos_3gram;
 	/** Size of {@link FtrMap#m_punctuation} + 1 */
 	public int n_punctuation;
 	
@@ -113,7 +109,6 @@ public class FtrMap
 		m_lemma_pos_2gram   = new TObjectIntHashMap<String>();
 		m_lemma_lemma_2gram = new TObjectIntHashMap<String>();
 		m_pos_pos_pos_3gram = new TObjectIntHashMap<String>();
-		m_dep_pos_pos_3gram = new TObjectIntHashMap<String>();
 		m_punctuation       = new TObjectIntHashMap<String>();
 		m_pos_pos_dep_rule  = new TObjectIntHashMap<String>();
 	}
@@ -219,12 +214,6 @@ public class FtrMap
 		{
 			m_pos_pos_pos_3gram = IOUtil.getHashMap(lexiconDir + File.separator + FtrLib.FILE_POS_POS_POS_3GRAM, 1);
 			n_pos_pos_pos_3gram = m_pos_pos_pos_3gram.size() + 1;	System.out.print(".");
-		}
-		
-		if (fileset.contains(FtrLib.FILE_DEP_POS_POS_3GRAM))
-		{
-			m_dep_pos_pos_3gram = IOUtil.getHashMap(lexiconDir + File.separator + FtrLib.FILE_DEP_POS_POS_3GRAM, 1);
-			n_dep_pos_pos_3gram = m_dep_pos_pos_3gram.size() + 1;	System.out.print(".");
 		}
 		
 		if (fileset.contains(FtrLib.FILE_PUNCTUATION))
@@ -356,12 +345,6 @@ public class FtrMap
 		m_pos_pos_pos_3gram.put(posPosPos, 1);
 	}
 	
-	/** Adds <code>depPosPos</code>. */
-	public void addDepPosPos3gram(String depPosPos)
-	{
-		m_dep_pos_pos_3gram.put(depPosPos, 1);
-	}
-	
 	/** Adds the punctuation. */
 	public void addPunctuation(String punctuation)
 	{
@@ -482,15 +465,6 @@ public class FtrMap
 	public int posPosPos3gramToIndex(String posPosPos)
 	{
 		return m_pos_pos_pos_3gram.get(posPosPos);
-	}
-	
-	/**
-	 * Returns the index of <code>depPosPos</code>.
-	 * If <code>depPosPos</code> does not exist, returns 0.
-	 */
-	public int depPosPos3gramToIndex(String depPosPos)
-	{
-		return m_dep_pos_pos_3gram.get(depPosPos);
 	}
 	
 	/**
