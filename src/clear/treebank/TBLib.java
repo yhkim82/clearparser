@@ -23,17 +23,189 @@
 */
 package clear.treebank;
 
+import java.util.ArrayList;
+import java.util.regex.Pattern;
+
+
 /**
  * Treebank library.
  * @author Jinho D. Choi
- * <b>Last update:</b> 02/05/2010
+ * <b>Last update:</b> 7/28/2010
  */
 public class TBLib
 {
-	/** Left Round Bracket "(" */
 	static final public String LRB = "(";
-	/** Right Round Bracket ")". */
 	static final public String RRB = ")";
-	/** POS-tag for trace nodes */
-	static final public String POS_TRACE = "-NONE-";
+	
+	// phrase level pos-tags
+	static final public String POS_ADJP   = "ADJP";
+	static final public String POS_ADVP   = "ADVP";
+	static final public String POS_CONJP  = "CONJP";
+	static final public String POS_EDITED = "EDITED";
+	static final public String POS_NML    = "NML";
+	static final public String POS_NP     = "NP";
+	static final public String POS_NX     = "NX";
+	static final public String POS_META   = "META";
+	static final public String POS_PP     = "PP";
+	static final public String POS_RRC    = "RRC";
+	static final public String POS_SBAR   = "SBAR";
+	static final public String POS_TOP    = "TOP";
+	static final public String POS_UCP    = "UCP";
+	static final public String POS_VP     = "VP";
+	static final public String POS_WHADVP = "WHADVP";
+	static final public String POS_WHNP   = "WHNP";
+	static final public String POS_WHPP   = "WHPP";
+	
+	// word-level pos-tags
+	static final public String POS_CC    = "CC";
+	static final public String POS_CD    = "CD";
+	static final public String POS_IN    = "IN";
+	static final public String POS_JJ    = "JJ";
+	static final public String POS_NONE  = "-NONE-";
+	static final public String POS_NN    = "NN";
+	static final public String POS_MD    = "MD";
+	static final public String POS_PRP   = "PRP";
+	static final public String POS_QP    = "QP";
+	static final public String POS_TO    = "TO";
+	static final public String POS_VB    = "VB";
+	static final public String POS_WRB   = "WRB";
+	
+	// punctuation pos-tags
+	static final public String POS_COLON  = ":";
+	static final public String POS_COMMA  = ",";
+	static final public String POS_HYPH   = "HYPH";
+	static final public String POS_LDQ    = "``";
+	static final public String POS_LRB    = "-LRB-";
+	static final public String POS_NFP    = "NFP";
+	static final public String POS_PERIOD = ".";
+	static final public String POS_RDQ    = "''";
+	static final public String POS_RRB    = "-RRB-";
+	static final public String POS_SYM    = "SYM";
+	static final public String POS_PUNC   = POS_COLON+"|"+POS_COMMA+"|"+POS_PERIOD+"|"+POS_HYPH+"|"+POS_LDQ+"|"+POS_RDQ+"|"+POS_LRB+"|"+POS_RRB+"|"+POS_NFP+"|"+POS_SYM;
+		
+	// function tags
+	static final public String TAG_NOM = "NOM";
+	static final public String TAG_SBJ = "SBJ";
+	
+	static public String stripCoindex(String str)
+	{
+		if (str.charAt(0) == '-')	return str;
+		else						return str.split("[-=]")[0];
+	}
+	
+	static public boolean isConjunction(String pos)
+	{
+		return isWordConjunction(pos) || isPuncConjunction(pos);
+	}
+	
+	static public boolean isWordConjunction(String pos)
+	{
+		return pos.equals(POS_CC) || pos.equals(POS_CONJP);
+	}
+	
+	static public boolean isPuncConjunction(String pos)
+	{
+		return pos.equals(POS_COMMA) || pos.equals(POS_COLON);
+	}
+	
+	static public boolean isAdverbPhrase(String pos)
+	{
+		return pos.startsWith(POS_ADVP);
+	}
+	
+	static public boolean isNounLike(String pos)
+	{
+		return isNoun(pos) || pos.startsWith(POS_NP) || pos.startsWith(POS_NML) || pos.startsWith(POS_WHNP) || pos.contains(TAG_NOM);
+	}
+	
+	static public boolean isNoun(String pos)
+	{
+		return pos.startsWith(POS_NN) || pos.startsWith(POS_PRP);
+	}
+	
+	static public boolean isVerb(String pos)
+	{
+		return pos.startsWith(POS_VB) || pos.startsWith(POS_MD);
+	}
+	
+	static public boolean isAdjective(String pos)
+	{
+		return pos.startsWith(POS_JJ);
+	}
+	
+	static public boolean isAdjectiveLike(String pos)
+	{
+		return isAdjective(pos) || pos.startsWith(POS_ADJP) || pos.startsWith(POS_NML);
+	}
+	
+	static public boolean isVerbPhrase(String pos)
+	{
+		return pos.startsWith(POS_VP);
+	}
+	
+	static public boolean isPreposition(String pos)
+	{
+		return pos.startsWith(POS_IN);
+	}
+	
+	static public boolean isCardinal(String pos)
+	{
+		return pos.startsWith(POS_CD);
+	}
+	
+	static public boolean isHyphen(String pos)
+	{
+		return pos.startsWith(POS_HYPH);
+	}
+	
+	static public boolean isRelativeClause(String pos)
+	{
+		return pos.startsWith(POS_RRC);
+	}
+	
+	static public boolean isCorrelativeConjunction(String words)
+	{
+		words = words.toLowerCase();
+		return words.equals("either") || words.equals("neither") || words.equals("whether") || words.equals("both") || words.equals("not only"); 
+	}
+	
+	static public boolean isSubject(String pos)
+	{
+		return pos.contains(TAG_SBJ);
+	}
+	
+	static public boolean isWhAdjectiveLike(String pos)
+	{
+		return pos.startsWith(POS_WHADVP) || pos.startsWith(POS_WRB) || pos.startsWith(POS_WHPP) || pos.startsWith(POS_IN);
+	}
+	
+	static public boolean isPunctuation(String pos)
+	{
+		return pos.matches(POS_PUNC);
+	}
+	
+	static public boolean isCoordination(String poss)
+	{
+		ArrayList<Pattern> ls_pattern = new ArrayList<Pattern>();
+		String[] aPos = {"JJ", "JJR", "JJS", "VBN", "VBG", "NML", "PRP\\$", "ADJP", "NNP", "DT", "ADVP", "RB", "IN", "RBR", "PP", "VB", "NP", "CD", "VP", "S", "RP", "VBP", "VBD", "VBG", "NN", "MD"};
+		
+		String mod = "(-LRB-|-RRB-|RB|ADVP|EDITED|INTJ|PRN|SBAR|PP|NFP|''|DT|CODE|X|XX)";
+		String coord = "(,|:|CC)";
+		
+		for (String pos : aPos)
+		{
+			pos = "("+pos+"(\\w)*)";
+			ls_pattern.add(Pattern.compile(String.format("%s( %s %s)*(( %s)? %s( %s)?)*(( %s)? CC( %s)?)(( %s)? %s( %s)?)*( %s)", pos, coord, pos, coord, mod, coord, coord, coord, coord, mod, coord, pos)));
+		}
+		
+		ls_pattern.add(Pattern.compile("[A-Z]+ HYPH CC HYPH [A-Z]+"));
+	//	ls_pattern.add(Pattern.compile("JJ|VBG|VBN CC( NN)* JJ|VBG|VBN"));
+	//	ls_pattern.add(Pattern.compile("JJ.?+ CC JJ.?+"));
+
+		for (Pattern p : ls_pattern)
+			if (p.matcher(poss).find())
+				return true;
+		
+		return false;
+	}
 }

@@ -37,7 +37,7 @@ public class DepLib
 	/** Flag to print transitions */
 	static public final byte FLAG_PRINT_TRANSITION = 2;
 	/** Flag to predict with greedy search */
-	static public final byte FLAG_PREDICT   = 3;
+	static public final byte FLAG_PREDICT          = 3;
 	/** Flag to predict with k-best search */
 	static public final byte FLAG_PREDICT_BEST     = 4;
 	
@@ -50,6 +50,21 @@ public class DepLib
 
 	/** Feature tag for root nodes */
 	static public final String ROOT_TAG   = "#$ROOT$#";
-	/** Dependency label of root nodes */
-	static public final String ROOT_LABEL = "ROOT";
+	
+	static public final String DEPREL_ADV   = "ADV";
+	static public final String DEPREL_AMOD  = "AMOD";
+	static public final String DEPREL_CMOD  = "CMOD";
+	static public final String DEPREL_COORD = "COORD";
+	static public final String DEPREL_CONJ  = "CONJ";
+	static public final String DEPREL_DEP   = "DEP";
+	static public final String DEPREL_HYPH  = "HYPH";
+	static public final String DEPREL_IM    = "IM";
+	static public final String DEPREL_NMOD  = "NMOD";
+	static public final String DEPREL_P     = "P";
+	static public final String DEPREL_PMOD  = "PMOD";
+	static public final String DEPREL_QMOD  = "QMOD";
+	static public final String DEPREL_ROOT  = "ROOT";
+	static public final String DEPREL_SBJ   = "SBJ";
+	
+	static public final String DEPREL_IGNORE = "IGNORE";
 }
