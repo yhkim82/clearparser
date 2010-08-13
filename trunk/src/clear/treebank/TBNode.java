@@ -24,58 +24,136 @@
 package clear.treebank;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.BitSet;
+import java.util.HashSet;
 
 /**
- * Node as in Penn Treebank.
+ * Treebank node.
  * @author Jinho D. Choi
- * <b>Last update:</b> 02/15/2010
+ * <b>Last update:</b> 8/12/2010
  */
 public class TBNode
 {
+	/** Word-form of the node */
+	public String form;
 	/** Part-of-speech tag of the node */
 	public String pos;
-	/** Word-form of the node */
-	public String word;
-	/**
-	 * If the node is a leaf, returns the terminal index (counting traces), starting from 0.
-	 * If the node is not a leaf, returns -1.
-	 */
-	public int terminalIndex;
-	/**
-	 * If the node is a leaf, returns the token index (not counting traces), starting from 0.
-	 * If the node is not a leaf, returns -1.
-	 */
-	public int tokenIndex;
 	/** Parent node */
 	protected TBNode nd_parent;
 	/** List of children nodes */
 	protected ArrayList<TBNode> ls_children;
-	
 	/**
-	 * Initializes the node with its parent and pos-tag.
-	 * @param parent parent node
-	 * @param pos pos-tag
+	 * If the node is a terminal, returns the terminal index (counting ECs), starting from 0.
+	 * If the node is a phrase, returns -1.
 	 */
+	public int terminalId;
+	/**
+	 * If the node is a terminal, returns the token index (not counting ECs), starting from 0.
+	 * If the node is a phrase, returns -1.
+	 */
+	public int tokenId;
+	/**
+	 * If the node is a terminal, returns {@link TBNode#terminalId}.
+	 * If the node is a phrase, returns the head index.
+	 */
+	public int headId;
+	
+	/** Initializes the node with its parent node and pos-tag. */
 	public TBNode(TBNode parent, String pos)
 	{
-		this.pos      = pos;
-		word          = null;
-		terminalIndex = -1;
-		tokenIndex    = -1;
-		nd_parent     = parent;
-		ls_children   = null;
+		form        = null;
+		this.pos    = pos;
+		terminalId  = -1;
+		tokenId     = -1;
+		headId      = -1;
+		nd_parent   = parent;
+		ls_children = null;
 	}
 	
-	/** Returns true if the pos-tag of the node is <code>pos</code>. */
-	public boolean isPos(String pos)
+	/**
+	 * Returns true if the word-form of this node is <code>form</code>.
+	 * If the node is a phrase, returns false.
+	 */
+	public boolean isForm(String form)
 	{
-		return this.pos.equals(pos);
+		return this.form != null && this.form.equals(form);
 	}
 	
-	/** Returns true if the node is a trace. */
-	public boolean isTrace()
+	/**
+	 * Returns true if the rule applies to this node.
+	 * If <code>rule</code> starts with '-', it compares the function tag; otherwise, compares the pos-tag.
+	 */
+	public boolean isRuleMatch(String rule)
 	{
-		return pos.equals(TBLib.POS_TRACE);
+		if (rule.charAt(0) == '-')
+			return isTag(rule.substring(1));
+		else
+			return isPos(rule);
+	}
+	
+	/** Returns true if the pos-tag of this node is <code>pos</code> in regular expression (e.g., NN.*|VB). */
+	public boolean isPos(String rule)
+	{
+		return getPos().matches(rule);
+	}
+	
+	/** Returns true is the function tag of this node is <code>tag</code>. */
+	public boolean isTag(String tag)
+	{
+		String[] tags = getTags();
+		if (tags == null)	return false;
+		
+		for (String t : tags)
+			if (t.equals(tag))	return true;
+		
+		return false;
+	}
+	
+	/** Returns true if the node is an empty category. */
+	public boolean isEmptyCategory()
+	{
+		return pos.equals(TBLib.POS_NONE);
+	}
+	
+	/** Returns true if the node is a phrase. */
+	public boolean isPhrase()
+	{
+		return ls_children != null;
+	}
+	
+	/** Returns true if this node is a phrase and contains <code>pos</code> as pos-tag of its children. */
+	public boolean containsPos(String pos)
+	{
+		if (!isPhrase())	return false;
+		
+		for (TBNode child : ls_children)
+			if (child.isPos(pos))	return true;
+		
+		return false;
+	}
+	
+	/** Returns true if this node is a phrase and contains <code>tag</code> as function-tag of its children. */
+	public boolean containsTag(String tag)
+	{
+		if (!isPhrase())	return false;
+		
+		for (TBNode child : ls_children)
+			if (child.isTag(tag))	return true;
+		
+		return false;
+	}
+	
+	/** Return the number of children whose pos-tag is <code>pos</code>. */
+	public int countsPos(String pos)
+	{
+		if (!isPhrase())	return 0;
+		int count = 0;
+		
+		for (TBNode child : ls_children)
+			if (child.isRuleMatch(pos))	count++;
+		
+		return count;
 	}
 	
 	/**
@@ -87,16 +165,34 @@ public class TBNode
 		return nd_parent;
 	}
 	
-	/** Sets the parent node to <code>parent</code>. */
-	public void setParent(TBNode parent)
-	{
-		nd_parent = parent;
-	}
-	
 	/** Returns the list of children nodes. */
 	public ArrayList<TBNode> getChildren()
 	{
 		return ls_children;
+	}
+	
+	/** Return the pos-tag without function tags. */
+	public String getPos()
+	{
+		return pos.split("-|=")[0];
+	}
+	
+	/**
+	 * Returns an array of function tags.
+	 * If there is no function tag, returns null.
+	 */
+	public String[] getTags()
+	{
+		String[] org = pos.split("-|=");
+		if (org.length == 1)	return null;
+		
+		return Arrays.copyOfRange(org, 1, org.length);
+	}
+	
+	/** Sets the parent node to <code>parent</code>. */
+	public void setParent(TBNode parent)
+	{
+		nd_parent = parent;
 	}
 	
 	/** Adds a child node. */
@@ -108,35 +204,90 @@ public class TBNode
 		ls_children.add(child);
 	}
 	
-	public boolean isPhrase()
+	/** Returns word-forms of the node's subtree, recursively. */
+	public String toAllWords()
 	{
-		return ls_children != null;
+		return toAllWords(this);
 	}
 	
-	public boolean isBasePhrase()
+	/** Auxiliary method of {@link TBNode#toAllWords()}. */
+	private String toAllWords(TBNode curr)
 	{
-		if (!isPhrase())	return false;
-		
-		for (int i=0; i<ls_children.size(); i++) 
+		if (curr.isPhrase())
 		{
-			TBNode child = ls_children.get(i);
-			if (child.isPhrase())	return false;
+			StringBuilder build = new StringBuilder();
+			
+			for (TBNode child : curr.getChildren())
+			{
+				build.append(toAllWords(child));
+				build.append(" ");
+			}
+
+			return build.toString().trim();
 		}
-		
-		return true;
+		else
+			return curr.form;
 	}
 	
-	public String getPhraseRule()
+	/** Returns pos-tags of the node's subtree, recursively. */
+	public String toAllPos()
 	{
-		StringBuilder builder = new StringBuilder();
+		StringBuilder build = new StringBuilder();
 		
-		for (int i=0; i<ls_children.size(); i++)
+		for (TBNode child : ls_children)
 		{
-			TBNode child = ls_children.get(i);
-			builder.append(child.pos);
-			builder.append(" ");
+			build.append(child.getPos());
+			build.append(" ");
 		}
 		
-		return pos + "\t" + builder.toString().trim();
+		return build.toString();
+	}
+	
+	/** Returns the bitset of terminal indices of the subtree of this node. */
+	public BitSet getSubTerminalBitSet()
+	{
+		BitSet set = new BitSet();
+		getSubTerminalBitSetAux(this, set);
+		
+		return set;
+	}
+	
+	/** This method is called from {@link TBTree#getSubTerminalBitSet()}. */
+	private void getSubTerminalBitSetAux(TBNode node, BitSet set)
+	{
+		if (node.getChildren() == null)
+			set.set(node.terminalId);
+		else
+		{
+			for (TBNode child : node.getChildren())
+				getSubTerminalBitSetAux(child, set);
+		}
+	}
+
+	/**
+	 * Returns the bitset of token indices of the subtree of the current node.
+	 * Each index gets added by <code>offset</code> (e.g., if <code>offset</code> is 1, [0,1,2] becomes [1,2,3]).
+	 */
+	public BitSet getSubTokenBitSet(int offset)
+	{
+		BitSet set = new BitSet();
+		getSubTokenBitSetAux(this, set, offset);
+		
+		return set;
+	}
+
+	/** This method is called from {@link TBNode#getSubTokenBitSet(int)}. */
+	private void getSubTokenBitSetAux(TBNode node, BitSet set, int offset)
+	{
+		if (node.getChildren() == null)
+		{
+			int tokenIndex = node.tokenId + offset;
+			if (tokenIndex >= offset)	set.set(tokenIndex);
+		}
+		else
+		{
+			for (TBNode child : node.getChildren())
+				getSubTokenBitSetAux(child, set, offset);
+		}
 	}
 }

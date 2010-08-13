@@ -51,27 +51,18 @@ public class TBReader
 	 */
 	public TBTree nextTree()
 	{
-		String str;
-		
-		do
-		{
-			if ((str = nextToken()) == null)
-			{	f_tree.close();	return null;	}
-		}
-		while (!str.equals(TBLib.LRB));
-		
 		int numBracket    = 0;
 		int terminalIndex = 0;
 		int tokenIndex    = 0;
 		TBTree tree       = new TBTree();
 		TBNode head       = new TBNode(null, null);		// dummy-head
 		TBNode curr       = head;						// pointer to the current node
-		
-		do
+
+		String str = nextToken();
+		if (str == null){	f_tree.close();	return null;	}
+
+		while (true)
 		{
-			if ((str = nextToken()) == null)
-				errorMsg("more token(s) needed");
-			
 			if (str.equals(TBLib.LRB))
 			{
 				numBracket++;
@@ -86,16 +77,18 @@ public class TBReader
 			{
 				numBracket--;
 				curr = curr.getParent();				// move to parent
+				if (numBracket == 0)	break;
 			}
 			else
 			{
-				curr.word = str;						// str = word
-				curr.terminalIndex = terminalIndex++;
-				if (!curr.isTrace())	curr.tokenIndex = tokenIndex++;
-				tree.addTerminalNode(curr);				// add 'curr' as a leaf
+				curr.form = str;						// str = word
+				curr.terminalId = curr.headId = terminalIndex++;
+				if (!curr.isEmptyCategory())	curr.tokenId = tokenIndex++;
+				tree.addTerminal(curr);				// add 'curr' as a leaf
 			}
+			
+			str = nextToken();
 		}
-		while (numBracket >= 0);
 		
 		TBNode root = head.getChildren().get(0);		// omit the dummy head
 		root.setParent(null);

@@ -101,7 +101,7 @@ public class PBReader
 			if (!tree.moveToTerminal(instance.predicateId))
 				errorMsg("wrong predicate: "+instance.predicateId);
 			
-			instance.predicateId = tree.getCurrNode().tokenIndex + offset;
+			instance.predicateId = tree.getCurrNode().tokenId + offset;
 		}
 
 		instance.rolesetId = str[4];	// str[3] = "gold", str[5] = "-----"
@@ -125,8 +125,8 @@ public class PBReader
 				if (!tree.moveTo(terminalIndex, height))
 					errorMsg("wrong argument: "+arg);
 				
-				if (onToken)	ids.addAll(tree.getSubTokenIndices(offset));
-				else			ids.addAll(tree.getSubTerminalIndices());
+		//		if (onToken)	ids.addAll(tree.getSubTokenIndices(offset));
+		//		else			ids.addAll(tree.getSubTerminalIndices());
 			}
 			
 			if (label.equalsIgnoreCase("rel"))
@@ -182,7 +182,7 @@ public class PBReader
 					if (!tree.moveTo(terminalIndex, height))
 						errorMsg("wrong argument: "+arg);
 					
-					if (tree.getCurrNode().isTrace())
+					if (tree.getCurrNode().isEmptyCategory())
 					{
 						numTraces++;
 						break outer;
