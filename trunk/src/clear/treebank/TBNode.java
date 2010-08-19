@@ -24,9 +24,7 @@
 package clear.treebank;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.BitSet;
-import java.util.HashSet;
 
 /**
  * Treebank node.
@@ -58,6 +56,8 @@ public class TBNode
 	 * If the node is a phrase, returns the head index.
 	 */
 	public int headId;
+	/** The index of this node among its siblings. */
+	public int childId;
 	
 	/** Initializes the node with its parent node and pos-tag. */
 	public TBNode(TBNode parent, String pos)
@@ -67,6 +67,7 @@ public class TBNode
 		terminalId  = -1;
 		tokenId     = -1;
 		headId      = -1;
+		childId     = -1;
 		nd_parent   = parent;
 		ls_children = null;
 	}
@@ -101,13 +102,10 @@ public class TBNode
 	/** Returns true is the function tag of this node is <code>tag</code>. */
 	public boolean isTag(String tag)
 	{
-		String[] tags = getTags();
+		ArrayList<String> tags = getTags();
+
 		if (tags == null)	return false;
-		
-		for (String t : tags)
-			if (t.equals(tag))	return true;
-		
-		return false;
+		return tags.contains(tag);
 	}
 	
 	/** Returns true if the node is an empty category. */
@@ -151,7 +149,7 @@ public class TBNode
 		int count = 0;
 		
 		for (TBNode child : ls_children)
-			if (child.isRuleMatch(pos))	count++;
+			if (child.isPos(pos))	count++;
 		
 		return count;
 	}
@@ -181,12 +179,17 @@ public class TBNode
 	 * Returns an array of function tags.
 	 * If there is no function tag, returns null.
 	 */
-	public String[] getTags()
+	public ArrayList<String> getTags()
 	{
 		String[] org = pos.split("-|=");
 		if (org.length == 1)	return null;
 		
-		return Arrays.copyOfRange(org, 1, org.length);
+		ArrayList<String> list = new ArrayList<String>();
+		for (int i=1; i<org.length; i++)
+			if (!org[i].matches("\\d*"))	list.add(org[i]);
+		
+		list.trimToSize();
+		return list;
 	}
 	
 	/** Sets the parent node to <code>parent</code>. */
@@ -201,6 +204,7 @@ public class TBNode
 		if (ls_children == null)
 			ls_children = new ArrayList<TBNode>();
 		
+		child.childId = ls_children.size();
 		ls_children.add(child);
 	}
 	

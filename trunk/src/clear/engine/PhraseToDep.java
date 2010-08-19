@@ -4,6 +4,7 @@ import java.util.Hashtable;
 
 import clear.morph.MorphEnAnalyzer;
 import clear.treebank.TBHeadRules;
+import clear.treebank.TBLib;
 import clear.treebank.TBReader;
 import clear.treebank.TBTree;
 
