@@ -47,6 +47,7 @@ public class TBLib
 	static final public String POS_NX     = "NX";
 	static final public String POS_META   = "META";
 	static final public String POS_PP     = "PP";
+	static final public String POS_PRN    = "PRN";
 	static final public String POS_RRC    = "RRC";
 	static final public String POS_SBAR   = "SBAR";
 	static final public String POS_TOP    = "TOP";
@@ -69,6 +70,7 @@ public class TBLib
 	static final public String POS_TO    = "TO";
 	static final public String POS_VB    = "VB";
 	static final public String POS_WRB   = "WRB";
+	static final public String POS_XX    = "XX";
 	
 	// punctuation pos-tags
 	static final public String POS_COLON  = ":";
@@ -81,11 +83,11 @@ public class TBLib
 	static final public String POS_RDQ    = "''";
 	static final public String POS_RRB    = "-RRB-";
 	static final public String POS_SYM    = "SYM";
-	static final public String POS_PUNC   = POS_COLON+"|"+POS_COMMA+"|"+POS_PERIOD+"|"+POS_HYPH+"|"+POS_LDQ+"|"+POS_RDQ+"|"+POS_LRB+"|"+POS_RRB+"|"+POS_NFP+"|"+POS_SYM;
 		
 	// function tags
 	static final public String TAG_NOM = "NOM";
 	static final public String TAG_SBJ = "SBJ";
+	static final public String TAG_ETC = "ETC";
 	
 	static public String stripCoindex(String str)
 	{
@@ -181,7 +183,13 @@ public class TBLib
 	
 	static public boolean isPunctuation(String pos)
 	{
-		return pos.matches(POS_PUNC);
+		return pos.equals(POS_COLON) || pos.equals(POS_COMMA) || pos.equals(POS_PERIOD) || pos.equals(POS_NFP) || pos.equals(POS_HYPH) || pos.equals(POS_SYM)
+	        || pos.equals(POS_LDQ)   || pos.equals(POS_RDQ)   || pos.equals(POS_LRB)    || pos.equals(POS_RRB);
+	}
+	
+	static public boolean isLeftAttachedPunctuation(String pos)
+	{
+		return pos.equals(POS_COLON) || pos.equals(POS_COMMA) || pos.equals(POS_HYPH) || pos.equals(POS_SYM);
 	}
 	
 	static public boolean isCoordination(String poss)

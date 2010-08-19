@@ -139,7 +139,7 @@ public class DepParser extends AbstractParser
 	/** Predicts dependency relations using a greedy algorithm. */
 	private void predict()
 	{
-		JIntDoubleTuple res = c_decode.predict(getFeatureArray(0));
+		JIntDoubleTuple res = c_decode.predict(getFeatureArray());
 		String  label  = (res.i < 0) ? NO_ARC : t_map.indexToLabel(res.i);
 		int     index  = label.indexOf(LB_DELIM);
 		String  trans  = (index > 0) ? label.substring(0,index) : label;
@@ -200,7 +200,7 @@ public class DepParser extends AbstractParser
 			i_beta   = curr.id;
 		}
 		
-		ArrayList<JIntDoubleTuple> aRes = c_decode.predictAll(getFeatureArray(0));
+		ArrayList<JIntDoubleTuple> aRes = c_decode.predictAll(getFeatureArray());
 		
 		for (int i=0; i<aRes.size(); i++)
 		{
@@ -308,7 +308,7 @@ public class DepParser extends AbstractParser
 		if      (label.startsWith(LEFT_ARC))	t_map.addPosPosDepRule(d_tree.get(i_lambda), d_tree.get(i_beta),  1);
 		else if (label.startsWith(RIGHT_ARC))	t_map.addPosPosDepRule(d_tree.get(i_lambda), d_tree.get(i_beta), -1);
 		
-		getFeatureArray(label.equals(NO_ARC) ? -1 : 0);
+		getFeatureArray();
 	}
 	
 	/**
@@ -367,11 +367,11 @@ public class DepParser extends AbstractParser
 	 */
 	private String getInstance(String label)
 	{
-		return t_map.labelToIndex(label) + AbstractTrainer.COL_DELIM + DSUtil.toString(getFeatureArray(label.equals(NO_ARC) ? -1 : 0),":1 ");
+		return t_map.labelToIndex(label) + AbstractTrainer.COL_DELIM + DSUtil.toString(getFeatureArray(),":1 ");
 	//	return t_map.labelToIndex(label) + AbstractTrainer.COL_DELIM + JArrays.toString(getFeatureArray()," ");
 	}
 	
-	private ArrayList<Integer> getFeatureArray(int label)
+	private ArrayList<Integer> getFeatureArray()
 	{
 		DepNode l0 = d_tree.get(i_lambda);
 		DepNode b0 = d_tree.get(i_beta);
@@ -440,7 +440,7 @@ public class DepParser extends AbstractParser
 			else													s_pos_pos_pos_3gram.add(node0.pos + FtrLib.TAG_DELIM + node1.pos + FtrLib.TAG_DELIM + node2.pos);
 		}
 		
-		if (i_flag == DepLib.FLAG_PRINT_LEXICON && label >= 0)	// store features for configuration files
+		if (i_flag == DepLib.FLAG_PRINT_LEXICON)	// store features for configuration files
 		{
 			t_map.addForm  (b0.form);
 			t_map.addLemma (b0.lemma);
