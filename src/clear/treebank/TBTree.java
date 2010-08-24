@@ -219,16 +219,17 @@ public class TBTree
 		
 		// find heads of all subtrees
 		findHeads(curr, headrules);
-		if (isCoordination(curr))
-			setCoordination(tree, curr);
-		
-		setLeftAttachedPunctuation(tree, curr);
+		setCoordination(tree, curr);
+	//	setLeftAttachedPunctuation(tree, curr);
 		
 		reconfigureHead(tree, curr);
 		setDepHeadsAux (tree, curr);
 	}
 	
-	/** Finds heads of all phrases under <code>curr</code> using <code>headrules</code>. */
+	/**
+	 * Finds heads of all phrases under <code>curr</code> using <code>headrules</code>.
+	 * <code>beginId</code> inclusive, <code>endId</code> exclusive.
+	 */
 	private void findHeads(TBNode curr, TBHeadRules headrules)
 	{
 		TBHeadRule        headrule = headrules.getHeadRule(curr.getPos());
@@ -240,7 +241,7 @@ public class TBTree
 			return;
 		}
 		
-		if (curr.isRuleMatch(TBLib.POS_SBAR))
+		if (curr.isPos(TBLib.POS_SBAR))
 		{
 			TBNode child = children.get(0);
 			if (child.isEmptyCategory() && child.isForm("0"))
@@ -287,11 +288,6 @@ public class TBTree
 		return false;
 	}
 	
-	private boolean isCoordination(TBNode curr)
-	{
-		return !(curr.isPos(TBLib.POS_UCP) || curr.containsPos(TBLib.POS_CC) || (curr.countsPos(TBLib.POS_COMMA) > 1 && curr.containsTag(TBLib.TAG_ETC)));
-	}
-	
 	/** Reconstructs heads for coordinations. */
 	private void setCoordination(DepTree tree, TBNode curr)
 	{
@@ -300,331 +296,87 @@ public class TBTree
 		for (int i=children.size()-2; i>=0; i--)
 		{
 			TBNode conj = children.get(i);
-			if (TBLib.isConjunction(conj.getPos()))	continue;
-		
-			TBNode prev = null;
-			for (int j=i-1; j>=0; j--)
-			{
-				TBNode tmp = children.get(j);
-				if (!TBLib.isWordConjunction(tmp.getPos()) && !TBLib.isPunctuation(tmp.getPos()))
-				{
-					prev = tmp;
-					break;
-				}
-			}
-			
-			TBNode next = null;
-			for (int j=i+1; j<children.size(); j++)
-			{
-				TBNode tmp = children.get(j);
-				if (!TBLib.isWordConjunction(tmp.getPos()) && !TBLib.isPunctuation(tmp.getPos()))
-				{
-					next = tmp;
-					break;
-				}
-			}
-			
-			if (prev != null && next != null)
-			{
-					
-			}
-			
-		}
-		
-	/*	for (int i=beginId; i<children.size(); i++)
-		{
-			
-			int j;
-			
-			
-			
-			findHeads(curr, headrules, i, j-1);
-			
-			
-			{
-				int rightHeadId = 
-				if (rightHeadId != -1)
-				{
-					for (int k=i; k<j; k++)
-					{
-						TBNode node = children.get(k);
-						if (node.headId == rightHeadId)	continue;
-						setDependency(tree, node.headId, rightHeadId);
-					}
-				}
-				
-				setCoordination(tree, curr, headrules, j);
-				break;
-			}
-				
-		}
-		
-		for (int i=children.size()-1; i>=0; i--)
-		{
-			TBNode conj = children.get(i);
 			if (!TBLib.isConjunction(conj.getPos()))	continue;
 			
-			TBNode next = null;
+			TBNode prev = getPrevConjunct(children, i, false);
+			TBNode next = getNextConjunct(children, i, false);
 			
-			for (int j=i+1; j<children.size(); j++)
+			if (prev == null)	break;
+			if (next == null)	continue;
+			
+			if (!setCoordinationAux(tree, curr, conj, prev, next))
 			{
-				TBNode tmp = children.get(j);
-				if (!TBLib.isPunctuation(tmp.getPos()))
-				{
-					next = tmp;
-					break;
-				}
-			}
-			
-			TBNode prev = null;
-			
-			for (int j=i-1; j>=0; j--)
-			{
-				TBNode tmp = children.get(j);
-				if (!TBLib.isWordConjunction(tmp.getPos()) && !TBLib.isPunctuation(tmp.getPos()))
-				{
-					prev = tmp;
-					break;
-				}
-			}
-			
-			if (p)
-			
-			if (curr.isPos(TBLib.POS_UCP) || (prev.childId == 0 ))
-			
-			
-			
-			for (int j=i-1; j>=0; j--)
-			{
-				TBNode prev = children.get(j);
-				if (!TBLib.isPunctuation(prev.getPos()))
-					break;
-			}
-			
-			
-			
-			TBNode next  = children.get(i+1);
-			
-			
-		}
-		
-		if (children.size() == 3)
-		{
-			TBNode coord = children.get(1);
-			
-			
-			if (TBLib.isConjunction(coord.getPos()))
-			{
-				TBNode prev = children.get(0);
-				if (!TBLib.isConjunction(prev.getPos()))
-					setDependency(tree, coord.headId, prev.headId);
-				
-				TBNode next = children.get(2);
-				if (!TBLib.isConjunction(prev.getPos()))
-					setDependency(tree, next.headId, prev.headId);
-				
-				return;
-			}
-		}
-		
-		
-		
-		
-		
-		{
-			
-			
-			if (TBLib.isHyphen(prev.pos) && TBLib.isHyphen(next.pos))
-			{
-				if (coordId-2 >= 0 && coordId+2 < children.size())
-				{
-					prev = children.get(coordId-2);
-					next = children.get(coordId+2);
-					off++;
-				}
-				else	continue;
-			}
-		}
-		
-		
-		
-		
-		
-		
-		if (rightHeadId >= 0)
-		{
-			for (int i=rightStartId; i>=0; i--)
-			{
-				TBNode coord = children.get(i);
-				if (TBLib.isConjunction(coord.getPos()))
-					setDependency(tree, coord.headId, rightHeadId);
-				else
-					break;
-			}			
-		}
-		
-		
-		for (;; rightStartId--)
-		{
-			if (TBLib.isConjunction(children.get(rightStartId).getPos()) || rightStartId == 0)
-				break;
-		}
-				
-		
-		setCoordination(tree, curr, headrules, rightStartid-1, )
-			
-			
-			
-			
-	/*	rightHeadId = setCoordinationAux(tree, headrules, curr, coordId+1);
-			
-			if (headId != -1)
-			{
-				setDependency(tree, coord.headId, headId);
-									
-				for (int i=coordId-1; i>=0; i--)
-				{
-					coord = children.get(i);
+				prev = getPrevConjunct(children, i, true);
+				next = getNextConjunct(children, i, true);
 					
-					if (TBLib.isConjunction(coord.getPos()))
-						setDependency(tree, coord.headId, headId);
-					else
-						break;
-				}
+				if (prev == null)	break;
+				if (next == null)	continue;
+				
+				setCoordinationAux(tree, curr, conj, prev, next);
 			}
 			
-			
-			String cpos  = coord.getPos();
-			int    off   = 0;
-			
-			if (!TBLib.isConjunction(cpos))	continue;
-			
-			
-			
-			String ppos = prev.getPos();
-			
-			if (TBLib.isPuncConjunction(ppos) && TBLib.isWordConjunction(cpos))		// , and
-			{
-				setDependency(tree, prev.headId, coord.headId, DepLib.DEPREL_CMOD);
-				
-				if (coordId-2 >= 0)
-				{
-					prev = children.get(coordId-2);
-					off++;
-				}
-				else
-					break;
-			}
-			
-			if (!setCoordination(tree, curr, coord, prev, next) && coordId+2 < children.size())
-			{
-				TBNode next2 = children.get(coordId+2);
-				
-				if (next.isRuleMatch(TBLib.POS_ADVP) && setCoordination(tree, curr, coord, prev, next2))
-				{
-					String pos    = ls_terminal.get(next2.headId).pos;
-					String deprel = DepLib.DEPREL_DEP;
-					
-					if      (TBLib.isVerb(pos))			deprel = DepLib.DEPREL_ADV;
-					else if (TBLib.isNoun(pos))			deprel = DepLib.DEPREL_NMOD;
-					else if (TBLib.isAdjective(pos))	deprel = DepLib.DEPREL_AMOD;
-					else if (TBLib.isPreposition(pos))	deprel = DepLib.DEPREL_PMOD;
-					else if (TBLib.isCardinal(pos))		deprel = DepLib.DEPREL_QMOD;
-				
-					setDependency(tree, next.headId, next2.headId, deprel);
-				}
-			}
-			
-			coordId -= off;
+			i = prev.childId;
 		}
-
-		// conjunction is the first child
-		TBNode child = children.get(0);
-		String cpos  = child.getPos();
-		
-		if (TBLib.isWordConjunction(cpos) && children.size() > 1)
-		{
-			if (TBLib.isCorrelativeConjunction(child.toAllWords()))
-			{
-				TBNode next = children.get(1);
-				setDependency(tree, next.headId, child.headId, DepLib.DEPREL_CONJ);
-			}
-			else if (curr.isRuleMatch(TBLib.POS_QP))
-			{
-				for (int i=1; i<children.size(); i++)
-				{
-					TBNode next = children.get(i);
-					if (next.headId != curr.headId)
-						setDependency(tree, next.headId, curr.headId, DepLib.DEPREL_QMOD);
-				}
-				
-				setDependency(tree, curr.headId, child.headId, DepLib.DEPREL_CONJ);
-				if (child.terminalId > 0)
-					setDependency(tree, child.headId, child.terminalId-1, DepLib.DEPREL_COORD);
-				else
-					System.err.println("QP: no coord");
-			}
-		}*/
 	}
 	
-	private void setCoordinationAux(DepTree tree, TBHeadRules headrules, TBNode curr, TBNode coord, ArrayList<TBNode> children)
+	private boolean setCoordinationAux(DepTree tree, TBNode curr, TBNode conj, TBNode prev, TBNode next)
 	{
-		TBNode next = null;
-		
-		for (int i=coord.childId+1; i<children.size(); i++)
-		{
-			TBNode tmp = children.get(i);
-			
-			if (TBLib.isConjunction(tmp.getPos()))
-			{
-				next = tmp;
-				break;
-			}
-		}
-
-	//	int nextId = findHeads(curr, headrules, coord.childId+1, next.childId);
-		
-		
-		for (int eId=coord.childId-1; eId>=0; eId--)
-		{
-			TBNode tmp = children.get(eId);
-			if (TBLib.isConjunction(tmp.getPos()))
-				setDependency(tree, tmp.headId, next.headId, null);
-			else
-			{
-				for (int bId=eId-1; bId>=0; bId--)
-				{
-					if (TBLib.isConjunction(children.get(bId).getPos()))
-					{
-						
-					}
-				}
-				
-				break;
-			}
-		}
-		
-		setDependency(tree, coord.headId, next.headId, DepLib.DEPREL_COORD);
-	}
-	
-	private boolean setCoordination(DepTree tree, TBNode curr, TBNode child, TBNode prev, TBNode next)
-	{
+		ArrayList<TBNode> children = curr.getChildren();
 		String ppos = prev.getPos();
 		String npos = next.getPos();
-		
-		if (curr.isRuleMatch(TBLib.POS_UCP) ||
-			prev.isRuleMatch(npos) ||
+
+		if (curr.isPos(TBLib.POS_UCP) ||
+			(TBLib.isWordConjunction(conj.getPos()) && next.childId == children.size()-1) || 
+			prev.isPos(npos) ||
 			(TBLib.isNounLike(ppos) && TBLib.isNounLike(npos)) ||
 			(TBLib.isAdjectiveLike(ppos) && TBLib.isAdjectiveLike(npos)) ||
-			(curr.isRuleMatch(TBLib.POS_WHADVP) && TBLib.isWhAdjectiveLike(ppos) && TBLib.isWhAdjectiveLike(npos)))
+			(curr.isPos(TBLib.POS_WHADVP) && TBLib.isWhAdjectiveLike(ppos) && TBLib.isWhAdjectiveLike(npos)))
 		{
-			setDependency(tree, child.headId, prev .headId, DepLib.DEPREL_COORD);
-			setDependency(tree, next .headId, child.headId, DepLib.DEPREL_CONJ);
+			for (int i=prev.childId+1; i<=conj.childId; i++)
+			{
+				TBNode node = children.get(i);
+				setDependency(tree, node.headId, prev.headId);
+				if (TBLib.isWordConjunction(node.getPos()))	prev = node;
+			}
 			
+			setDependency(tree, next.headId, prev.headId);
 			return true;
 		}
-
+		
 		return false;
+	}
+	
+	private TBNode getPrevConjunct(ArrayList<TBNode> children, int id, boolean more)
+	{
+		for (int i=id-1; i>=0; i--)
+		{
+			TBNode prev = children.get(i);
+			String ppos = prev.getPos();
+			
+			if (!TBLib.isConjunction(ppos) && !TBLib.isPunctuation(ppos) && !(more && isSkip(prev)))
+				return prev;
+		}
+		
+		return null;
+	}
+	
+	private TBNode getNextConjunct(ArrayList<TBNode> children, int id, boolean more)
+	{
+		for (int i=id+1; i<children.size(); i++)
+		{
+			TBNode next = children.get(i);
+			String npos = next.getPos();
+			
+			if (!TBLib.isConjunction(npos) && !TBLib.isPunctuation(npos) && !(more && isSkip(next)))
+				return next;
+		}
+		
+		return null;
+	}
+	
+	private boolean isSkip(TBNode node)
+	{
+		return node.isPos("ADVP|SBAR|PRN|INTJ|EDITED|META|CODE");
 	}
 	
 	private void setLeftAttachedPunctuation(DepTree tree, TBNode curr)
