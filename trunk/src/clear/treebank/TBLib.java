@@ -89,12 +89,6 @@ public class TBLib
 	static final public String TAG_SBJ = "SBJ";
 	static final public String TAG_ETC = "ETC";
 	
-	static public String stripCoindex(String str)
-	{
-		if (str.charAt(0) == '-')	return str;
-		else						return str.split("[-=]")[0];
-	}
-	
 	static public boolean isConjunction(String pos)
 	{
 		return isWordConjunction(pos) || isPuncConjunction(pos);
@@ -110,24 +104,24 @@ public class TBLib
 		return pos.equals(POS_COMMA) || pos.equals(POS_COLON);
 	}
 	
-	static public boolean isAdverbPhrase(String pos)
-	{
-		return pos.startsWith(POS_ADVP);
-	}
-	
 	static public boolean isNounLike(String pos)
 	{
-		return isNoun(pos) || pos.startsWith(POS_NP) || pos.startsWith(POS_NML) || pos.startsWith(POS_WHNP) || pos.contains(TAG_NOM);
+		return isNoun(pos) || pos.equals(POS_NP) || pos.equals(POS_NML) || pos.equals(POS_WHNP) || pos.contains(TAG_NOM);
 	}
 	
 	static public boolean isNoun(String pos)
 	{
-		return pos.startsWith(POS_NN) || pos.startsWith(POS_PRP);
+		return pos.startsWith(POS_NN) || pos.equals(POS_PRP);
 	}
 	
 	static public boolean isVerb(String pos)
 	{
-		return pos.startsWith(POS_VB) || pos.startsWith(POS_MD);
+		return pos.startsWith(POS_VB) || pos.equals(POS_MD);
+	}
+	
+	static public boolean isAdjectiveLike(String pos)
+	{
+		return isAdjective(pos) || pos.equals(POS_ADJP) || pos.equals(POS_NML);
 	}
 	
 	static public boolean isAdjective(String pos)
@@ -135,10 +129,21 @@ public class TBLib
 		return pos.startsWith(POS_JJ);
 	}
 	
-	static public boolean isAdjectiveLike(String pos)
+	static public boolean isWhAdjectiveLike(String pos)
 	{
-		return isAdjective(pos) || pos.startsWith(POS_ADJP) || pos.startsWith(POS_NML);
+		return pos.equals(POS_WHADVP) || pos.equals(POS_WRB) || pos.equals(POS_WHPP) || pos.equals(POS_IN);
 	}
+	
+	static public boolean isPunctuation(String pos)
+	{
+		return pos.equals(POS_COLON) || pos.equals(POS_COMMA) || pos.equals(POS_PERIOD) || pos.equals(POS_NFP) || pos.equals(POS_HYPH) || pos.equals(POS_SYM)
+	        || pos.equals(POS_LDQ)   || pos.equals(POS_RDQ)   || pos.equals(POS_LRB)    || pos.equals(POS_RRB);
+	}
+	
+	
+	
+	
+	
 	
 	static public boolean isVerbPhrase(String pos)
 	{
@@ -176,16 +181,7 @@ public class TBLib
 		return pos.contains(TAG_SBJ);
 	}
 	
-	static public boolean isWhAdjectiveLike(String pos)
-	{
-		return pos.startsWith(POS_WHADVP) || pos.startsWith(POS_WRB) || pos.startsWith(POS_WHPP) || pos.startsWith(POS_IN);
-	}
 	
-	static public boolean isPunctuation(String pos)
-	{
-		return pos.equals(POS_COLON) || pos.equals(POS_COMMA) || pos.equals(POS_PERIOD) || pos.equals(POS_NFP) || pos.equals(POS_HYPH) || pos.equals(POS_SYM)
-	        || pos.equals(POS_LDQ)   || pos.equals(POS_RDQ)   || pos.equals(POS_LRB)    || pos.equals(POS_RRB);
-	}
 	
 	static public boolean isLeftAttachedPunctuation(String pos)
 	{
