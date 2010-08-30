@@ -1,4 +1,4 @@
-#summary Format of headrule file
+#summary Headrule format
 
 = Introduction =
 
