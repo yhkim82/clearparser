@@ -19,7 +19,9 @@ public class TBHeadRules
 		
 		while (scan.hasNextLine())
 		{
-			String[] ls = scan.nextLine().split(FIELD_DELIM);
+			String line = scan.nextLine();
+			if (line.charAt(0) == '#')	continue;
+			String[] ls = line.split(FIELD_DELIM);
 			m_headrules.put(ls[0], new TBHeadRule(ls[1], ls[2].split(HEAD_DELIM)));
 		}
 	}

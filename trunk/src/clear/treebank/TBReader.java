@@ -55,7 +55,7 @@ public class TBReader
 		int terminalIndex = 0;
 		int tokenIndex    = 0;
 		TBTree tree       = new TBTree();
-		TBNode head       = new TBNode(null, null);		// dummy-head
+		TBNode head       = new TBNode(null, "DUMMY");	// dummy-head
 		TBNode curr       = head;						// pointer to the current node
 
 		String str = nextToken();
@@ -81,10 +81,10 @@ public class TBReader
 			}
 			else
 			{
-				curr.form = str;						// str = word
+				curr.setForm(str);						// str = word
 				curr.terminalId = curr.headId = terminalIndex++;
 				if (!curr.isEmptyCategory())	curr.tokenId = tokenIndex++;
-				tree.addTerminal(curr);				// add 'curr' as a leaf
+				tree.addTerminal(curr);					// add 'curr' as a leaf
 			}
 			
 			str = nextToken();

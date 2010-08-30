@@ -24,6 +24,8 @@
 package clear.dep;
 
 
+import java.util.ArrayList;
+
 import clear.ftr.FtrMap;
 
 /**
@@ -189,6 +191,19 @@ public class DepTree extends AbstractTree<DepNode>
 		return -1;
 	}
 	
+	public ArrayList<DepNode> getDependents(int currId)
+	{
+		ArrayList<DepNode> list = new ArrayList<DepNode>();
+		
+		for (int i=1; i<size(); i++)
+		{
+			DepNode node = get(i);
+			if (node.headId == currId)	list.add(node);
+		}
+		
+		return list;
+	}
+	
 	/** @return the score of the tree. */
 	public double getScore()
 	{
@@ -196,5 +211,42 @@ public class DepTree extends AbstractTree<DepNode>
 		for (int i=1; i<size(); i++)	score += get(i).score;
 
 		return score;
+	}
+	
+	/**
+	 * Prints errors if not unique-root, single-headed, connected, acyclic.
+	 * @return true if there is no error.
+	 */
+	public boolean checkTree()
+	{
+		int countRoot = 0;
+		
+		for (int i=1; i<size(); i++)
+		{
+			DepNode node = get(i);
+			
+			if (node.headId == DepLib.ROOT_ID)
+				countRoot++;
+			
+			if (!isRange(node.headId))
+			{
+				System.err.println("Not connected: "+node.id+" <- "+node.headId);
+				return false;
+			}
+			
+			if (isAncestor(node.id, node.headId))
+			{
+				System.err.println("Cycle exists: "+node.id+" <-*-> "+node.headId);
+				return false;
+			}
+		}
+		
+		if (countRoot != 1)
+		{
+			System.err.println("Not single-rooted: "+countRoot);
+			return false;
+		}
+		
+		return true;
 	}
 }
