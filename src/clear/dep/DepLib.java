@@ -65,6 +65,8 @@ public class DepLib
 	static public final String DEPREL_QMOD  = "QMOD";
 	static public final String DEPREL_ROOT  = "ROOT";
 	static public final String DEPREL_SBJ   = "SBJ";
+	static public final String DEPREL_GAP   = "GAP";
+	static public final String DEPREL_EXTR  = "EXTR";
 	
 	static public final String DEPREL_IGNORE = "IGNORE";
 }

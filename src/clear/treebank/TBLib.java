@@ -37,6 +37,9 @@ public class TBLib
 	static final public String LRB = "(";
 	static final public String RRB = ")";
 	
+	// sentence level pos-tags
+	static final public String POS_S      = "S";
+	
 	// phrase level pos-tags
 	static final public String POS_ADJP   = "ADJP";
 	static final public String POS_ADVP   = "ADVP";
@@ -89,6 +92,13 @@ public class TBLib
 	static final public String TAG_SBJ = "SBJ";
 	static final public String TAG_ETC = "ETC";
 	
+	// empty categories
+	static final public String EC_EXP   = "*EXP*";
+	static final public String EC_ICH   = "*ICH*";
+	static final public String EC_PPA   = "*PPA*";
+	static final public String EC_RNR   = "*RNR*";
+	static final public String EC_TRACE = "*T*";
+	
 	static public boolean isConjunction(String pos)
 	{
 		return isWordConjunction(pos) || isPuncConjunction(pos);
@@ -140,9 +150,16 @@ public class TBLib
 	        || pos.equals(POS_LDQ)   || pos.equals(POS_RDQ)   || pos.equals(POS_LRB)    || pos.equals(POS_RRB);
 	}
 	
+	static public boolean isCorrelativeConjunction(String words)
+	{
+		words = words.toLowerCase();
+		return words.equals("either") || words.equals("neither") || words.equals("whether") || words.equals("both") || words.equals("not only"); 
+	}
 	
-	
-	
+	static public boolean isLeftAttachedPunctuation(String pos)
+	{
+		return pos.equals(POS_COLON) || pos.equals(POS_COMMA) || pos.equals(POS_HYPH) || pos.equals(POS_SYM);
+	}
 	
 	
 	static public boolean isVerbPhrase(String pos)
@@ -170,22 +187,11 @@ public class TBLib
 		return pos.startsWith(POS_RRC);
 	}
 	
-	static public boolean isCorrelativeConjunction(String words)
-	{
-		words = words.toLowerCase();
-		return words.equals("either") || words.equals("neither") || words.equals("whether") || words.equals("both") || words.equals("not only"); 
-	}
+	
 	
 	static public boolean isSubject(String pos)
 	{
 		return pos.contains(TAG_SBJ);
-	}
-	
-	
-	
-	static public boolean isLeftAttachedPunctuation(String pos)
-	{
-		return pos.equals(POS_COLON) || pos.equals(POS_COMMA) || pos.equals(POS_HYPH) || pos.equals(POS_SYM);
 	}
 	
 	static public boolean isCoordination(String poss)

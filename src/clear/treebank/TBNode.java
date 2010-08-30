@@ -25,11 +25,13 @@ package clear.treebank;
 
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.HashSet;
+import java.util.StringTokenizer;
 
 /**
  * Treebank node.
  * @author Jinho D. Choi
- * <b>Last update:</b> 8/12/2010
+ * <b>Last update:</b> 8/24/2010
  */
 public class TBNode
 {
@@ -37,39 +39,83 @@ public class TBNode
 	public String form;
 	/** Part-of-speech tag of the node */
 	public String pos;
+	/** Function tags of the node */
+	public HashSet<String> tags;
+	/** Co-index (e.g., NP-1) */
+	public int coIndex;
+	/** Gapping index (e.g., NP=1) */
+	public int gapIndex;
+	/** Terminal index (counting ECs), starting from 0 */
+	public int terminalId;
+	/** Token index (not counting ECs), starting from 0 */
+	public int tokenId;
+	/** Head index, derived by headrules */
+	public int headId;
+	/** Child index among its siblings */
+	public int childId;
+	
 	/** Parent node */
 	protected TBNode nd_parent;
 	/** List of children nodes */
 	protected ArrayList<TBNode> ls_children;
-	/**
-	 * If the node is a terminal, returns the terminal index (counting ECs), starting from 0.
-	 * If the node is a phrase, returns -1.
-	 */
-	public int terminalId;
-	/**
-	 * If the node is a terminal, returns the token index (not counting ECs), starting from 0.
-	 * If the node is a phrase, returns -1.
-	 */
-	public int tokenId;
-	/**
-	 * If the node is a terminal, returns {@link TBNode#terminalId}.
-	 * If the node is a phrase, returns the head index.
-	 */
-	public int headId;
-	/** The index of this node among its siblings. */
-	public int childId;
 	
 	/** Initializes the node with its parent node and pos-tag. */
-	public TBNode(TBNode parent, String pos)
+	public TBNode(TBNode parent, String postag)
 	{
 		form        = null;
-		this.pos    = pos;
+		tags        = null;
+		coIndex     = -1;
+		gapIndex    = -1;
 		terminalId  = -1;
 		tokenId     = -1;
 		headId      = -1;
 		childId     = -1;
 		nd_parent   = parent;
 		ls_children = null;
+		
+		init(postag);
+	}
+	
+	/** Initializes pos-tags, function-tags, co-index, and gap-index. */
+	private void init(String postag)
+	{
+		if (postag.matches("-([A-Z])+-"))
+		{
+			pos = postag;
+			return;
+		}
+		
+		StringTokenizer tok = new StringTokenizer(postag, "-=", true);
+		pos = tok.nextToken();
+		
+		while (tok.hasMoreTokens())
+		{
+			String op = tok.nextToken();
+			
+			if (op.equals("="))
+			{
+				if (tok.hasMoreTokens())
+					gapIndex = Integer.parseInt(tok.nextToken());
+				else
+					break;
+			}
+			else if (op.equals("-"))
+			{
+				if (tok.hasMoreTokens())
+				{
+					String tag = tok.nextToken();
+					
+					if (tag.matches("\\d*"))
+						coIndex = Integer.parseInt(tag);
+					else
+					{
+						if (tags == null)	tags = new HashSet<String>();
+						tags.add(tag);
+					}
+				}
+				else	break;
+			}
+		}
 	}
 	
 	/**
@@ -85,7 +131,7 @@ public class TBNode
 	 * Returns true if the rule applies to this node.
 	 * If <code>rule</code> starts with '-', it compares the function tag; otherwise, compares the pos-tag.
 	 */
-	public boolean isRuleMatch(String rule)
+	public boolean isRule(String rule)
 	{
 		if (rule.charAt(0) == '-')
 			return isTag(rule.substring(1));
@@ -96,22 +142,35 @@ public class TBNode
 	/** Returns true if the pos-tag of this node is <code>pos</code> in regular expression (e.g., NN.*|VB). */
 	public boolean isPos(String rule)
 	{
-		return getPos().matches(rule);
+		return pos.matches(rule);
 	}
 	
 	/** Returns true is the function tag of this node is <code>tag</code>. */
 	public boolean isTag(String tag)
 	{
-		ArrayList<String> tags = getTags();
-
-		if (tags == null)	return false;
-		return tags.contains(tag);
+		return tags != null && tags.contains(tag);
 	}
 	
 	/** Returns true if the node is an empty category. */
 	public boolean isEmptyCategory()
 	{
 		return pos.equals(TBLib.POS_NONE);
+	}
+	
+	/** @return true if the node contains only empty category. */
+	public boolean isEmptyCategoryRec()
+	{
+		return isEmptyCategoryRec(this);
+	}
+	
+	private boolean isEmptyCategoryRec(TBNode curr)
+	{
+		if (!curr.isPhrase())	return curr.isEmptyCategory();
+
+		for (TBNode child : curr.getChildren())
+			if (!isEmptyCategoryRec(child))	return false;
+
+		return true;
 	}
 	
 	/** Returns true if the node is a phrase. */
@@ -142,6 +201,36 @@ public class TBNode
 		return false;
 	}
 	
+	public boolean containsGap()
+	{
+		if (!isPhrase())	return false;
+		
+		for (TBNode child : ls_children)
+			if (child.gapIndex != -1)	return true;
+		
+		return false;
+	}
+	
+	public TBNode getGapNode(int index)
+	{
+		return getGapNodeAux(index, this);
+	}
+	
+	private TBNode getGapNodeAux(int index, TBNode curr)
+	{
+		if (!curr.isPhrase())	return null;
+		
+		for (TBNode child : curr.getChildren())
+		{
+			if (child.coIndex == index || child.gapIndex == index)	return curr;
+			
+			TBNode node = getGapNodeAux(index, child);
+			if (node != null)	return node;
+		}
+		
+		return null;
+	}
+	
 	/** Return the number of children whose pos-tag is <code>pos</code>. */
 	public int countsPos(String pos)
 	{
@@ -169,27 +258,16 @@ public class TBNode
 		return ls_children;
 	}
 	
-	/** Return the pos-tag without function tags. */
-	public String getPos()
+	public void setForm(String form)
 	{
-		return pos.split("-|=")[0];
-	}
-	
-	/**
-	 * Returns an array of function tags.
-	 * If there is no function tag, returns null.
-	 */
-	public ArrayList<String> getTags()
-	{
-		String[] org = pos.split("-|=");
-		if (org.length == 1)	return null;
+		form = form.replaceAll("-LRB-", "(");
+		form = form.replaceAll("-LSB-", "[");
+		form = form.replaceAll("-LCB-", "{");
+		form = form.replaceAll("-RRB-", ")");
+		form = form.replaceAll("-RSB-", "]");
+		form = form.replaceAll("-RCB-", "}");
 		
-		ArrayList<String> list = new ArrayList<String>();
-		for (int i=1; i<org.length; i++)
-			if (!org[i].matches("\\d*"))	list.add(org[i]);
-		
-		list.trimToSize();
-		return list;
+		this.form = form;
 	}
 	
 	/** Sets the parent node to <code>parent</code>. */
@@ -209,13 +287,13 @@ public class TBNode
 	}
 	
 	/** Returns word-forms of the node's subtree, recursively. */
-	public String toAllWords()
+	public String toWords()
 	{
-		return toAllWords(this);
+		return toWordsAux(this);
 	}
 	
-	/** Auxiliary method of {@link TBNode#toAllWords()}. */
-	private String toAllWords(TBNode curr)
+	/** Auxiliary method of {@link TBNode#toWords()}. */
+	private String toWordsAux(TBNode curr)
 	{
 		if (curr.isPhrase())
 		{
@@ -223,7 +301,7 @@ public class TBNode
 			
 			for (TBNode child : curr.getChildren())
 			{
-				build.append(toAllWords(child));
+				build.append(toWordsAux(child));
 				build.append(" ");
 			}
 
@@ -233,14 +311,14 @@ public class TBNode
 			return curr.form;
 	}
 	
-	/** Returns pos-tags of the node's subtree, recursively. */
-	public String toAllPos()
+	/** Returns pos-tags of the node's subtree. */
+	public String toPostags()
 	{
 		StringBuilder build = new StringBuilder();
 		
 		for (TBNode child : ls_children)
 		{
-			build.append(child.getPos());
+			build.append(child.pos);
 			build.append(" ");
 		}
 		

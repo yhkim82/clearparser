@@ -30,7 +30,7 @@ public class PhraseToDep
 			System.out.println(tree.toDepTree(headrules, morph)+"\n");
 	}
 	
-	static public void check(String[] args)
+/*	static public void check(String[] args)
 	{
 		String treeFile     = args[0];
 		TBReader    reader    = new TBReader(treeFile);
@@ -42,5 +42,5 @@ public class PhraseToDep
 			tree.checkPhrases(hash);
 		
 		for (String key : hash.keySet())	System.out.println(key+" "+hash.get(key));
-	}
+	}*/
 }
