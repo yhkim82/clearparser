@@ -2,7 +2,7 @@
 
 = Clear phrase-to-dependency converter =
 
-_Clear phrase-to-dependency converter_ takes phrase structure trees in [http://www.cis.upenn.edu/~treebank/ Penn Treebank format] as input and generates corresponding dependency trees in [DataFormat Clear format] as output.  The tool allows users to customize their own head-percolation rules.  It currently supports only English (support for Chinese is expected soon).
+_Clear phrase-to-dependency converter_ takes phrase structure trees in the [http://www.cis.upenn.edu/~treebank/ Penn Treebank format] as input and generates corresponding dependency trees in the [DataFormat Clear format] as output.  The tool allows users to customize head-percolation rules.  It currently supports only English (support for Chinese is expected soon).
 
 == How to run ==
 
@@ -26,7 +26,7 @@ java clear.engine.PhraseToDep -i dat/sample.phrase -o dat/sample.dep -h headrule
 
 == Input file ==
 
-_Input file_ contains [http://www.cis.upenn.edu/~treebank/ Penn Treebank style] phrase structure trees.  Each tree starts with either an empty phrase (example 1) or a `TOP`-phrase (example 2).
+_Input file_ contains [http://www.cis.upenn.edu/~treebank/ Penn Treebank style] phrase structure trees.  Each tree must start with either an empty phrase (example 1) or a `TOP`-phrase (example 2).
 
  * Example 1
 {{{
