@@ -34,9 +34,6 @@ import java.util.regex.Pattern;
  */
 public class TBLib
 {
-	static final public String LRB = "(";
-	static final public String RRB = ")";
-	
 	// sentence level pos-tags
 	static final public String POS_S      = "S";
 	
