@@ -26,7 +26,7 @@ java clear.engine.PhraseToDep -i dat/sample.phrase -o dat/sample.dep -h headrule
 
 == Input file ==
 
-Clear P2D converter takes [http://www.cis.upenn.edu/~treebank/ Penn Treebank style] phrase structure trees as input.  Each tree starts with either an empty phrase (example 1) or a `TOP`-phrase (example 2).
+_Input file_ contains [http://www.cis.upenn.edu/~treebank/ Penn Treebank style] phrase structure trees.  Each tree starts with either an empty phrase (example 1) or a `TOP`-phrase (example 2).
 
  * Example 1
 {{{
@@ -64,4 +64,23 @@ Clear P2D converter takes [http://www.cis.upenn.edu/~treebank/ Penn Treebank sty
         (. .)))
 }}}
 
-== Head-percolation rules ==
+== Headrule file ==
+
+_Headrule file_ contains head-percolation rules for all phrases/clauses.  Each line consists of rules for a phrase/clause.  The following shows a format of each line.
+
+{{{
+<pos-tag><tab><direction=l|r><tab><rule>(;<rule>)*
+}}}
+ * pos-tag: phrasal or clausal level [http://bulba.sdsu.edu/jeanette/thesis/PennTags.html part-of-speech tag]
+ * direction: `l` - find the leftmost head, `r` - find the rightmost head
+ * rule: pos-tag/function-tag rules in [http://download.oracle.com/javase/6/docs/api/java/util/regex/Pattern.html Java regular expression format]
+
+Here are sample rules for noun-phrases (`NP`) and verb-phrases (`VP`).
+
+{{{
+NP  r  NN.*|NML;NX;PRP;FW;CD;NP|QP|JJ.*|VB.*;ADJP;S;SBAR;.*
+VP  l  TO;MD;VB.*;VP;-PRD;NN;NNS;NP;QP;JJ.*;ADJP;.*
+}}}
+
+ * For `NP`, it first looks for the rightmost '`NN.*|NML'`: the rule covers `NN`, `NNS`, `NNP`, `NNPS`, and `NML`.  If such a node exists, take it as the head of the phrase; if such a node doesn't exist, it searches for the next node (`NX`).
+ * '`-`' is used to indicate a function tag.  For `VP`, after searching for `TO;MD;VB.*;VP`, it looks for any node with a function tag '`PRD`'.  The [http://groups.inf.ed.ac.uk/switchboard/subcattags.html link] shows the list of function tags used for Penn Treebank.  A function tag can only be specified as a single unit (e.g., '`-PRD|SBJ`' or '`-PRD|-SBJ`' is not allowed).
