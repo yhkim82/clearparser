@@ -1,0 +1,26 @@
+#summary Phrase-to-dependency converter: guidelines
+
+= Clear phrase-to-dependency converter =
+
+_Clear phrase-to-dependency converter_ takes [http://www.cis.upenn.edu/~treebank/ Penn Treebank style] phrase structure trees as input and gives corresponding dependency trees in [DataFormat Clear format] as output.  The tool allows users to customize their own head-percolation rules.  It currently supports only English, but the support for Chinese is expected sometime soon.
+
+== How to run ==
+
+On the terminal, type the following command.
+
+{{{
+Usage: java clear.engine.PhraseToDep -i <input-file> -o <output-file> -h <headrule-file> [-m <dictionary-directory-path> -l <language=en>]
+}}}
+
+ * Input file: name of a file containing [http://www.cis.upenn.edu/~treebank/ Penn Treebank style] phrase structure trees.
+ * Output file: name of a file containing dependency trees converted from the input file.
+ * Headrule file: name of a file containing headrules.
+ * Dictionary directory path: path of a direction containing dictionaries for 
+
+
+= Details =
+
+Add your content here.  Format your content with:
+  * Text in *bold* or _italic_
+  * Headings, paragraphs, and lists
+  * Automatic links to other wiki pages
