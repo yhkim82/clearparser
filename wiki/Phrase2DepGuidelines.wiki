@@ -2,17 +2,66 @@
 
 = Clear phrase-to-dependency converter =
 
-_Clear phrase-to-dependency converter_ takes phrase structure trees in [http://www.cis.upenn.edu/~treebank/ Penn Treebank format] as input and gives corresponding dependency trees in [DataFormat Clear format] as output.  The tool allows users to customize their own head-percolation rules.  It currently supports only English (support for Chinese is expected sometime soon).
+_Clear phrase-to-dependency converter_ takes phrase structure trees in [http://www.cis.upenn.edu/~treebank/ Penn Treebank format] as input and generates corresponding dependency trees in [DataFormat Clear format] as output.  The tool allows users to customize their own head-percolation rules.  It currently supports only English (support for Chinese is expected soon).
 
 == How to run ==
 
 On the terminal, type the following command.
 
 {{{
-Usage: java clear.engine.PhraseToDep -i <input-file> -o <output-file> -h <headrule-file> [-m <dictionary-directory> -l <language=en>]
+Usage: java clear.engine.PhraseToDep -i <input-file> -o <output-file> -h <headrule-file> [-m <dictionary-directory> -l <language=ch|en>]
 }}}
 
- * Input file: name of a file containing [http://www.cis.upenn.edu/~treebank/ Penn Treebank style] phrase structure trees.
- * Output file: name of a file containing dependency trees converted from the input file.
- * Headrule file: name of a file containing head-percolation rules.
- * Dictionary directory: path of a direction containing dictionaries for [MorphAnalyzerGuidelines Clear morphological analyzer].
+ * input file: name of a file containing phrase structure trees.
+ * output file: name of a file containing dependency trees converted from the input file.
+ * headrule file: name of a file containing head-percolation rules.
+ * dictionary directory: path of a directory containing dictionaries for [MorphAnalyzerGuidelines Clear morphological analyzer].  If the directory is not specified, it uses word-forms as lemmas.
+ * language: `ch` - Chinese (not supported yet), `en` - English (default)
+
+'`dat`' directory includes a sample input file (`dat/sample.phrase`),  '`headrules`' directory includes a default headrule file (`headrules/choi.headrules`), and '`en_dict`' directory includes default dictionary files for English.  The following command converts phrase structure trees in '`dat/sample.phrase`' to dependency trees in '`dat/sample.dep`' by using head-percolation rules in '`headrules/choi.headrules`' and dictionaries in '`en_dict`'.
+
+{{{
+java clear.engine.PhraseToDep -i dat/sample.phrase -o dat/sample.dep -h headrules/choi.headrules -m en_dict/
+}}}
+
+== Input file ==
+
+Clear P2D converter takes [http://www.cis.upenn.edu/~treebank/ Penn Treebank style] phrase structure trees as input.  Each tree starts with either an empty phrase (example 1) or a `TOP`-phrase (example 2).
+
+ * Example 1
+{{{
+((S (NP-SBJ (NP (DT The)
+                    (ADJP (RBS most)
+                          (JJ important))
+                    (NN thing))
+                (PP (IN about)
+                    (NP (NNP Disney))))
+        (VP (VBZ is)
+            (SBAR-PRD (IN that)
+                      (S (NP-SBJ (PRP it))
+                         (VP (VBZ is)
+                             (NP-PRD (DT a)
+                                     (JJ global)
+                                     (NN brand))))))
+        (. .)))
+}}}
+
+ * Example 2
+{{{
+(TOP (S (NP-SBJ (NP (DT The)
+                    (NN world)
+                    (POS 's))
+                (JJ fifth)
+                (NNP Disney)
+                (NN park))
+        (VP (MD will)
+            (ADVP-TMP (RB soon))
+            (VP (VB open)
+                (PP-CLR (IN to)
+                        (NP (DT the)
+                            (NN public)))
+                (ADVP-LOC (RB here))))
+        (. .)))
+}}}
+
+== Head-percolation rules ==
