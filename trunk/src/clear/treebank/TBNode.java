@@ -31,7 +31,7 @@ import java.util.StringTokenizer;
 /**
  * Treebank node.
  * @author Jinho D. Choi
- * <b>Last update:</b> 8/24/2010
+ * <b>Last update:</b> 8/29/2010
  */
 public class TBNode
 {
@@ -157,12 +157,13 @@ public class TBNode
 		return pos.equals(TBLib.POS_NONE);
 	}
 	
-	/** @return true if the node contains only empty category. */
+	/** @return true if the node contains only empty category, recursively. */
 	public boolean isEmptyCategoryRec()
 	{
 		return isEmptyCategoryRec(this);
 	}
 	
+	/** This method is called from {@link TBNode#isEmptyCategoryRec()}. */
 	private boolean isEmptyCategoryRec(TBNode curr)
 	{
 		if (!curr.isPhrase())	return curr.isEmptyCategory();
@@ -201,6 +202,7 @@ public class TBNode
 		return false;
 	}
 	
+	/** @return true if the node contains a gap-node. */
 	public boolean containsGap()
 	{
 		if (!isPhrase())	return false;
@@ -211,11 +213,16 @@ public class TBNode
 		return false;
 	}
 	
+	/**
+	 * Returns a child with a gap-index of <code>index</code>.
+	 * If there doesn't exist, returns null.
+	 */
 	public TBNode getGapNode(int index)
 	{
 		return getGapNodeAux(index, this);
 	}
 	
+	/** This method is called from {@link TBNode#getGapNode(int)}. */
 	private TBNode getGapNodeAux(int index, TBNode curr)
 	{
 		if (!curr.isPhrase())	return null;
@@ -258,6 +265,7 @@ public class TBNode
 		return ls_children;
 	}
 	
+	/** Converts brackets into their original forms. */
 	public void setForm(String form)
 	{
 		form = form.replaceAll("-LRB-", "(");

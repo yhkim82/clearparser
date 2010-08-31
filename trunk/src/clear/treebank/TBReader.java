@@ -28,10 +28,14 @@ import clear.util.JFileTokenizer;
 /**
  * Treebank reader
  * @author Jinho D. Choi
- * <b>Last update:</b> 02/15/2010
+ * <b>Last update:</b> 8/30/2010
  */
 public class TBReader
 {
+	/** Left round bracket "(" */
+	static final public String LRB = "(";
+	/** Right round bracket "(" */
+	static final public String RRB = ")";
 	/** FileTokenizer to read the Treebank file */
 	private JFileTokenizer f_tree;
 	
@@ -41,7 +45,7 @@ public class TBReader
 	 */
 	public TBReader(String treeFile)
 	{
-		String delim = TBLib.LRB + TBLib.RRB + JFileTokenizer.WHITE;
+		String delim = LRB + RRB + JFileTokenizer.WHITE;
 		f_tree = new JFileTokenizer(treeFile, delim, true);
 	}
 	
@@ -51,19 +55,34 @@ public class TBReader
 	 */
 	public TBTree nextTree()
 	{
-		int numBracket    = 0;
+		String str;
+		
+		do		// find the first '('
+		{
+			str = nextToken();
+			if (str == null){	f_tree.close();	return null;	}
+		}
+		while (!str.equals(LRB));
+		
+		int numBracket    = 1;
 		int terminalIndex = 0;
 		int tokenIndex    = 0;
 		TBTree tree       = new TBTree();
 		TBNode head       = new TBNode(null, "DUMMY");	// dummy-head
 		TBNode curr       = head;						// pointer to the current node
 
-		String str = nextToken();
-		if (str == null){	f_tree.close();	return null;	}
-
 		while (true)
 		{
-			if (str.equals(TBLib.LRB))
+			if ((str = nextToken()) == null)
+				errorMsg("more token needed");
+			
+			if (numBracket == 1 && str.equals(TBLib.POS_TOP))
+			{
+				TBNode node = new TBNode(curr, str);	// add a child to 'curr'
+				curr.addChild(node);
+				curr = node;							// move to child
+			}
+			else if (str.equals(LRB))
 			{
 				numBracket++;
 				if ((str = nextToken()) == null)		// str = pos-tag
@@ -73,7 +92,7 @@ public class TBReader
 				curr.addChild(node);
 				curr = node;							// move to child
 			}
-			else if (str.equals(TBLib.RRB))
+			else if (str.equals(RRB))
 			{
 				numBracket--;
 				curr = curr.getParent();				// move to parent
@@ -86,14 +105,13 @@ public class TBReader
 				if (!curr.isEmptyCategory())	curr.tokenId = tokenIndex++;
 				tree.addTerminal(curr);					// add 'curr' as a leaf
 			}
-			
-			str = nextToken();
 		}
 		
 		TBNode root = head.getChildren().get(0);		// omit the dummy head
 		root.setParent(null);
 		tree.setRoot(root);
-		return tree;						
+		
+		return tree;
 	}
 	
 	/**
