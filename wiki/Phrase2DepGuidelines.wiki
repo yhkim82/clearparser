@@ -84,3 +84,9 @@ VP  l  TO;MD;VB.*;VP;-PRD;NN;NNS;NP;QP;JJ.*;ADJP;.*
 
  * For `NP`, it first looks for the rightmost '`NN.*|NML'`: the rule covers `NN`, `NNS`, `NNP`, `NNPS`, and `NML`.  If such a node exists, take it as the head of the phrase; if such a node doesn't exist, it searches for the next node (`NX`).
  * '`-`' is used to indicate a function tag.  For `VP`, after searching for `TO;MD;VB.*;VP`, it looks for any node with a function tag '`PRD`'.  The [http://groups.inf.ed.ac.uk/switchboard/subcattags.html link] shows the list of function tags used for Penn Treebank.  A function tag can only be specified as a single unit (e.g., '`-PRD|SBJ`' or '`-PRD|-SBJ`' is not allowed).
+
+For `S|VP`, whose child forms a gap-relation ('='), the following headrule is used instead.
+
+{{{
+GAP  l  MD;VB.*;VP;-SBJ;-TPC;-PRD
+}}}
