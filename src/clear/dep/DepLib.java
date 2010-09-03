@@ -53,20 +53,36 @@ public class DepLib
 	
 	static public final String DEPREL_ADV   = "ADV";
 	static public final String DEPREL_AMOD  = "AMOD";
-	static public final String DEPREL_CMOD  = "CMOD";
+	static public final String DEPREL_BNF   = "BNF";
 	static public final String DEPREL_COORD = "COORD";
 	static public final String DEPREL_CONJ  = "CONJ";
+	static public final String DEPREL_CLF   = "CLF";
 	static public final String DEPREL_DEP   = "DEP";
+	static public final String DEPREL_DIR   = "DIR";
+	static public final String DEPREL_DTV   = "DTV";
+	static public final String DEPREL_EXT   = "EXT";
+	static public final String DEPREL_EXTR  = "EXTR";
+	static public final String DEPREL_GAP   = "GAP";
 	static public final String DEPREL_HYPH  = "HYPH";
 	static public final String DEPREL_IM    = "IM";
+	static public final String DEPREL_LGS   = "LGS";
+	static public final String DEPREL_LOC   = "LOC";
+	static public final String DEPREL_META  = "META";
+	static public final String DEPREL_MNR   = "MNR";
 	static public final String DEPREL_NMOD  = "NMOD";
+	static public final String DEPREL_OBJ   = "OBJ";
 	static public final String DEPREL_P     = "P";
 	static public final String DEPREL_PMOD  = "PMOD";
+	static public final String DEPREL_PRD   = "PRD";
+	static public final String DEPREL_PRN   = "PRN";
+	static public final String DEPREL_PRP   = "PRP";
+	static public final String DEPREL_PRT   = "PRT";
 	static public final String DEPREL_QMOD  = "QMOD";
 	static public final String DEPREL_ROOT  = "ROOT";
+	static public final String DEPREL_SEZ   = "SEZ";
 	static public final String DEPREL_SBJ   = "SBJ";
-	static public final String DEPREL_GAP   = "GAP";
-	static public final String DEPREL_EXTR  = "EXTR";
-	
-	static public final String DEPREL_IGNORE = "IGNORE";
+	static public final String DEPREL_SUB   = "SUB";
+	static public final String DEPREL_TMP   = "TMP";
+	static public final String DEPREL_VC    = "VC";
+	static public final String DEPREL_VOC   = "VOC";
 }
