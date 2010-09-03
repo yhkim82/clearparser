@@ -31,6 +31,7 @@ import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
 import clear.morph.MorphEnAnalyzer;
 import clear.reader.AbstractReader;
+import clear.treebank.TBEnConvert;
 import clear.treebank.TBHeadRules;
 import clear.treebank.TBReader;
 import clear.treebank.TBTree;
@@ -67,13 +68,14 @@ public class PhraseToDep
 			MorphEnAnalyzer morph     = (dictDir != null) ? new MorphEnAnalyzer(dictDir) : null;
 			PrintStream     fout      = IOUtil.createPrintFileStream(outputFile);
 			TBTree          tree;
+			TBEnConvert     converter = new TBEnConvert();
 
 			String filename = inputFile.substring(inputFile.lastIndexOf(File.separator)+1);
 			System.out.print(filename);
 			
 			for (int i=1; (tree = reader.nextTree()) != null; i++)
 			{
-				fout.println(tree.toDepTree(headrules, morph)+"\n");
+				fout.println(converter.toDepTree(tree, headrules, morph)+"\n");
 				if (i%1000 == 0)	System.out.print("\r"+filename+": "+i);
 			}	System.out.println();
 		}

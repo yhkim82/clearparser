@@ -31,7 +31,7 @@ import java.util.StringTokenizer;
 /**
  * Treebank node.
  * @author Jinho D. Choi
- * <b>Last update:</b> 8/29/2010
+ * <b>Last update:</b> 9/1/2010
  */
 public class TBNode
 {
@@ -139,19 +139,19 @@ public class TBNode
 			return isPos(rule);
 	}
 	
-	/** Returns true if the pos-tag of this node is <code>pos</code> in regular expression (e.g., NN.*|VB). */
+	/** @return true if the pos-tag of this node is <code>pos</code> in regular expression (e.g., NN.*|VB). */
 	public boolean isPos(String rule)
 	{
 		return pos.matches(rule);
 	}
 	
-	/** Returns true is the function tag of this node is <code>tag</code>. */
+	/** @return true is the function tag of this node is <code>tag</code>. */
 	public boolean isTag(String tag)
 	{
 		return tags != null && tags.contains(tag);
 	}
 	
-	/** Returns true if the node is an empty category. */
+	/** @return true if the node is an empty category. */
 	public boolean isEmptyCategory()
 	{
 		return pos.equals(TBLib.POS_NONE);
@@ -174,13 +174,13 @@ public class TBNode
 		return true;
 	}
 	
-	/** Returns true if the node is a phrase. */
+	/** @return true if the node is a phrase. */
 	public boolean isPhrase()
 	{
 		return ls_children != null;
 	}
 	
-	/** Returns true if this node is a phrase and contains <code>pos</code> as pos-tag of its children. */
+	/** @return true if this node is a phrase containing <code>pos</code> as a pos-tag of its children. */
 	public boolean containsPos(String pos)
 	{
 		if (!isPhrase())	return false;
@@ -191,7 +191,7 @@ public class TBNode
 		return false;
 	}
 	
-	/** Returns true if this node is a phrase and contains <code>tag</code> as function-tag of its children. */
+	/** @return true if this node is a phrase containing <code>tag</code> as a function-tag of its children. */
 	public boolean containsTag(String tag)
 	{
 		if (!isPhrase())	return false;
@@ -215,7 +215,7 @@ public class TBNode
 	
 	/**
 	 * Returns a child with a gap-index of <code>index</code>.
-	 * If there doesn't exist, returns null.
+	 * If there is no such child, returns null.
 	 */
 	public TBNode getGapNode(int index)
 	{
@@ -238,7 +238,7 @@ public class TBNode
 		return null;
 	}
 	
-	/** Return the number of children whose pos-tag is <code>pos</code>. */
+	/** @return the number of children whose pos-tag is <code>pos</code>. */
 	public int countsPos(String pos)
 	{
 		if (!isPhrase())	return 0;
@@ -259,13 +259,19 @@ public class TBNode
 		return nd_parent;
 	}
 	
-	/** Returns the list of children nodes. */
+	/**
+	 * Returns the list of children nodes.
+	 * If there is no child, returns null.
+	 */
 	public ArrayList<TBNode> getChildren()
 	{
 		return ls_children;
 	}
 	
-	/** Converts brackets into their original forms. */
+	/**
+	 * Assigns <code>form</code> to {@link TBNode#form}.
+	 * If <code>form</code> is a bracket-tag, convert it to its actual word-form (e.g., "-LRB-" to "(").
+	 */
 	public void setForm(String form)
 	{
 		form = form.replaceAll("-LRB-", "(");
@@ -294,13 +300,13 @@ public class TBNode
 		ls_children.add(child);
 	}
 	
-	/** Returns word-forms of the node's subtree, recursively. */
+	/** Returns word-forms of the node's subtree. */
 	public String toWords()
 	{
 		return toWordsAux(this);
 	}
 	
-	/** Auxiliary method of {@link TBNode#toWords()}. */
+	/** This method is called from {@link TBNode#toWords()}. */
 	private String toWordsAux(TBNode curr)
 	{
 		if (curr.isPhrase())
@@ -319,8 +325,8 @@ public class TBNode
 			return curr.form;
 	}
 	
-	/** Returns pos-tags of the node's subtree. */
-	public String toPostags()
+	/** @return pos-tags of the node's children. */
+	public String toPosTags()
 	{
 		StringBuilder build = new StringBuilder();
 		
@@ -333,7 +339,7 @@ public class TBNode
 		return build.toString();
 	}
 	
-	/** Returns the bitset of terminal indices of the subtree of this node. */
+	/** @return the bitset of terminal indices of the subtree of this node. */
 	public BitSet getSubTerminalBitSet()
 	{
 		BitSet set = new BitSet();

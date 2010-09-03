@@ -76,7 +76,7 @@ public class TBReader
 			if ((str = nextToken()) == null)
 				errorMsg("more token needed");
 			
-			if (numBracket == 1 && str.equals(TBLib.POS_TOP))
+			if (numBracket == 1 && str.equals(TBEnLib.POS_TOP))
 			{
 				TBNode node = new TBNode(curr, str);	// add a child to 'curr'
 				curr.addChild(node);
