@@ -56,6 +56,7 @@ public class TBEnLib extends TBLib
 	static final public String POS_QP     = "QP";
 	static final public String POS_RRC    = "RRC";
 	static final public String POS_UCP    = "UCP";
+	static final public String POS_UH     = "UH";
 	static final public String POS_VP     = "VP";
 	static final public String POS_WHADJP = "WHADJP";
 	static final public String POS_WHADVP = "WHADVP";
@@ -193,12 +194,17 @@ public class TBEnLib extends TBLib
 	
 	static public boolean isAdjectiveLike(String pos)
 	{
-		return isAdjective(pos) || pos.equals(POS_ADJP) || pos.equals(POS_NML);
+		return isAdjective(pos) || pos.equals(POS_ADJP);
 	}
 	
 	static public boolean isAdjective(String pos)
 	{
 		return pos.startsWith(POS_JJ);
+	}
+	
+	static public boolean isAdverb(String pos)
+	{
+		return pos.startsWith(POS_RB);
 	}
 	
 	static public boolean isWhAdverbLike(String pos)

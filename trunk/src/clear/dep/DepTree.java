@@ -249,4 +249,17 @@ public class DepTree extends AbstractTree<DepNode>
 		
 		return true;
 	}
+	
+	public String toStringNp()
+	{
+		StringBuilder buff = new StringBuilder();
+		
+		for (int i=1; i<size(); i++)
+		{
+			buff.append(get(i).toStringNp());
+			buff.append("\n");
+		}
+		
+		return buff.toString().trim();
+	}
 }
