@@ -29,6 +29,8 @@ import java.io.PrintStream;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
+
+import clear.dep.DepTree;
 import clear.morph.MorphEnAnalyzer;
 import clear.reader.AbstractReader;
 import clear.treebank.TBEnConvert;
@@ -49,6 +51,8 @@ public class PhraseToDep
 	String dictDir = null;
 	@Option(name="-l", usage="language ::= "+AbstractReader.LANG_CH+"|"+AbstractReader.LANG_EN, metaVar="OPTIONAL")
 	String language = AbstractReader.LANG_EN;
+	@Option(name="-n", usage="minimum sentence length (inclusive)")
+	int length = 0;
 	
 	static public void main(String[] args)
 	{
@@ -71,13 +75,15 @@ public class PhraseToDep
 			TBEnConvert     converter = new TBEnConvert();
 
 			String filename = inputFile.substring(inputFile.lastIndexOf(File.separator)+1);
-			System.out.print(filename);
+			int i = 0;
 			
-			for (int i=1; (tree = reader.nextTree()) != null; i++)
+			System.out.print("\r"+filename+": 0");
+			while ((tree = reader.nextTree()) != null)
 			{
-				fout.println(converter.toDepTree(tree, headrules, morph)+"\n");
+				DepTree dTree = converter.toDepTree(tree, headrules, morph);
+				if (dTree.size() > length){ fout.println(dTree+"\n");	i++; }
 				if (i%1000 == 0)	System.out.print("\r"+filename+": "+i);
-			}	System.out.println();
+			}	System.out.println("\r"+filename+": "+i);
 		}
 		catch (CmdLineException e)
 		{

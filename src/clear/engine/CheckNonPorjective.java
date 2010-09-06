@@ -1,29 +1,39 @@
 package clear.engine;
 
+import java.io.PrintStream;
+
 import clear.dep.DepNode;
 import clear.dep.DepTree;
-import clear.reader.CoNLLReader;
+import clear.reader.DepReader;
+import clear.util.IOUtil;
 
 public class CheckNonPorjective
 {
+	int total = 0, totalSen = 0;
+	int nproj = 0, nprojSen = 0;
+	
 	public CheckNonPorjective(String inputFile)
 	{
-		CoNLLReader reader = new CoNLLReader(inputFile, true);
+		DepReader reader = new DepReader(inputFile, true);
 		DepTree   tree;
-		
+		PrintStream fout = IOUtil.createPrintFileStream(inputFile+".np");
+				
 		while ((tree = reader.nextTree()) != null)
 		{
-			if (!isProjective(tree))
-			{
-				System.out.println(tree);
-				break;
-			}
+			if (!isProjective(tree))	nprojSen++;
+			totalSen++;
+			fout.println(tree.toStringNp()+"\n");
 		}
 		
+		System.out.printf("Dependency: %d / %d = %4.2f\n", nproj, total, (double)nproj/total*100);
+		System.out.printf("Sentence  : %d / %d = %4.2f\n", nprojSen, totalSen, (double)nprojSen/totalSen*100);
 	}
 
 	private boolean isProjective(DepTree tree)
 	{
+		total += tree.size() - 1;
+		boolean isProj = true;
+		
 		for (int i=1; i<tree.size(); i++)
 		{
 			DepNode curr = tree.get(i);
@@ -37,13 +47,15 @@ public class CheckNonPorjective
 				DepNode node = tree.get(j);
 				if (node.headId < sId || node.headId > eId)
 				{
-					System.out.println(sId+" "+node.id+" "+eId+" "+node.headId);
-					return false;
+					curr.nonProj = 1;
+					nproj++;
+					isProj = false;
+					break;
 				}
 			}
 		}
 		
-		return true;
+		return isProj;
 	}
 	
 	static public void main(String[] args)

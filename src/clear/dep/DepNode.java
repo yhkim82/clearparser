@@ -53,6 +53,8 @@ public class DepNode
 	public int     leftDepId;
 	/** Index of the right-dependent */
 	public int     rightDepId;
+	/** 1 if the node is non-projective (experimental) */
+	public byte nonProj = 0;
 
 	/** Initializes the node as a null node. */
 	public DepNode()
@@ -197,6 +199,21 @@ public class DepNode
 		buff.append(pos);		buff.append(CoNLLReader.FIELD_DELIM);
 		buff.append(headId);	buff.append(CoNLLReader.FIELD_DELIM);
 		buff.append(deprel);
+		
+		return buff.toString();
+	}
+	
+	public String toStringNp()
+	{
+		StringBuilder buff = new StringBuilder();
+		
+		buff.append(id);		buff.append(CoNLLReader.FIELD_DELIM);
+		buff.append(form);		buff.append(CoNLLReader.FIELD_DELIM);
+		buff.append(lemma);		buff.append(CoNLLReader.FIELD_DELIM);
+		buff.append(pos);		buff.append(CoNLLReader.FIELD_DELIM);
+		buff.append(headId);	buff.append(CoNLLReader.FIELD_DELIM);
+		buff.append(deprel);	buff.append(CoNLLReader.FIELD_DELIM);
+		buff.append(nonProj);
 		
 		return buff.toString();
 	}
