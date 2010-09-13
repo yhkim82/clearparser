@@ -183,7 +183,12 @@ public class TBEnConvert
 				if (prev == null)	break;
 				if (next == null)	continue;
 				
-				setCoordinationAux(pTree, dTree, curr, conj, prev, next);
+				if (setCoordinationAux(pTree, dTree, curr, conj, prev, next))
+				{
+					System.out.println(curr.toWords());
+					System.out.println(pTree);
+					System.out.println(dTree);
+				}
 			}
 			
 			i = prev.childId;
