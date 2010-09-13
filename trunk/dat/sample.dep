@@ -1,0 +1,30 @@
+1	The		DT	4	DEPREL
+2	most		RBS	3	DEPREL
+3	important		JJ	4	DEPREL
+4	thing		NN	7	DEPREL
+5	about		IN	4	DEPREL
+6	Disney		NNP	5	DEPREL
+7	is		VBZ	0	ROOT
+8	that		IN	7	DEPREL
+9	it		PRP	10	DEPREL
+10	is		VBZ	8	DEPREL
+11	a		DT	13	DEPREL
+12	global		JJ	13	DEPREL
+13	brand		NN	10	DEPREL
+14	.		.	7	DEPREL
+
+1	The		DT	2	DEPREL
+2	world		NN	6	DEPREL
+3	's		POS	2	DEPREL
+4	fifth		JJ	6	DEPREL
+5	Disney		NNP	6	DEPREL
+6	park		NN	7	DEPREL
+7	will		MD	0	ROOT
+8	soon		RB	7	DEPREL
+9	open		VB	7	DEPREL
+10	to		IN	9	DEPREL
+11	the		DT	12	DEPREL
+12	public		NN	10	DEPREL
+13	here		RB	9	DEPREL
+14	.		.	7	DEPREL
+
