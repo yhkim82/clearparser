@@ -25,6 +25,7 @@ package clear.treebank;
 
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.HashSet;
 
 /**
  * Tree as in Penn Treebank.
@@ -108,6 +109,25 @@ public class TBTree
 	public BitSet getSubTokenIndiced(int offset)
 	{
 		return nd_curr.getSubTokenBitSet(offset);
+	}
+	
+	public HashSet<String> getAllPos()
+	{
+		HashSet<String> set = new HashSet<String>();
+		
+		getAllPosAux(nd_root, set);
+		return set;
+	}
+	
+	private void getAllPosAux(TBNode curr, HashSet<String> set)
+	{
+		set.add(curr.pos);
+		
+		if (curr.isPhrase())
+		{
+			for (TBNode child : curr.getChildren())
+				getAllPosAux(child, set);
+		}
 	}
 	
 	/**

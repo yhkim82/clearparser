@@ -72,7 +72,7 @@ public class TBReader
 		TBNode curr       = head;						// pointer to the current node
 
 		while (true)
-		{
+		{		
 			if ((str = nextToken()) == null)
 				errorMsg("more token needed");
 			
