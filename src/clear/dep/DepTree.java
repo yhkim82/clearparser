@@ -250,16 +250,46 @@ public class DepTree extends AbstractTree<DepNode>
 		return true;
 	}
 	
-	public String toStringNp()
+	public String toStringNonProj()
 	{
 		StringBuilder buff = new StringBuilder();
 		
 		for (int i=1; i<size(); i++)
 		{
-			buff.append(get(i).toStringNp());
+			buff.append(get(i).toStringNonProj());
 			buff.append("\n");
 		}
 		
 		return buff.toString().trim();
+	}
+	
+	public void projectizePunc()
+	{
+		for (int i=1; i<size(); i++)
+		{
+			DepNode curr = get(i);
+			if (curr.isDeprel(DepLib.DEPREL_P))	continue;
+			DepNode head = get(curr.headId);
+			
+			int sId, eId;
+			if (curr.id < head.id)
+			{	sId = curr.id;	eId = head.id;	}
+			else
+			{	sId = head.id;	eId = curr.id;	}
+			
+			for (int j=sId+1; j<eId; j++)
+			{
+				DepNode node = get(j);
+				
+				if (node.isDeprel(DepLib.DEPREL_P) && (sId > node.headId || node.headId > eId))
+				{
+					if (curr.headId != DepLib.ROOT_ID)
+						node.headId = curr.headId;
+					else
+						node.headId = curr.id;
+				}
+					
+			}
+		}
 	}
 }

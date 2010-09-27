@@ -203,7 +203,7 @@ public class DepNode
 		return buff.toString();
 	}
 	
-	public String toStringNp()
+	public String toStringNonProj()
 	{
 		StringBuilder buff = new StringBuilder();
 		

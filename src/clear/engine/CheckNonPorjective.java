@@ -24,7 +24,7 @@ public class CheckNonPorjective
 	//		total += tree.size() - 1;
 			if (!isProjective(tree))	nprojSen++;
 			totalSen++;
-			fout.println(tree.toStringNp()+"\n");
+			fout.println(tree.toStringNonProj()+"\n");
 		}
 		
 	//	System.out.println((double)total/i);
