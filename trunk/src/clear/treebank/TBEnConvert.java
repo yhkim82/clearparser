@@ -50,6 +50,7 @@ public class TBEnConvert
 		setDepRoot(dTree);
 		setEmptyCategory(pTree, dTree);
 		DepTree copy = removeEmptyCategories(dTree);
+		copy.projectizePunc();
 		copy.checkTree();
 		
 		return copy;
@@ -90,8 +91,10 @@ public class TBEnConvert
 		
 		// find heads of all subtrees
 		findHeads(curr, headrules);
-		if (isCoordination(curr))	setCoordination(pTree, dTree, curr);
-		else						setApposition  (pTree, dTree, curr);
+		if (isCoordination(curr))
+			setCoordination(pTree, dTree, curr);
+		else if (curr.isPos(TBEnLib.POS_NP+"|"+TBEnLib.POS_NX+"|"+TBEnLib.POS_NML))
+			setApposition  (pTree, dTree, curr);
 		setGap(pTree, dTree, curr);		
 		reconfigureHead(dTree, curr);
 		setDepHeadsAux (pTree, dTree, curr);
@@ -183,12 +186,7 @@ public class TBEnConvert
 				if (prev == null)	break;
 				if (next == null)	continue;
 				
-				if (setCoordinationAux(pTree, dTree, curr, conj, prev, next))
-				{
-					System.out.println(curr.toWords());
-					System.out.println(pTree);
-					System.out.println(dTree);
-				}
+				setCoordinationAux(pTree, dTree, curr, conj, prev, next);
 			}
 			
 			i = prev.childId;
@@ -313,7 +311,7 @@ public class TBEnConvert
 			TBNode lst = children.get(i+2);
 			
 			if (fst.isPos(TBEnLib.POS_NP) && mid.isPos(TBEnLib.POS_COMMA) && lst.isPos(TBEnLib.POS_NP))
-				setDependency(dTree, lst.headId, fst.headId, getDeprel(pTree, curr, lst));
+				setDependency(dTree, lst.headId, fst.headId, "APPO");
 		}
 	}
 	
