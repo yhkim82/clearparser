@@ -38,4 +38,9 @@ public class JIntIntTuple
 		this.int1 = int1;
 		this.int2 = int2;
 	}
+	
+	public boolean contains(int i)
+	{
+		return int1 == i || int2 == i;
+	}
 }

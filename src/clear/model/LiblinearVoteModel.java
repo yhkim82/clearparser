@@ -21,76 +21,84 @@
 * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 * POSSIBILITY OF SUCH DAMAGE.
 */
-package clear.propbank;
+package clear.model;
+
 
 import java.util.ArrayList;
+import java.util.Collections;
+
+import clear.util.tuple.JIntDoubleTuple;
 
 /**
- * Propbank argument.
+ * Liblinear decoders.
  * @author Jinho D. Choi
- * <b>Last update:</b> 9/30/2010
+ * <br><b>Last update:</b> 7/1/2010
  */
-public class PBArg
+public class LiblinearVoteModel
 {
-	/** Propbank argument-label */
-	public String label;
-	/** Predicate ID of this argument */
-	public int    predicateId;
-	/** Propbank locations */
-	private ArrayList<PBLoc> pb_locs = null;
+	protected LiblinearModel[] g_models;
+	protected int n_labels;
 	
-	/** Initializes the Propbank argument. */
-	public PBArg(String label, int predicateId)
+	public LiblinearVoteModel(String modelFile, int nLabels)
 	{
-		init(label, predicateId);
+		n_labels = nLabels;
+		
+		try
+		{
+			init(modelFile);
+		}
+		catch (Exception e) {e.printStackTrace();}
 	}
 	
-	public PBArg(String labelPredicatId)
+	public void init(String modelFile) throws Exception
 	{
-		String[] tmp = labelPredicatId.split(PBLib.LABEL_DELIM);
-		init(tmp[0], Integer.parseInt(tmp[1]));
+		g_models = new LiblinearModel[n_labels*(n_labels-1)/2];
+		
+		for (int i=0; i<g_models.length; i++)
+			g_models[i] = new LiblinearModel(modelFile+"."+i);
 	}
 	
-	private void init(String label, int predicateId)
+	/* (non-Javadoc)
+	 * @see harvest.model.AbstractModel#predict(java.util.ArrayList)
+	 */
+	public JIntDoubleTuple predict(ArrayList<Integer> x)
 	{
-		this.label       = label;
-		this.predicateId = predicateId;
-		this.pb_locs     = new ArrayList<PBLoc>();
-	}
-	
-	/** Adds a location. */
-	public void addLoc(PBLoc loc)
-	{
-		pb_locs.add(loc);
-	}
-	
-	public ArrayList<PBLoc> getLocs()
-	{
-		return pb_locs;
-	}
+		double[] count = new double[n_labels];
+		
+		for (LiblinearModel model : g_models)
+		{
+			JIntDoubleTuple res = model.predict(x);
+			if (res.d > 1)	res.d = 1;
+			count[res.i] += res.d;
+		}
 
-	/** @return string representation of the argument. */
-	public String toString()
-	{
-		StringBuilder buff = new StringBuilder();
+		JIntDoubleTuple max = new JIntDoubleTuple(0, count[0]);
 		
-		for (PBLoc loc : pb_locs)
-			buff.append(loc.toString());
+		for (int i=1; i<count.length; i++)
+		{
+			if (count[i] > max.d)
+				max.set(i, count[i]);
+		}
 		
-		buff.append(PBLib.PROP_LABEL_DELIM);
-		buff.append(label);
-		
-		return buff.toString();
+		return max;
 	}
-
-	public String toStringLabelPredicateId()
+	
+	/* (non-Javadoc)
+	 * @see harvest.model.AbstractModel#predictAll(java.util.ArrayList)
+	 */
+	public ArrayList<JIntDoubleTuple> predictAll(ArrayList<Integer> x)
 	{
-		StringBuilder buff = new StringBuilder();
+		ArrayList<JIntDoubleTuple> list = new ArrayList<JIntDoubleTuple>(n_labels);
+		for (int i=0; i<n_labels; i++)	list.add(new JIntDoubleTuple(i, 0));
 		
-		buff.append(label);
-		buff.append(PBLib.LABEL_DELIM);
-		buff.append(predicateId);
-		
-		return buff.toString();
+		for (LiblinearModel model : g_models)
+		{
+			JIntDoubleTuple res = model.predict(x);
+			if (res.d > 1)	res.d = 1;
+			list.get(res.i).d += res.d;
+		}
+
+		Collections.sort(list);
+		return list;
 	}
 }

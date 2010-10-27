@@ -28,6 +28,9 @@ import java.util.BitSet;
 import java.util.HashSet;
 import java.util.StringTokenizer;
 
+import clear.propbank.PBArg;
+import clear.propbank.PBLib;
+
 /**
  * Treebank node.
  * @author Jinho D. Choi
@@ -59,6 +62,10 @@ public class TBNode
 	/** List of children nodes */
 	protected ArrayList<TBNode> ls_children;
 	
+	protected ArrayList<PBArg> pb_args;
+	
+	protected HashSet<String> pb_labels;
+	
 	/** Initializes the node with its parent node and pos-tag. */
 	public TBNode(TBNode parent, String postag)
 	{
@@ -72,7 +79,8 @@ public class TBNode
 		childId     = -1;
 		nd_parent   = parent;
 		ls_children = null;
-		
+		pb_args     = null;
+		pb_labels   = null;
 		init(postag);
 	}
 	
@@ -85,7 +93,7 @@ public class TBNode
 			return;
 		}
 		
-		StringTokenizer tok = new StringTokenizer(postag, "-=", true);
+		StringTokenizer tok = new StringTokenizer(postag, "-=~", true);
 		pos = tok.nextToken();
 		
 		while (tok.hasMoreTokens())
@@ -114,6 +122,24 @@ public class TBNode
 					}
 				}
 				else	break;
+			}
+			else if (op.equals("~"))
+			{
+				if (pb_args == null)
+				{
+					pb_args   = new ArrayList<PBArg>();
+					pb_labels = new HashSet<String>();
+				}
+				
+				if (tok.hasMoreTokens())
+				{
+					String   str = tok.nextToken();
+					String[] arg = str.split(PBLib.LABEL_DELIM);
+					pb_args.add(new PBArg(arg[0], Integer.parseInt(arg[1])));
+					pb_labels.add(arg[0]);
+				}
+				else
+					break;
 			}
 		}
 	}
@@ -385,5 +411,62 @@ public class TBNode
 			for (TBNode child : node.getChildren())
 				getSubTokenBitSetAux(child, set, offset);
 		}
+	}
+	
+	public int getEmptyCategoryCoIndex()
+	{
+		if (isEmptyCategory())
+		{
+			int idx = form.lastIndexOf('-');
+			if (idx >= 0)
+				return Integer.parseInt(form.substring(idx+1));
+		}
+		
+		return -1;
+	}
+	
+	public String getTags()
+	{
+		StringBuilder build = new StringBuilder();
+		
+		build.append(pos);
+		
+		if (coIndex != -1)
+		{
+			build.append("-");
+			build.append(coIndex);
+		}
+		
+		if (gapIndex != -1)
+		{
+			build.append("=");
+			build.append(gapIndex);
+		}
+		
+		if (tags != null)
+		{
+			for (String tag : tags)
+			{
+				build.append("-");
+				build.append(tag);
+			}
+		}
+		
+		if (pb_args != null)
+		{
+			for (PBArg arg : pb_args)
+			{
+				build.append("~");
+				build.append(arg.toStringLabelPredicateId());
+			}
+		}
+		
+		return build.toString();
+	}
+	
+	public void addPBArg(PBArg arg)
+	{
+		if (pb_args == null)	pb_args = new ArrayList<PBArg>();
+		pb_args.add(arg);
 	}
 }

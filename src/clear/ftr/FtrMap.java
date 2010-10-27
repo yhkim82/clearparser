@@ -70,6 +70,9 @@ public class FtrMap
 	/** Takes "pos_pos" as a key and the rule a a value */
 	private TObjectIntHashMap<String> m_pos_pos_dep_rule;
 	
+	private TObjectIntHashMap<String> m_chunk_1gram;
+	private TObjectIntHashMap<String> m_chunk_2gram;
+	
 	/** Size of {@link FtrMap#m_label} */
 	public int n_label;
 	/** Size of {@link FtrMap#m_form} + 1  */
@@ -95,6 +98,9 @@ public class FtrMap
 	/** Size of {@link FtrMap#m_punctuation} + 1 */
 	public int n_punctuation;
 	
+	public int n_chunk_1gram;
+	public int n_chunk_2gram;
+	
 	/** Initializes the empty map (values to be added later). */
 	public FtrMap()
 	{
@@ -111,6 +117,9 @@ public class FtrMap
 		m_pos_pos_pos_3gram = new TObjectIntHashMap<String>();
 		m_punctuation       = new TObjectIntHashMap<String>();
 		m_pos_pos_dep_rule  = new TObjectIntHashMap<String>();
+		
+		m_chunk_1gram = new TObjectIntHashMap<String>();
+		m_chunk_2gram = new TObjectIntHashMap<String>();
 	}
 	
 	/** Returns HashMap of pre-determined punctuation. */
@@ -227,37 +236,56 @@ public class FtrMap
 			m_pos_pos_dep_rule = IOUtil.getTStringIntHashMap(lexiconDir + File.separator + FtrLib.FILE_POS_POS_DEP_RULE, FtrLib.RULE_DELIM);
 			System.out.print(".");
 		}
+		
+		if (fileset.contains(FtrLib.FILE_CHUNK_1GRAM))
+		{
+			m_chunk_1gram = IOUtil.getHashMap(lexiconDir + File.separator + FtrLib.FILE_CHUNK_1GRAM, 1);
+			n_chunk_1gram = m_chunk_1gram.size() + 1;				System.out.print(".");
+		}
+		
+		if (fileset.contains(FtrLib.FILE_CHUNK_2GRAM))
+		{
+			m_chunk_2gram = IOUtil.getHashMap(lexiconDir + File.separator + FtrLib.FILE_CHUNK_2GRAM, 1);
+			n_chunk_2gram = m_chunk_2gram.size() + 1;				System.out.print(".");
+		}
 	}
 	
 	/** Saves all tags to <code>lexiconDir</code>. */
 	public void save(String lexiconDir)
 	{
+		int cutoff = 2;
+		
 		if (!m_label.isEmpty())
-		{	IOUtil.printFile(m_label            , lexiconDir + File.separator + FtrLib.FILE_LABEL);				System.out.print(".");}
+		{	IOUtil.printFile(m_label            , lexiconDir + File.separator + FtrLib.FILE_LABEL);						System.out.print(".");}
 		if (!m_form.isEmpty())
-		{	IOUtil.printFile(m_form             , lexiconDir + File.separator + FtrLib.FILE_FORM);				System.out.print(".");}
+		{	IOUtil.printFile(m_form             , lexiconDir + File.separator + FtrLib.FILE_FORM, cutoff);				System.out.print(".");}
 		if (!m_lemma.isEmpty())
-		{	IOUtil.printFile(m_lemma            , lexiconDir + File.separator + FtrLib.FILE_LEMMA);				System.out.print(".");}
+		{	IOUtil.printFile(m_lemma            , lexiconDir + File.separator + FtrLib.FILE_LEMMA, cutoff);				System.out.print(".");}
 		if (!m_pos.isEmpty())
-		{	IOUtil.printFile(m_pos              , lexiconDir + File.separator + FtrLib.FILE_POS);				System.out.print(".");}
+		{	IOUtil.printFile(m_pos              , lexiconDir + File.separator + FtrLib.FILE_POS, cutoff);				System.out.print(".");}
 		if (!m_deprel.isEmpty())
-		{	IOUtil.printFile(m_deprel           , lexiconDir + File.separator + FtrLib.FILE_DEPREL);			System.out.print(".");}
+		{	IOUtil.printFile(m_deprel           , lexiconDir + File.separator + FtrLib.FILE_DEPREL, cutoff);			System.out.print(".");}
 		if (!m_pos_lemma_1gram.isEmpty())
-		{	IOUtil.printFile(m_pos_lemma_1gram  , lexiconDir + File.separator + FtrLib.FILE_POS_LEMMA_1GRAM);	System.out.print(".");}
+		{	IOUtil.printFile(m_pos_lemma_1gram  , lexiconDir + File.separator + FtrLib.FILE_POS_LEMMA_1GRAM, cutoff);	System.out.print(".");}
 		if (!m_pos_pos_2gram.isEmpty())
-		{	IOUtil.printFile(m_pos_pos_2gram    , lexiconDir + File.separator + FtrLib.FILE_POS_POS_2GRAM);		System.out.print(".");}
+		{	IOUtil.printFile(m_pos_pos_2gram    , lexiconDir + File.separator + FtrLib.FILE_POS_POS_2GRAM, cutoff);		System.out.print(".");}
 		if (!m_pos_lemma_2gram.isEmpty())
-		{	IOUtil.printFile(m_pos_lemma_2gram  , lexiconDir + File.separator + FtrLib.FILE_POS_LEMMA_2GRAM);	System.out.print(".");}
+		{	IOUtil.printFile(m_pos_lemma_2gram  , lexiconDir + File.separator + FtrLib.FILE_POS_LEMMA_2GRAM, cutoff);	System.out.print(".");}
 		if (!m_lemma_pos_2gram.isEmpty())
-		{	IOUtil.printFile(m_lemma_pos_2gram  , lexiconDir + File.separator + FtrLib.FILE_LEMMA_POS_2GRAM);	System.out.print(".");}
+		{	IOUtil.printFile(m_lemma_pos_2gram  , lexiconDir + File.separator + FtrLib.FILE_LEMMA_POS_2GRAM, cutoff);	System.out.print(".");}
 		if (!m_lemma_lemma_2gram.isEmpty())			
-		{	IOUtil.printFile(m_lemma_lemma_2gram, lexiconDir + File.separator + FtrLib.FILE_LEMMA_LEMMA_2GRAM);	System.out.print(".");}
+		{	IOUtil.printFile(m_lemma_lemma_2gram, lexiconDir + File.separator + FtrLib.FILE_LEMMA_LEMMA_2GRAM, cutoff);	System.out.print(".");}
 		if (!m_pos_pos_pos_3gram.isEmpty())
-		{	IOUtil.printFile(m_pos_pos_pos_3gram, lexiconDir + File.separator + FtrLib.FILE_POS_POS_POS_3GRAM);	System.out.print(".");}
+		{	IOUtil.printFile(m_pos_pos_pos_3gram, lexiconDir + File.separator + FtrLib.FILE_POS_POS_POS_3GRAM, cutoff);	System.out.print(".");}
 		if (!m_punctuation.isEmpty())
-		{	IOUtil.printFile(m_punctuation      , lexiconDir + File.separator + FtrLib.FILE_PUNCTUATION);		System.out.print(".");}
+		{	IOUtil.printFile(m_punctuation      , lexiconDir + File.separator + FtrLib.FILE_PUNCTUATION, cutoff);		System.out.print(".");}
 		if (!m_pos_pos_dep_rule.isEmpty())
-		{	saveRules(m_pos_pos_dep_rule        , lexiconDir + File.separator + FtrLib.FILE_POS_POS_DEP_RULE,1);System.out.print(".");}
+		{	saveRules(m_pos_pos_dep_rule        , lexiconDir + File.separator + FtrLib.FILE_POS_POS_DEP_RULE,1);		System.out.print(".");}
+		
+		if (!m_chunk_1gram.isEmpty())
+		{	IOUtil.printFile(m_chunk_1gram      , lexiconDir + File.separator + FtrLib.FILE_CHUNK_1GRAM, cutoff);		System.out.print(".");}
+		if (!m_chunk_2gram.isEmpty())
+		{	IOUtil.printFile(m_chunk_2gram      , lexiconDir + File.separator + FtrLib.FILE_CHUNK_2GRAM, cutoff);		System.out.print(".");}
 	}
 	
 	/** Saves rules in <code>map</code> to <code>filename</code> using <code>cutoff</code>. */
@@ -288,67 +316,67 @@ public class FtrMap
 	/** Adds the form. */
 	public void addForm(String form)
 	{
-		m_form.put(form, 1);
+		m_form.put(form, getFreq(m_form, form));
 	}
 	
 	/** Adds the lemma. */
 	public void addLemma(String lemma)
 	{
-		m_lemma.put(lemma, 1);
+		m_lemma.put(lemma, getFreq(m_lemma, lemma));
 	}
 	
 	/** Adds the part-of-speech tag. */
 	public void addPos(String pos)
 	{
-		m_pos.put(pos, 1);
+		m_pos.put(pos, getFreq(m_pos, pos));
 	}
 	
 	/** Adds the dependency label. */
 	public void addDeprel(String deprel)
 	{
-		m_deprel.put(deprel, 1);
+		m_deprel.put(deprel, getFreq(m_deprel, deprel));
 	}
 	
 	/** Adds <code>posLemma</code>. */
 	public void addPosLemma1gram(String posLemma)
 	{
-		m_pos_lemma_1gram.put(posLemma, 1);
+		m_pos_lemma_1gram.put(posLemma, getFreq(m_pos_lemma_1gram, posLemma));
 	}
 	
 	/** Adds <code>posPos</code>. */
 	public void addPosPos2gram(String posPos)
 	{
-		m_pos_pos_2gram.put(posPos, 1);
+		m_pos_pos_2gram.put(posPos, getFreq(m_pos_pos_2gram, posPos));
 	}
 	
 	/** Adds <code>posLemma</code>. */
 	public void addPosLemma2gram(String posLemma)
 	{
-		m_pos_lemma_2gram.put(posLemma, 1);
+		m_pos_lemma_2gram.put(posLemma, getFreq(m_pos_lemma_2gram, posLemma));
 	}
 	
 	/** Adds <code>lemmaPos</code>. */
 	public void addLemmaPos2gram(String lemmaPos)
 	{
-		m_lemma_pos_2gram.put(lemmaPos, 1);
+		m_lemma_pos_2gram.put(lemmaPos, getFreq(m_lemma_pos_2gram, lemmaPos));
 	}
 	
 	/** Adds <code>lemmaLemma</code>. */
 	public void addLemmaLemma2gram(String lemmaLemma)
 	{
-		m_lemma_lemma_2gram.put(lemmaLemma, 1);
+		m_lemma_lemma_2gram.put(lemmaLemma, getFreq(m_lemma_lemma_2gram, lemmaLemma));
 	}
 	
 	/** Adds <code>posPosPos</code>. */
 	public void addPosPosPos3gram(String posPosPos)
 	{
-		m_pos_pos_pos_3gram.put(posPosPos, 1);
+		m_pos_pos_pos_3gram.put(posPosPos, getFreq(m_pos_pos_pos_3gram, posPosPos));
 	}
 	
 	/** Adds the punctuation. */
 	public void addPunctuation(String punctuation)
 	{
-		m_punctuation.put(punctuation, 1);
+		m_punctuation.put(punctuation, getFreq(m_punctuation, punctuation));
 	}
 	
 	/**
@@ -361,6 +389,18 @@ public class FtrMap
 		int   value = m_pos_pos_dep_rule.get(rule) + dir;
 		m_pos_pos_dep_rule.put(rule, value);
 	}
+	
+	public void addChunk1gram(String chunk)
+	{
+		m_chunk_1gram.put(chunk, getFreq(m_chunk_1gram, chunk));
+	}
+	
+	public void addChunk2gram(String chunk)
+	{
+		m_chunk_2gram.put(chunk, getFreq(m_chunk_2gram, chunk));
+	}
+	
+	
 	
 	/** @return the class label corresponding to the index. */
 	public String indexToLabel(int index)
@@ -485,9 +525,19 @@ public class FtrMap
 		return m_pos_pos_dep_rule.get(posPos);
 	}
 	
+	public int chunk1gramToIndex(String chunk)
+	{
+		return m_chunk_1gram.get(chunk);
+	}
+	
+	public int chunk2gramToIndex(String chunk)
+	{
+		return m_chunk_2gram.get(chunk);
+	}
+	
 	/** @return the frequency of <code>key</code> in <map>. */
 	protected int getFreq(TObjectIntHashMap<String> map, String key)
 	{
-		return (map.containsKey(key)) ? map.get(key) + 1 : 1;
+		return map.get(key) + 1;
 	}
 }

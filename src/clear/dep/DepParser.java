@@ -140,6 +140,7 @@ public class DepParser extends AbstractParser
 	private void predict()
 	{
 		JIntDoubleTuple res = c_decode.predict(getFeatureArray());
+		
 		String  label  = (res.i < 0) ? NO_ARC : t_map.indexToLabel(res.i);
 		int     index  = label.indexOf(LB_DELIM);
 		String  trans  = (index > 0) ? label.substring(0,index) : label;
@@ -308,7 +309,8 @@ public class DepParser extends AbstractParser
 		if      (label.startsWith(LEFT_ARC))	t_map.addPosPosDepRule(d_tree.get(i_lambda), d_tree.get(i_beta),  1);
 		else if (label.startsWith(RIGHT_ARC))	t_map.addPosPosDepRule(d_tree.get(i_lambda), d_tree.get(i_beta), -1);
 		
-		getFeatureArray();
+	//	getFeatureArray();
+		if (label.equals(NO_ARC))	getFeatureArray();
 	}
 	
 	/**
@@ -521,6 +523,10 @@ public class DepParser extends AbstractParser
 				 beginIndex[0] += t_map.n_lemma_lemma_2gram;	break;
 		case  9: index = t_map.posPosPos3gramToIndex(feature);
 		         beginIndex[0] += t_map.n_pos_pos_pos_3gram;	break;
+		case 10: index = t_map.chunk1gramToIndex(feature);
+                 beginIndex[0] += t_map.n_chunk_1gram;			break;
+		case 11: index = t_map.chunk2gramToIndex(feature);
+                 beginIndex[0] += t_map.n_chunk_2gram;			break;
 		}
 
 		if (!feature.equals(FtrLib.TAG_NULL) && index > 0)	arr.add(begin+index);

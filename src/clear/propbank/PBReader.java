@@ -23,7 +23,6 @@
 */
 package clear.propbank;
 
-import gnu.trove.list.array.TIntArrayList;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Scanner;
@@ -68,10 +67,8 @@ public class PBReader
 	/**
 	 * Returns the next Propbank instance.
 	 * If there is none, return null.
-	 * @param onToken if true, returns token IDs for arguments; otherwise, returns terminal IDs
-	 * @param offset offset for token IDs (only when <code>onToken</code> is true)
 	 */
-	public PBInstance nextInstance(boolean onToken, int offset)
+	public PBInstance nextInstance()
 	{
 		if (!f_prop.hasNextLine())
 		{	f_prop.close();	return null;	}
@@ -80,63 +77,41 @@ public class PBReader
 		n_lineNum++;
 		
 		PBInstance instance  = new PBInstance();
-		TBTree     tree;
 		instance.treeFile    = str[0];
 		instance.treeIndex   = Integer.parseInt(str[1]);
 		instance.predicateId = Integer.parseInt(str[2]);
+		instance.annotator   = str[3];
+		instance.type        = str[4];
+		instance.rolesetId   = str[5];
 		
-		// retrieve trees from new file
-		if (!st_treeFile.equals(instance.treeFile))
+		for (int i=7; i<str.length; i++)
 		{
-			TBReader tbreader = new TBReader(st_treeDir + File.separator + instance.treeFile);
-			st_treeFile       = instance.treeFile;
-			ls_tree.clear();
+			String sarg  = str[i];
+			int    idx   = sarg.indexOf(PBLib.PROP_LABEL_DELIM);
+			String label = sarg.substring(idx+1);
+			String locs  = sarg.substring(0, idx);
+			PBArg  pbarg = new PBArg(label, instance.predicateId);
 			
-			while ((tree = tbreader.nextTree()) != null)	ls_tree.add(tree);
-		}
-		
-		tree = ls_tree.get(instance.treeIndex);
-		if (onToken)
-		{
-			if (!tree.moveToTerminal(instance.predicateId))
-				errorMsg("wrong predicate: "+instance.predicateId);
-			
-			instance.predicateId = tree.getCurrNode().tokenId + offset;
-		}
-
-		instance.rolesetId = str[4];	// str[3] = "gold", str[5] = "-----"
-		
-		for (int i=6; i<str.length; i++)
-		{
-			String arg   = str[i];
-			int    idx   = arg.indexOf(PBLib.PROP_LABEL_DELIM);
-			String label = arg.substring(idx+1);
-			String locs  = arg.substring(0, idx);
-			
-			StringTokenizer tok = new StringTokenizer(locs, PBLib.PROP_ARG_OP);
-			TIntArrayList   ids = new TIntArrayList();
+			StringTokenizer tok     = new StringTokenizer(locs, PBLib.PROP_ARG_OP, true);
+			String          argType = "";
 			
 			while (tok.hasMoreTokens())
 			{
-				String[]      loc = tok.nextToken().split(PBLib.PROP_LOC_DELIM);
-				int terminalIndex = Integer.parseInt(loc[0]);
-				int height        = Integer.parseInt(loc[1]);
+				String next = tok.nextToken();
 				
-				if (!tree.moveTo(terminalIndex, height))
-					errorMsg("wrong argument: "+arg);
-				
-		//		if (onToken)	ids.addAll(tree.getSubTokenIndices(offset));
-		//		else			ids.addAll(tree.getSubTerminalIndices());
+				if (next.length() == 1)
+					argType = next;
+				else
+				{
+					String[]      loc = next.split(PBLib.PROP_LOC_DELIM);
+					int terminalIndex = Integer.parseInt(loc[0]);
+					int height        = Integer.parseInt(loc[1]);
+					
+					pbarg.addLoc(new PBLoc(argType, terminalIndex, height));
+				}
 			}
 			
-			if (label.equalsIgnoreCase("rel"))
-				ids.remove(instance.predicateId);
-			
-			if (ids.size() > 0)
-			{
-				ids.sort();
-				instance.addArg(new PBArg(label, ids));
-			}
+			instance.addArg(pbarg);
 		}
 		
 		return instance;

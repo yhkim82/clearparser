@@ -25,10 +25,10 @@ package clear.dep;
 
 import java.io.PrintStream;
 
+import clear.decode.AbstractDecoder;
+import clear.decode.OneVsAllDecoder;
 import clear.dep.ftr.DepFtrXml;
 import clear.ftr.FtrMap;
-import clear.model.AbstractModel;
-import clear.model.LiblinearModel;
 import clear.util.IOUtil;
 
 /**
@@ -39,18 +39,18 @@ import clear.util.IOUtil;
 abstract public class AbstractParser
 {
 	/** Dependency tree to parse */
-	protected DepTree       d_tree;
+	protected DepTree         d_tree;
 	/** {@link DepLib#FLAG_PRINT_LEXICON}, {@link DepLib#FLAG_PRINT_INSTANCE}}, {@link DepLib#FLAG_PRINT_TRANSITION}, {@link DepLib#FLAG_PREDICT}, {@link DepLib#FLAG_PREDICT_BEST} */
-	protected byte          i_flag;
+	protected byte            i_flag;
 	/** Feature templates */
-	protected DepFtrXml     t_xml;
+	protected DepFtrXml       t_xml;
 	/** Feature mappings */
-	protected FtrMap        t_map;
+	protected FtrMap          t_map;
 	/** Prints training instances */
-	protected PrintStream   f_out;
+	protected PrintStream     f_out;
 	/** Decoders to predict dependency labels */
-	protected AbstractModel c_decode;
-
+	protected AbstractDecoder c_decode;
+	
 	/**
 	 * Initializes the parser for training.
 	 * @param lexiconDir name of the directory containing lexicon files
@@ -87,7 +87,7 @@ abstract public class AbstractParser
 			System.out.print("- Loading lexicon files  : ");
 			t_map    = new FtrMap(lexiconDir);
 			System.out.print("\n- Loading liblinear model: ");
-			c_decode = new LiblinearModel(inputFile);
+			c_decode = new OneVsAllDecoder(inputFile);
 			System.out.println();
 		}
 	}

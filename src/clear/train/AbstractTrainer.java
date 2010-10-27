@@ -94,7 +94,7 @@ abstract public class AbstractTrainer
 			if (label >= 0)	s_labels.add(label);
 			D = Math.max(D, feature[feature.length-1]);
 			
-			if (N%10000 == 0)	System.out.print("\r* Initializing  : "+N);
+			if (N%100000 == 0)	System.out.print("\r* Initializing  : "+(N/1000)+"K");
 		}
 		
 		scan.close();

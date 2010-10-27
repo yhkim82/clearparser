@@ -63,6 +63,9 @@ public class FtrLib
 	static public final String FILE_PUNCTUATION       = "punctuation.txt";
 	/** Name of the file containing "pos_pos" rule for token1 and token2 */
 	static public final String FILE_POS_POS_DEP_RULE  = "pos_pos_rule.txt";
+	
+	static public final String FILE_CHUNK_1GRAM = "chunk_1gram.txt";
+	static public final String FILE_CHUNK_2GRAM = "chunk_2gram.txt";
 }
 
 

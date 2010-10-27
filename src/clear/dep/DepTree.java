@@ -137,6 +137,11 @@ public class DepTree extends AbstractTree<DepNode>
 		return curr.hasHead ? get(curr.headId) : new DepNode();
 	}
 	
+	public DepNode getLastNode()
+	{
+		return get(size()-1);
+	}
+	
 	/** @return the leftmost dependent of the <code>currId</code>'th node. */
 	public DepNode getLeftMostDependent(int currId)
 	{
