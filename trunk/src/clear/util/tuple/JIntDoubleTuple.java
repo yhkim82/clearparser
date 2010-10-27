@@ -23,7 +23,7 @@
 */
 package clear.util.tuple;
 
-public class JIntDoubleTuple
+public class JIntDoubleTuple implements Comparable<JIntDoubleTuple>
 {
 	public int    i;
 	public double d;
@@ -37,5 +37,13 @@ public class JIntDoubleTuple
 	{
 		this.i = i;
 		this.d = d;
+	}
+
+	@Override
+	public int compareTo(JIntDoubleTuple o)
+	{
+		if      (d - o.d > 0)	return -1;
+		else if (d - o.d < 0)	return  1;
+		else					return  0;
 	}
 }

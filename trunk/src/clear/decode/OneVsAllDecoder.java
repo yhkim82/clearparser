@@ -1,5 +1,5 @@
 /**
-* Copyright (c) 2010, Regents of the University of Colorado
+* Copyright (c) 2009, Regents of the University of Colorado
 * All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -21,76 +21,69 @@
 * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 * POSSIBILITY OF SUCH DAMAGE.
 */
-package clear.reader;
+package clear.decode;
 
-import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
 
-import clear.propbank.PBArg;
-import clear.srl.SrlNode;
-import clear.srl.SrlTree;
+import clear.model.OneVsAllVoteModel;
+import clear.util.tuple.JIntDoubleTuple;
 
 /**
- * Semantic-role labeling reader.
+ * Liblinear decoders.
  * @author Jinho D. Choi
- * <b>Last update:</b> 02/17/2010
+ * <br><b>Last update:</b> 10/19/2010
  */
-public class SrlReader extends AbstractReader<SrlNode,SrlTree>
+public class OneVsAllDecoder extends AbstractDecoder
 {
-	boolean b_train;
+	private OneVsAllVoteModel m_model;
 	
-	/**
-	 * Initializes the semantic-role labeling reader for <code>filename</code>.
-	 * @param filename name of the file containing dependency trees and semantic-role labeling information
-	 */
-	public SrlReader(String filename)
+	public OneVsAllDecoder(String modelFile)
 	{
-		super(filename);
+		m_model = new OneVsAllVoteModel(modelFile);
 	}
 	
-	/** 
-	 * Returns the next semantic-role labeling tree.
-	 * If there is no more tree, returns null.
-	 */
-	public SrlTree nextTree()
+	public JIntDoubleTuple predict(int[] x)
 	{
-		SrlTree tree = new SrlTree();
-		boolean isNext = false;
-		
-		try
-		{
-			isNext = appendNextTree(tree);
-		}
-		catch (IOException e) {e.printStackTrace();}
-
-		return isNext ? tree : null;
+		return predictAux(m_model.getScores(x));
 	}
 	
-	/**
-	 * Return the semantic-role labeling node containing values from <code>line</code>.
-	 * @param line <id>\t<form>\t<lemma>\t<pos>\t<headId>\t<deprel>[\t<rolesetId>\t<arg>*]
-	 */
-	protected SrlNode toNode(String line, int id)
+	public JIntDoubleTuple predict(ArrayList<Integer> x)
 	{
-		String[] str  = line.split(FIELD_DELIM);
-		SrlNode  node = new SrlNode();
-
-		node.form   = str[1];
-		node.lemma  = str[2];
-		node.pos    = str[4];
-		node.headId = Integer.parseInt(str[6]);
-		node.deprel = str[7];
+		return predictAux(m_model.getScores(x));
+	}
+	
+	private JIntDoubleTuple predictAux(double[] scores)
+	{
+		JIntDoubleTuple max = new JIntDoubleTuple(0, scores[0]);
+		int i;
 		
-		if (b_train)
+		for (i=1; i < m_model.n_labels; i++)
 		{
-			node.rolesetId = str[8];
-			
-			if (str.length > 9)
-			{
-				String[] args = str[9].split(SrlNode.ARG_DELIM);
-				for (String arg : args)	node.addArg(new PBArg(arg));
-			}
+			if (scores[i] > max.d)	max.set(i, scores[i]);
 		}
+
+		return max;
+	}
+	
+	public ArrayList<JIntDoubleTuple> predictAll(int[] x)
+	{
+		return predictAllAux(m_model.getScores(x));
+	}
+	
+	public ArrayList<JIntDoubleTuple> predictAll(ArrayList<Integer> x)
+	{
+		return predictAllAux(m_model.getScores(x));
+	}
+	
+	private ArrayList<JIntDoubleTuple> predictAllAux(double[] scores)
+	{
+		ArrayList<JIntDoubleTuple> aRes = new ArrayList<JIntDoubleTuple>();
 		
-		return node;
+		for (int i=0; i<scores.length; i++)
+			aRes.add(new JIntDoubleTuple(i, scores[i]));
+		
+		Collections.sort(aRes);
+		return aRes;
 	}
 }

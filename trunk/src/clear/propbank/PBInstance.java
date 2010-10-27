@@ -38,6 +38,10 @@ public class PBInstance
 	public  int    treeIndex;
 	/** Predicate ID */
 	public  int    predicateId;
+	/** Annotator ID */
+	public  String annotator;
+	/** Instance type (e.g., lemma-v, lemma-n) */
+	public  String type;
 	/** Roleset (or frameset) ID */
 	public  String rolesetId;
 	/** List of arguments */
@@ -82,25 +86,7 @@ public class PBInstance
 		
 		return false;
 	}
-	
-	/** If there exists arguments  */
-	public void removeOverlaps()
-	{
-		for (int i=0; i<a_arg.size(); i++)
-		{
-			PBArg argi = a_arg.get(i);
-			
-			for (int j=0; j<a_arg.size(); j++)
-			{
-				if (i == j)	continue;
-				PBArg argj = a_arg.get(j);
-				
-				if (argi.ids.containsAll(argj.ids))
-					argi.ids.removeAll(argj.ids);
-			}
-		}
-	}
-	
+		
 	/** Returns the string representation of the Propbank instance. */
 	public String toString()
 	{

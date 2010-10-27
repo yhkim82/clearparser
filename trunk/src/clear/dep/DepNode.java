@@ -55,6 +55,8 @@ public class DepNode
 	public int     rightDepId;
 	/** 1 if the node is non-projective (experimental) */
 	public byte nonProj = 0;
+	
+//	public String bio = "O";
 
 	/** Initializes the node as a null node. */
 	public DepNode()
@@ -197,6 +199,7 @@ public class DepNode
 		buff.append(form);		buff.append(CoNLLReader.FIELD_DELIM);
 		buff.append(lemma);		buff.append(CoNLLReader.FIELD_DELIM);
 		buff.append(pos);		buff.append(CoNLLReader.FIELD_DELIM);
+	//	buff.append(bio);		buff.append(CoNLLReader.FIELD_DELIM);
 		buff.append(headId);	buff.append(CoNLLReader.FIELD_DELIM);
 		buff.append(deprel);
 		

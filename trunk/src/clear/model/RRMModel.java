@@ -28,6 +28,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 
+import clear.decode.AbstractDecoder;
 import clear.model.vector.SparseVector;
 import clear.train.AbstractTrainer;
 import clear.util.tuple.JIntDoubleTuple;
@@ -37,10 +38,18 @@ import clear.util.tuple.JIntDoubleTuple;
  * @author Jinho D. Choi
  * <br><b>Last update:</b> 4/27/2010
  */
-public class RRMModel extends AbstractModel
+public class RRMModel extends AbstractDecoder
 {
+	/** Total number of labels. */
+	protected int     n_labels;
+	/** Total number of features. */
+	protected int     n_features;
 	/** List of labels */
-	private int[]          i_labels;
+	protected int[]   i_labels;
+	/** Weight vectors for all labels */
+	protected float[] d_weights;
+	/** Bias */
+	protected float   d_bias;
 	/** Weight vectors for all labels */
 	private SparseVector[] s_weight;
 	

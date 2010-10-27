@@ -1,5 +1,5 @@
 /**
-* Copyright (c) 2009, Regents of the University of Colorado
+* Copyright (c) 2010, Regents of the University of Colorado
 * All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -21,28 +21,40 @@
 * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 * POSSIBILITY OF SUCH DAMAGE.
 */
-package clear.util.tuple;
+package clear.propbank;
 
-@SuppressWarnings("unchecked")
-public class JObjectIntTuple<ObjectType> implements Comparable
+/**
+ * Propbank location.
+ * @author Jinho D. Choi
+ * <b>Last update:</b> 9/30/2010
+ */
+public class PBLoc
 {
-	public ObjectType object;
-	public int        integer;
+	public String type;			// "" | "*" | "," | ";"
+	public int    terminalId;
+	public int    height;
 	
-	public JObjectIntTuple(ObjectType object, int integer)
+	public PBLoc(String type, int terminalId, int height)
 	{
-		set(object, integer);
+		set(type, terminalId, height);
+	}
+
+	public void set(String type, int terminalId, int height)
+	{
+		this.type       = type;
+		this.terminalId = terminalId;
+		this.height     = height;
 	}
 	
-	public void set(ObjectType object, int integer)
+	public String toString()
 	{
-		this.object  = object;
-		this.integer = integer;
-	}
-	
-	@Override
-	public int compareTo(Object arg0)
-	{
-		return ((JObjectIntTuple<ObjectType>)arg0).integer - integer;
+		StringBuilder build = new StringBuilder();
+		
+		build.append(type);
+		build.append(terminalId);
+		build.append(PBLib.PROP_LOC_DELIM);
+		build.append(height);
+		
+		return build.toString(); 
 	}
 }

@@ -25,6 +25,7 @@ package clear.treebank;
 
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.HashMap;
 import java.util.HashSet;
 
 /**
@@ -183,5 +184,104 @@ public class TBTree
 			
 		nd_curr = tmp;
 		return true;
+	}
+	
+	/**
+	 * @param verbPos pos-tag of all verbs (e.g., "VB.*")
+	 * @return terminal IDs for all verbs 
+	 */
+	public ArrayList<Integer> getAllVerbIDs(String verbPos)
+	{
+		ArrayList<Integer> ids = new ArrayList<Integer>();
+		getAllVerbTerminalIDsAux(ids, nd_root, verbPos);
+		
+		return ids;
+	}
+	
+	private void getAllVerbTerminalIDsAux(ArrayList<Integer> ids, TBNode curr, String verbPos)
+	{
+		if (curr.isPos(verbPos))
+			ids.add(curr.terminalId);
+		
+		if (curr.isPhrase())
+		{
+			for (TBNode child : curr.getChildren())
+				getAllVerbTerminalIDsAux(ids, child, verbPos);
+		}
+	}
+	
+	public String toTree()
+	{
+		return toTreeAux(nd_root, "");
+	}
+	
+	private String toTreeAux(TBNode node, String indent)
+	{
+		String str = indent + "(" + node.getTags();
+		if (!node.isPhrase())	return str += " " + node.form + ")";
+		
+		for (TBNode child : node.getChildren())
+			str += "\n" + toTreeAux(child, indent+"  ");
+		
+		return str+")";	
+	}
+	
+	public void countTags(HashMap<String,Integer> map, int[] tCount, int[] pCount, int[] overlap)
+	{
+		countTagsAux(nd_root, map, tCount, pCount, overlap);
+	}
+	
+	private void countTagsAux(TBNode curr, HashMap<String,Integer> map, int[] tCount, int[] pCount, int[] overlap)
+	{
+		if (!curr.isPhrase())	return;
+		
+		if (curr.tags != null)
+		{
+			for (String tag : curr.tags)
+			{
+				Integer idx = map.get(tag);
+				if (idx != null)	tCount[idx]++;
+			}
+		}
+		
+		if (curr.pb_labels != null)
+		{
+			for (String tag : curr.pb_labels)
+			{
+				Integer idx = map.get(tag);
+				if (idx != null)
+				{
+					pCount[idx]++;
+					if (curr.tags != null)
+					{
+						if (curr.tags.contains(tag))	overlap[idx]++;
+						else if (tag.equals("DIS") && curr.tags.contains("VOC"))	overlap[idx]++;
+					}
+					
+				}
+			}
+		}
+		
+		for (TBNode child : curr.getChildren())
+			countTagsAux(child, map, tCount, pCount, overlap);
+	}
+	
+	public TBNode getCoIndexedNode(int coIndex)
+	{
+		return getCoIndexedNodeAux(getRootNode(), coIndex);
+	}
+	
+	private TBNode getCoIndexedNodeAux(TBNode curr, int coIndex)
+	{
+		if (!curr.isPhrase())			return null;
+		if (curr.coIndex == coIndex)	return curr;
+		
+		for (TBNode child : curr.getChildren())
+		{
+			TBNode node = getCoIndexedNodeAux(child, coIndex);
+			if (node != null)	return node;
+		}
+		
+		return null;
 	}
 }

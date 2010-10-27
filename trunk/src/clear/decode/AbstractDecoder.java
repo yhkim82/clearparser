@@ -21,28 +21,32 @@
 * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 * POSSIBILITY OF SUCH DAMAGE.
 */
-package clear.util.tuple;
+package clear.decode;
 
-@SuppressWarnings("unchecked")
-public class JObjectIntTuple<ObjectType> implements Comparable
+import java.util.ArrayList;
+
+import clear.util.tuple.JIntDoubleTuple;
+
+
+/**
+ * Abstract mdoel.
+ * @author Jinho D. Choi
+ * <br><b>Last update:</b> 7/1/2010
+ */
+public abstract class AbstractDecoder
 {
-	public ObjectType object;
-	public int        integer;
+	/**
+	 * Returns a tuple of predicated <label, score> for a feature vector <code>x</code>.
+	 * The score is scaled between 0 and 1.
+	 * @param x feature vector
+	 */
+	abstract public JIntDoubleTuple predict(ArrayList<Integer> x);
 	
-	public JObjectIntTuple(ObjectType object, int integer)
-	{
-		set(object, integer);
-	}
-	
-	public void set(ObjectType object, int integer)
-	{
-		this.object  = object;
-		this.integer = integer;
-	}
-	
-	@Override
-	public int compareTo(Object arg0)
-	{
-		return ((JObjectIntTuple<ObjectType>)arg0).integer - integer;
-	}
+	/**
+	 * Returns a sorted list of predicated <label, score> for a feature vector <code>x</code>.
+	 * The list is sorted in descending order with respect to the scores.
+	 * The score is scaled between 0 and 1.
+	 * @param x feature vector
+	 */
+	abstract public ArrayList<JIntDoubleTuple> predictAll(ArrayList<Integer> x);
 }
