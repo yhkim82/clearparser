@@ -2,15 +2,6 @@
 
 ClearParser supports 5 data formats:  a raw format, a part-of-speech format, a dependency format, a semantic-role format, and the CoNLL-X format.
 
-== Raw format (raw) ==
-
-The raw format contains a sentence per line.  This format is only for decoding and requires to specify a model for the POS tagger and a dictionary for the lemmatizer (see [ConfigGuidelines configuration guidelines] for more details).
-
-{{{
-Pricing details weren't immediately available.
-She bought a car.
-}}}
-
 == Part-of-speech format (pos) ==
 
 The part-of-speech format requires 2 fields.
