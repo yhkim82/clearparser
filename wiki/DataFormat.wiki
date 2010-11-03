@@ -1,6 +1,6 @@
 #summary Data format
 
-ClearParser supports 5 data formats:  a raw format, a part-of-speech format, a dependency format, a semantic-role format, and the CoNLL-X format.
+ClearParser supports 4 data formats: a part-of-speech format, a dependency format, and the CoNLL-X format.
 
 == Part-of-speech format (pos) ==
 
@@ -55,10 +55,6 @@ Each field is delimited by a tab character (`'\t'`).  Each sentence is delimited
 4    car            car            NN     2    OBJ
 5    .              .              .      2    P
 }}}
-
-== Semantic-role labeling format (srl) ==
-
-_Coming soon_
 
 == CoNLL-X format (conll) ==
 
