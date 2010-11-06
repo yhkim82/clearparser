@@ -23,25 +23,40 @@
 */
 package clear.morph;
 
-import java.io.File;
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Scanner;
 import java.util.StringTokenizer;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import clear.pos.PosEnLib;
-import clear.util.IOUtil;
 import clear.util.tuple.JObjectObjectTuple;
 
 /**
  * English morphological analyzer.
  * @author Jinho D. Choi
- * <b>Last update:</b> 2/15/2010
+ * <b>Last update:</b> 11/4/2010
  */
 public class MorphEnAnalyzer
 {
-	final private String FIELD_DELIM = "_";
+	final public String FIELD_DELIM = "_";
+	
+	final public String NOUN_EXC  = "noun.exc";
+	final public String VERB_EXC  = "verb.exc";
+	final public String ADJ_EXC   = "adj.exc";
+	final public String ADV_EXC   = "adv.exc";
+	final public String NOUN_BASE = "noun.txt";
+	final public String VERB_BASE = "verb.txt";
+	final public String ADJ_BASE  = "adj.txt";
+	final public String ORD_BASE  = "ordinal.txt";
+	final public String NOUN_RULE = "noun.rule";
+	final public String VERB_RULE = "verb.rule";
+	final public String ADJ_RULE  = "adj.rule";
+	final public String ABBR_RULE = "abbr.rule";
 	
 	/** Noun exceptions */
 	HashMap<String, String> m_noun_exc;
@@ -59,7 +74,7 @@ public class MorphEnAnalyzer
 	/** Adjective base-forms */
 	HashSet<String> s_adj_base;
 	/** Ordinal forms */
-	HashSet<String> s_ordinal;
+	HashSet<String> s_ord_base;
 	
 	/** Noun detachment rules */
 	ArrayList<JObjectObjectTuple<String,String>> a_noun_rule;
@@ -71,42 +86,63 @@ public class MorphEnAnalyzer
 	HashMap<String, String> m_abbr_rule;
 	
 	/**
-	 * Initializes the morphological analyzer.
-	 * @param dataDir path of the directory containing dictionary data
+	 * Calls {@link MorphEnAnalyzer#init(String)}.
+	 * @param zipFile "en_dict.jar"
 	 */
-	public MorphEnAnalyzer(String dataDir)
+	public MorphEnAnalyzer(String zipFile)
 	{
-		m_noun_exc  = getExcecptionMap(dataDir + File.separator + "noun.exc");
-		m_verb_exc  = getExcecptionMap(dataDir + File.separator + "verb.exc");
-		m_adj_exc   = getExcecptionMap(dataDir + File.separator + "adj.exc");
-		m_adv_exc   = getExcecptionMap(dataDir + File.separator + "adv.exc");
-		
-		s_noun_base = IOUtil.getHashSet(dataDir + File.separator + "noun.txt");
-		s_verb_base = IOUtil.getHashSet(dataDir + File.separator + "verb.txt");
-		s_adj_base  = IOUtil.getHashSet(dataDir + File.separator + "adj.txt");
-		s_ordinal   = IOUtil.getHashSet(dataDir + File.separator + "ordinal.txt");
-
-		a_noun_rule = getRuleList(dataDir + File.separator + "noun.rule");
-		a_verb_rule = getRuleList(dataDir + File.separator + "verb.rule");
-		a_adj_rule  = getRuleList(dataDir + File.separator + "adj.rule");
-		
-		m_abbr_rule = getAbbreviationMap(dataDir + File.separator + "abbr.rule");
+		try
+		{
+			init(zipFile);
+		}
+		catch (Exception e) {e.printStackTrace();}
 	}
 	
 	/**
-	 * Returns a hashmap taking exceptions as keys and their base-forms as values.
-	 * @param filename name of the WordNet exception file (e.g., noun.exc)
+	 * Initializes a morphological analyzer.
+	 * @param zipFile "en_dict.jar"
 	 */
-	private HashMap<String,String> getExcecptionMap(String filename)
+	public void init(String zipFile) throws Exception
+	{
+		ZipInputStream zin = new ZipInputStream(new FileInputStream(zipFile));
+		ZipEntry zEntry;
+		String filename;
+		
+		while ((zEntry = zin.getNextEntry()) != null)
+		{
+			filename = zEntry.getName();
+			
+			if      (filename.equals(NOUN_EXC))		m_noun_exc  = getExcecptionMap(zin);
+			else if (filename.equals(VERB_EXC))		m_verb_exc  = getExcecptionMap(zin);
+			else if (filename.equals( ADJ_EXC))		m_adj_exc   = getExcecptionMap(zin);
+			else if (filename.equals( ADV_EXC))		m_adv_exc   = getExcecptionMap(zin);
+			else if (filename.equals(NOUN_BASE))	s_noun_base = getBaseSet(zin);
+			else if (filename.equals(VERB_BASE))	s_verb_base = getBaseSet(zin);
+			else if (filename.equals( ADJ_BASE))	s_adj_base  = getBaseSet(zin);
+			else if (filename.equals( ORD_BASE))	s_ord_base  = getBaseSet(zin);
+			else if (filename.equals(NOUN_RULE))	a_noun_rule = getRuleList(zin);
+			else if (filename.equals(VERB_RULE))	a_verb_rule = getRuleList(zin);
+			else if (filename.equals( ADJ_RULE))	a_adj_rule  = getRuleList(zin);
+			else if (filename.equals(ABBR_RULE))	m_abbr_rule = getAbbreviationMap(zin);
+		}
+		
+		zin.close();
+	}
+	
+	/** @return HashMap taking exceptions as keys and their base-forms as values. */
+	private HashMap<String,String> getExcecptionMap(ZipInputStream zin) throws Exception
 	{
 		HashMap<String, String> map = new HashMap<String, String>();
-		Scanner scan = IOUtil.createFileScanner(filename);
+		BufferedReader          fin = new BufferedReader(new InputStreamReader(zin));
 		
-		while (scan.hasNextLine())
+		StringTokenizer tok;
+		String line, exc, base;
+		
+		while ((line = fin.readLine()) != null)
 		{
-			StringTokenizer tok  = new StringTokenizer(scan.nextLine());
-			String          exc  = (tok.hasMoreTokens()) ? tok.nextToken() : null;
-			String          base = (tok.hasMoreTokens()) ? tok.nextToken() : null;
+			tok  = new StringTokenizer(line);
+			exc  = (tok.hasMoreTokens()) ? tok.nextToken() : null;
+			base = (tok.hasMoreTokens()) ? tok.nextToken() : null;
 			
 			if (exc != null && base != null)
 			{
@@ -118,22 +154,56 @@ public class MorphEnAnalyzer
 		return map;
 	}
 	
-	/**
-	 * Returns a hashmap taking (abbreviation and pos-tag) as the key and its base-form as the value.
-	 * @param filename name of the file containing abbreviation rules 
-	 */
-	private HashMap<String,String> getAbbreviationMap(String filename)
+	/** @return HashSet containing base-forms.*/
+	private HashSet<String> getBaseSet(ZipInputStream zin) throws Exception
+	{
+		HashSet<String> set = new HashSet<String>();
+		BufferedReader  fin = new BufferedReader(new InputStreamReader(zin));
+		String line;
+		
+		while ((line = fin.readLine()) != null)
+			set.add(line.trim());
+		
+		return set;
+	}
+	
+	/** @return List containing rules. */
+	private ArrayList<JObjectObjectTuple<String,String>> getRuleList(ZipInputStream zin) throws Exception
+	{
+		ArrayList<JObjectObjectTuple<String,String>> list = new ArrayList<JObjectObjectTuple<String,String>>();
+		BufferedReader fin = new BufferedReader(new InputStreamReader(zin));
+		
+		StringTokenizer tok;
+		String line, str0, str1;
+		
+		while ((line = fin.readLine()) != null)
+		{
+			tok  = new StringTokenizer(line);
+			str0 = tok.nextToken();
+			str1 = (tok.hasMoreTokens()) ? tok.nextToken() : "";
+			
+			list.add(new JObjectObjectTuple<String,String>(str0, str1));
+		}
+		
+		return list;
+	}
+	
+	/** @return HashMap taking (abbreviation and pos-tag) as the key and its base-form as the value. */
+	private HashMap<String,String> getAbbreviationMap(ZipInputStream zin) throws Exception
 	{
 		HashMap<String, String> map = new HashMap<String, String>();
-		Scanner scan = IOUtil.createFileScanner(filename);
+		BufferedReader          fin = new BufferedReader(new InputStreamReader(zin));
 		
-		while (scan.hasNextLine())
+		StringTokenizer tok;
+		String line, abbr, pos, key, base;
+		
+		while ((line = fin.readLine()) != null)
 		{
-			StringTokenizer tok = new StringTokenizer(scan.nextLine());
-			String abbr = tok.nextToken();
-			String pos  = tok.nextToken();
-			String key  = abbr + FIELD_DELIM + pos;
-			String base = tok.nextToken();
+			tok  = new StringTokenizer(line);
+			abbr = tok.nextToken();
+			pos  = tok.nextToken();
+			key  = abbr + FIELD_DELIM + pos;
+			base = tok.nextToken();
 			
 			map.put(key, base);
 		}
@@ -141,27 +211,6 @@ public class MorphEnAnalyzer
 		return map;
 	}
 	
-	/**
-	 * Returns a list of rules.
-	 * @param filename name of the file containing rules.
-	 */
-	private ArrayList<JObjectObjectTuple<String,String>> getRuleList(String filename)
-	{
-		ArrayList<JObjectObjectTuple<String,String>> list = new ArrayList<JObjectObjectTuple<String,String>>();
-		Scanner scan = IOUtil.createFileScanner(filename);
-		
-		while (scan.hasNextLine())
-		{
-			StringTokenizer tok = new StringTokenizer(scan.nextLine());
-			String str0 = tok.nextToken();
-			String str1 = (tok.hasMoreTokens()) ? tok.nextToken() : "";
-			
-			list.add(new JObjectObjectTuple<String,String>(str0, str1));
-		}
-		
-		return list;
-	}
-
 	/**
 	 * Returns the lemma of the form using the pos-tag.
 	 * @param form word-form
@@ -229,12 +278,14 @@ public class MorphEnAnalyzer
 	 */
 	private String getBaseAux(String form, HashSet<String> set, ArrayList<JObjectObjectTuple<String,String>> rule)
 	{
+		int offset;	String base;
+		
 		for (JObjectObjectTuple<String,String> tup : rule)
 		{
 			if (form.endsWith(tup.key))
 			{
-				int  offset = form.length() - tup.key.length();
-				String base = form.substring(0, offset) + tup.value;
+				offset = form.length() - tup.key.length();
+				base   = form.substring(0, offset) + tup.value;
 				
 				if (set.contains(base))	return base;
 			}
@@ -263,7 +314,7 @@ public class MorphEnAnalyzer
 	 */
 	private String getNumber(String form, String pos)
 	{
-		if (s_ordinal.contains(form))	return "$#ORD#$";
+		if (s_ord_base.contains(form))	return "$#ORD#$";
 		
 		String prevStr = "", currStr = form;
 		

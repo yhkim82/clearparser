@@ -21,39 +21,69 @@
 * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 * POSSIBILITY OF SUCH DAMAGE.
 */
-package clear.io;
+package clear.train;
 
-import java.io.File;
-import java.io.FilenameFilter;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
+import clear.model.OvAModel;
+import clear.train.algorithm.IAlgorithm;
+import clear.train.kernel.AbstractKernel;
 
 /**
- * This class filters out files by the extension (e.g., *.jpg, *.txt).
+ * One-vs-all trainer.
  * @author Jinho D. Choi
- * <b>Last update:</b> 02/12/2010
+ * <b>Last update:</b> 11/5/2010
  */
-public class FileExtensionFilter implements FilenameFilter
+abstract public class OvATrainer extends AbstractTrainer
 {
-	/** File extension to keep (everything else gets filtered out) */
-	private String ext;
+	public OvATrainer(AbstractKernel kernel, IAlgorithm alg, String modelFile, int numThreads)
+	{
+		super(kernel, alg, modelFile, numThreads);
+	}
 	
-	/**
-	 * Initializses file-extension filter.
-	 * @param ext extension of files to keep (everything else gets filtered out)
-	 */
-	public FileExtensionFilter(String ext)
+	protected void initModel(AbstractKernel kernel)
 	{
-		this.ext = ext;
+		m_model = new OvAModel(kernel);
+	}
+	
+	protected void train(String modelFile, int numThreads)
+	{
+		ExecutorService executor = Executors.newFixedThreadPool(numThreads);;
+		System.out.println("\n* Training");
+		
+		for (int currLabel=0; currLabel < k_kernel.L; currLabel++)
+			executor.execute(new TrainTask(currLabel));
+		
+		executor.shutdown();
+		
+		try
+		{
+			executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+			System.out.println("\n* Saving: "+modelFile);
+			m_model.save(modelFile);
+		}
+		catch (InterruptedException e) {e.printStackTrace();}
 	}
 
-	/** Returns true if the <code>name</code> ends with {@link FileExtensionFilter#ext}. */
-	public boolean accept(File dir, String name)
+	class TrainTask implements Runnable
 	{
-		return name.endsWith(ext);
-	}
-
-	/** Returns the filename without the extension (e.g., ab.txt -> ab). */
-	static public String getFilenameWithoutExtension(String filename)
-	{
-		return filename.substring(0, filename.lastIndexOf("."));
+		/** Current label to train */
+		int curr_label;
+		
+		/**
+		 * Trains a one-vs-all model using {@link AbstractTrainer#a_xs} and {@link AbstractTrainer#a_ys} with respect to <code>currLabel</code>.
+		 * @param currLabel current label to train ({@link this#curr_label})
+		 */
+		public TrainTask(int currLabel)
+		{
+			curr_label = currLabel;
+		}
+		
+		public void run()
+		{
+			m_model.copyWeight(curr_label, a_alg.getWeight(k_kernel, curr_label));
+		}
 	}
 }

@@ -23,16 +23,18 @@
 */
 package clear.util;
 
-import gnu.trove.map.hash.TObjectIntHashMap;
-
 import java.io.BufferedReader;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Scanner;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 /**
  * Input/output utilities.
@@ -53,6 +55,12 @@ public class IOUtil
 		catch (Exception e) {e.printStackTrace();}
 		
 		return reader;
+	}
+	
+	/** @return new BufferedReader(new InputStreamReader(new GZIPInputStream(new FileInputStream(filename)))) */
+	static public BufferedReader createBufferedGZipFileReader(String filename) throws Exception
+	{
+		return new BufferedReader(new InputStreamReader(new GZIPInputStream(new FileInputStream(filename))));
 	}
 	
 	/** @return new Scanner({@link IOUtil#createBufferedFileReader(String)}) */
@@ -100,9 +108,9 @@ public class IOUtil
 	}
 	
 	/** @return HashMap whose keys are strings in <code>filename</code> and values are sequential integers starting at <code>beginId</code> */
-	static public TObjectIntHashMap<String> getHashMap(String filename, int beginId)
+	static public HashMap<String,Integer> getHashMap(String filename, int beginId)
 	{
-		TObjectIntHashMap<String> map = new TObjectIntHashMap<String>();
+		HashMap<String,Integer> map = new HashMap<String,Integer>();
 		
 		try
 		{
@@ -111,8 +119,6 @@ public class IOUtil
 			
 			for (int i=beginId; (line = fin.readLine()) != null; i++)
 				map.put(line.trim(), i);
-			
-			map.trimToSize();
 		}
 		catch (IOException e) {e.printStackTrace();}
 		
@@ -120,9 +126,9 @@ public class IOUtil
 	}
 	
 	/** @return HashMap whose keys are strings and values are integers in <code>filename</code> delimited by <code>delim</code> */
-	static public TObjectIntHashMap<String> getTStringIntHashMap(String filename, String delim)
+	static public HashMap<String,Integer> getTStringIntHashMap(String filename, String delim)
 	{
-		TObjectIntHashMap<String> map = new TObjectIntHashMap<String>();
+		HashMap<String,Integer> map = new HashMap<String,Integer>();
 		
 		try
 		{
@@ -134,8 +140,6 @@ public class IOUtil
 				String[] ls = line.split(delim);
 				map.put(ls[0], Integer.parseInt(ls[1]));
 			}
-			
-			map.trimToSize();
 		}
 		catch (Exception e) {e.printStackTrace();}
 		
@@ -156,6 +160,20 @@ public class IOUtil
 		return fout;
 	}
 	
+	/** @return new PrintStream(new GZIPOutputStream(new FileOutputStream(filename))) */
+	static public PrintStream createPrintFileGzipStream(String filename)
+	{
+		PrintStream fout = null;
+		
+		try
+		{
+			fout = new PrintStream(new GZIPOutputStream(new FileOutputStream(filename)));
+		}
+		catch (Exception e) {e.printStackTrace();}
+		
+		return fout;
+	}
+	
 	/** Prints strings in <code>set</code> to <code>outputFile</code>. */
 	static public void printFile(HashSet<String> set, String outputFile)
 	{
@@ -163,15 +181,8 @@ public class IOUtil
 		for (String item : set)	fout.println(item);
 	}
 	
-	/** Prints string keys in <code>map</code> to <code>outputFile</code>. */
-	static public void printFile(TObjectIntHashMap<String> map, String outputFile)
-	{
-		PrintStream fout = createPrintFileStream(outputFile);
-		for (String item : map.keySet())	fout.println(item);
-	}
-	
 	/** Prints string keys in <code>map</code> to <code>outputFile</code> whose values are greater than <code>cutoff</code>. */
-	static public void printFile(TObjectIntHashMap<String> map, String outputFile, int cutoff)
+	static public void printFile(HashMap<String,Integer> map, String outputFile, int cutoff)
 	{
 		PrintStream fout = createPrintFileStream(outputFile);
 		

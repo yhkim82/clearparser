@@ -1,5 +1,5 @@
 /**
-* Copyright (c) 2009, Regents of the University of Colorado
+* Copyright (c) 2010, Regents of the University of Colorado
 * All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -21,38 +21,60 @@
 * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 * POSSIBILITY OF SUCH DAMAGE.
 */
-package clear.dep;
-
-import java.util.ArrayList;
+package clear.ftr.xml;
 
 /**
- * Abstract tree.
+ * Feature template.
  * @author Jinho D. Choi
- * <b>Last update:</b> 4/14/2010
+ * <b>Last update:</b> 11/4/2010
  */
-@SuppressWarnings("serial")
-abstract public class AbstractTree<NodeType> extends ArrayList<NodeType>
+public class FtrTemplate
 {
-	/** @return true if <code>index</code> is in [0, {@link AbstractTree#size()}) */
-	public boolean isRange(int index)
+	public FtrToken[] tokens;
+	public int        cutoff;
+	
+	public FtrTemplate(int n, int cutoff)
 	{
-		return 0 <= index && index < size();
+		init(n, cutoff);
 	}
 	
-	/**
-	 * Each node is separated by a new line ('\n').
-	 * @return the string representation of the tree.
-	 */
+	public void init(int n, int cutoff)
+	{
+		this.tokens = new FtrToken[n];
+		this.cutoff = cutoff;
+	}
+	
+	public void addFtrToken(int index, FtrToken token)
+	{
+		tokens[index] = token;
+	}
+	
 	public String toString()
 	{
-		StringBuilder buff = new StringBuilder();
+		StringBuilder build = new StringBuilder();
 		
-		for (int i=1; i<size(); i++)
+		toStringAux(build, AbstractFtrXml.N, Integer.toString(tokens.length));
+		
+		if (cutoff > 0)
 		{
-			buff.append(get(i));
-			buff.append("\n");
+			build.append(" ");
+			toStringAux(build, AbstractFtrXml.C, Integer.toString(cutoff));
 		}
 		
-		return buff.toString().trim();
+		for (int i=0; i<tokens.length; i++)
+		{
+			build.append(" ");
+			toStringAux(build, AbstractFtrXml.F + i, tokens[i].toString());
+		}
+		
+		return build.toString();
+	}
+	
+	private void toStringAux(StringBuilder build, String field, String value)
+	{
+		build.append(field);
+		build.append("=\"");
+		build.append(value);
+		build.append("\"");
 	}
 }

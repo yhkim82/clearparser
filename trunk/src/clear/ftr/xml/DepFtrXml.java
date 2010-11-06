@@ -21,73 +21,71 @@
 * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 * POSSIBILITY OF SUCH DAMAGE.
 */
-package clear.model;
+package clear.ftr.xml;
 
-import java.io.BufferedReader;
-import java.io.PrintStream;
-
-import clear.train.kernel.AbstractKernel;
+import java.util.ArrayList;
+import org.w3c.dom.Document;
 
 /**
- * Abstract model.
+ * Reads dependency feature templates from a xml file.
  * @author Jinho D. Choi
- * <b>Last update:</b> 11/5/2010
+ * <b>Last update:</b> 11/4/2010
  */
-abstract public class AbstractModel
+public class DepFtrXml extends AbstractFtrXml
 {
-	public int      n_labels;
-	public int      n_features;
-	public double[] d_weights;
+	static public final String RULE		= "rule";
+	static public final char   LAMBDA	= 'l';
+	static public final char   BETA		= 'b';
+	static public final String R_HD		= "hd";
+	static public final String R_LM		= "lm";
+	static public final String R_RM		= "rm";
+	static public final String F_FORM	= "f";
+	static public final String F_LEMMA	= "m";
+	static public final String F_POS	= "p";
+	static public final String F_DEPREL	= "d";
 	
-	/** For decoding. */
-	public AbstractModel(String modelFile)
+	public ArrayList<FtrTemplate> a_rule;	// rule-based features
+	
+	public DepFtrXml(String featureXml)
 	{
-		load(modelFile);
+		super(featureXml);
 	}
 	
-	/** For training. */
-	public AbstractModel(AbstractKernel kernel)
+	protected void initFeatures(Document doc) throws Exception
 	{
-		init(kernel);
+		a_rule = new ArrayList<FtrTemplate>();
+		getFeatures(doc.getElementsByTagName(RULE), a_rule);
 	}
 	
-	protected void readWeights(BufferedReader fin) throws Exception
+	protected boolean validSource(char token)
 	{
-		int[] buffer = new int[128];
-		int   i, b;
-		
-		for (i=0; i < d_weights.length; i++)
-		{
-			b = 0;
-			
-			while (true)
-			{
-				int ch = fin.read();
-				
-				if (ch == ' ')	break;
-				else			buffer[b++] = ch;
-			}
-
-			d_weights[i] = Double.parseDouble((new String(buffer, 0, b)));
-		}
+		return token == LAMBDA || token == BETA;
 	}
 	
-	protected void printWeights(PrintStream fout) throws Exception
+	protected boolean validRelation(String relation)
+	{
+		return relation.equals(R_HD) || relation.equals(R_LM) || relation.equals(R_RM);
+	}
+	
+	protected boolean validField(String field)
+	{
+		return field.equals(F_FORM) || field.equals(F_LEMMA) || field.equals(F_POS) || field.equals(F_DEPREL);
+	}
+	
+	public String toString()
 	{
 		StringBuilder build = new StringBuilder();
-		int i;
 		
-		for (i=0; i<d_weights.length; i++)
-		{
-			build.append(d_weights[i]);
-			build.append(' ');
-		}
+		build.append("<"+TEMPLATE+">\n");
 		
-		fout.println(build.toString());
+		for (FtrTemplate ftr : a_ngram)
+			toStringAux(build, NGRAM, ftr);
+		
+		for (FtrTemplate ftr : a_rule)
+			toStringAux(build, RULE, ftr);
+		
+		build.append("</"+TEMPLATE+">");
+		
+		return build.toString();
 	}
-	
-	abstract public void init(AbstractKernel kernel);
-	abstract public void load(String modelFile);
-	abstract public void save(String modelFile);
-	abstract public void copyWeight(int label, double[] weight);
 }

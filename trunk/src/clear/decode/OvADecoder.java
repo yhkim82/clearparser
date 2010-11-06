@@ -21,84 +21,69 @@
 * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 * POSSIBILITY OF SUCH DAMAGE.
 */
-package clear.model;
-
+package clear.decode;
 
 import java.util.ArrayList;
 import java.util.Collections;
 
+import clear.model.OvAModel;
 import clear.util.tuple.JIntDoubleTuple;
 
 /**
  * Liblinear decoders.
  * @author Jinho D. Choi
- * <br><b>Last update:</b> 7/1/2010
+ * <br><b>Last update:</b> 10/19/2010
  */
-public class LiblinearVoteModel
+public class OvADecoder extends AbstractDecoder
 {
-	protected LiblinearModel[] g_models;
-	protected int n_labels;
+	private OvAModel m_model;
 	
-	public LiblinearVoteModel(String modelFile, int nLabels)
+	public OvADecoder(String modelFile)
 	{
-		n_labels = nLabels;
-		
-		try
-		{
-			init(modelFile);
-		}
-		catch (Exception e) {e.printStackTrace();}
+		m_model = new OvAModel(modelFile);
 	}
 	
-	public void init(String modelFile) throws Exception
+	public JIntDoubleTuple predict(int[] x)
 	{
-		g_models = new LiblinearModel[n_labels*(n_labels-1)/2];
-		
-		for (int i=0; i<g_models.length; i++)
-			g_models[i] = new LiblinearModel(modelFile+"."+i);
+		return predictAux(m_model.getScores(x));
 	}
 	
-	/* (non-Javadoc)
-	 * @see harvest.model.AbstractModel#predict(java.util.ArrayList)
-	 */
 	public JIntDoubleTuple predict(ArrayList<Integer> x)
 	{
-		double[] count = new double[n_labels];
+		return predictAux(m_model.getScores(x));
+	}
+	
+	private JIntDoubleTuple predictAux(double[] scores)
+	{
+		JIntDoubleTuple max = new JIntDoubleTuple(0, scores[0]);
+		int i;
 		
-		for (LiblinearModel model : g_models)
+		for (i=1; i < m_model.n_labels; i++)
 		{
-			JIntDoubleTuple res = model.predict(x);
-			if (res.d > 1)	res.d = 1;
-			count[res.i] += res.d;
+			if (scores[i] > max.d)	max.set(i, scores[i]);
 		}
 
-		JIntDoubleTuple max = new JIntDoubleTuple(0, count[0]);
-		
-		for (int i=1; i<count.length; i++)
-		{
-			if (count[i] > max.d)
-				max.set(i, count[i]);
-		}
-		
 		return max;
 	}
 	
-	/* (non-Javadoc)
-	 * @see harvest.model.AbstractModel#predictAll(java.util.ArrayList)
-	 */
+	public ArrayList<JIntDoubleTuple> predictAll(int[] x)
+	{
+		return predictAllAux(m_model.getScores(x));
+	}
+	
 	public ArrayList<JIntDoubleTuple> predictAll(ArrayList<Integer> x)
 	{
-		ArrayList<JIntDoubleTuple> list = new ArrayList<JIntDoubleTuple>(n_labels);
-		for (int i=0; i<n_labels; i++)	list.add(new JIntDoubleTuple(i, 0));
+		return predictAllAux(m_model.getScores(x));
+	}
+	
+	private ArrayList<JIntDoubleTuple> predictAllAux(double[] scores)
+	{
+		ArrayList<JIntDoubleTuple> aRes = new ArrayList<JIntDoubleTuple>();
 		
-		for (LiblinearModel model : g_models)
-		{
-			JIntDoubleTuple res = model.predict(x);
-			if (res.d > 1)	res.d = 1;
-			list.get(res.i).d += res.d;
-		}
-
-		Collections.sort(list);
-		return list;
+		for (int i=0; i<scores.length; i++)
+			aRes.add(new JIntDoubleTuple(i, scores[i]));
+		
+		Collections.sort(aRes);
+		return aRes;
 	}
 }

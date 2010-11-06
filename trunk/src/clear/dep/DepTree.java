@@ -26,16 +26,16 @@ package clear.dep;
 
 import java.util.ArrayList;
 
-import clear.ftr.FtrMap;
+import clear.ftr.map.DepFtrMap;
 
 /**
  * Dependency tree.
  * @see DepNode
  * @author Jinho D. Choi
- * <b>Last update:</b> 5/1/2010
+ * <b>Last update:</b> 11/4/2010
  */
 @SuppressWarnings("serial")
-public class DepTree extends AbstractTree<DepNode>
+public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
 {
 	/** Number of transitions made during parsing */
 	public int    n_trans;
@@ -61,6 +61,12 @@ public class DepTree extends AbstractTree<DepNode>
 	{
 		n_trans = nTrans;
 		d_score = score;
+	}
+	
+	/** @return true if <code>index</code> is in [0, {@link ITree#size()}) */
+	public boolean isRange(int index)
+	{
+		return 0 <= index && index < size();
 	}
 	
 	/** @return true if the <code>node1Id</code>'th node is the ancestor of the <code>node2Id</code>'th node. */
@@ -98,34 +104,6 @@ public class DepTree extends AbstractTree<DepNode>
 	}
 	
 	/**
-	 * Copies contents of <code>tree</code> to this tree.
-	 * <code>this.size()</code> is assumed to be equal to <code>tree.size()</code>. 
-	 * @see DepNode#copy(DepNode)
-	 */
-	public void copy(DepTree tree)
-	{
-		for (int i=1; i<size(); i++)
-			get(i).copy(tree.get(i));
-		
-		init(tree.n_trans, tree.d_score);
-	}
-	
-	/**
-	 * @see    DepNode#clone()
-	 * @return the clone of this tree.
-	 */
-	public DepTree clone()
-	{
-		DepTree tree = new DepTree();
-		
-		for (int i=1; i<size(); i++)
-			tree.add(get(i).clone());
-		
-		tree.init(n_trans, d_score);
-		return tree;
-	}
-	
-	/**
 	 * Returns the head of the <code>currId</code>'th node.
 	 * If there is no such head, returns a null node.
 	 * @param currId index of the node to find the head for
@@ -134,9 +112,10 @@ public class DepTree extends AbstractTree<DepNode>
 	{
 		DepNode curr = get(currId);
 		
-		return curr.hasHead ? get(curr.headId) : new DepNode();
+		return curr.hasHead ? get(curr.headId) : null;
 	}
 	
+	/** @return last node in the tree. */
 	public DepNode getLastNode()
 	{
 		return get(size()-1);
@@ -147,7 +126,7 @@ public class DepTree extends AbstractTree<DepNode>
 	{
 		DepNode curr = get(currId);
 		
-		return isRange(curr.leftDepId) ? get(curr.leftDepId) : new DepNode();
+		return isRange(curr.leftDepId) ? get(curr.leftDepId) : null;
 	}
 	
 	/**
@@ -158,12 +137,12 @@ public class DepTree extends AbstractTree<DepNode>
      * @param leftBoundId index of the left bound
      * @param map         feature mapping containing indices of punctuation
      */
-	public int getLeftNearestPunctuation(int currId, int leftBoundId, FtrMap map)
+	public int getLeftNearestPunctuation(int currId, int leftBoundId, DepFtrMap map)
 	{
 		for (int i=currId-1; i>=leftBoundId; i--)
 		{
 			int puncIndex = map.punctuationToIndex(get(i).form);
-			if (puncIndex > 0)    return puncIndex;
+			if (puncIndex >= 0)    return puncIndex;
 		}
 		
 		return -1;
@@ -174,7 +153,7 @@ public class DepTree extends AbstractTree<DepNode>
 	{
 		DepNode curr = get(currId);
 		
-		return isRange(curr.rightDepId) ? get(curr.rightDepId) : new DepNode();
+		return isRange(curr.rightDepId) ? get(curr.rightDepId) : null;
 	}
 	
 	/**
@@ -185,17 +164,18 @@ public class DepTree extends AbstractTree<DepNode>
      * @param rightBoundId index of the right bound
      * @param map feature mapping  containing indices of punctuation
      */
-	public int getRightNearestPunctuation(int currId, int rightBoundId, FtrMap map)
+	public int getRightNearestPunctuation(int currId, int rightBoundId, DepFtrMap map)
 	{
 		for (int i=currId+1; i<=rightBoundId; i++)
 		{
 			int puncIndex = map.punctuationToIndex(get(i).form);
-			if (puncIndex > 0)    return puncIndex;
+			if (puncIndex >= 0)    return puncIndex;
 		}
 		
 		return -1;
 	}
 	
+	/** @return all dependents of <code>currId</code>'th node */
 	public ArrayList<DepNode> getDependents(int currId)
 	{
 		ArrayList<DepNode> list = new ArrayList<DepNode>();
@@ -255,19 +235,7 @@ public class DepTree extends AbstractTree<DepNode>
 		return true;
 	}
 	
-	public String toStringNonProj()
-	{
-		StringBuilder buff = new StringBuilder();
-		
-		for (int i=1; i<size(); i++)
-		{
-			buff.append(get(i).toStringNonProj());
-			buff.append("\n");
-		}
-		
-		return buff.toString().trim();
-	}
-	
+	/** Make non-projective dependencies on punctuation as projective. */
 	public void projectizePunc()
 	{
 		for (int i=1; i<size(); i++)
@@ -296,5 +264,35 @@ public class DepTree extends AbstractTree<DepNode>
 					
 			}
 		}
+	}
+	
+	/**
+	 * Each node is separated by a new line ('\n').
+	 * @return the string representation of the tree.
+	 */
+	public String toString()
+	{
+		StringBuilder buff = new StringBuilder();
+		
+		for (int i=1; i<size(); i++)
+		{
+			buff.append(get(i));
+			buff.append("\n");
+		}
+		
+		return buff.toString().trim();
+	}
+	
+	public String toStringNonProj()
+	{
+		StringBuilder buff = new StringBuilder();
+		
+		for (int i=1; i<size(); i++)
+		{
+			buff.append(get(i).toStringNonProj());
+			buff.append("\n");
+		}
+		
+		return buff.toString().trim();
 	}
 }

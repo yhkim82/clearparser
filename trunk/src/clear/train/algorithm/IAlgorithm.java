@@ -1,5 +1,5 @@
 /**
-* Copyright (c) 2009, Regents of the University of Colorado
+* Copyright (c) 2010, Regents of the University of Colorado
 * All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -21,40 +21,16 @@
 * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 * POSSIBILITY OF SUCH DAMAGE.
 */
-package clear.engine;
+package clear.train.algorithm;
 
-import clear.train.LiblinearVoteTrainer;
+import clear.train.kernel.AbstractKernel;
 
 /**
- * Trains RRM (Robust Risk Minimization) model.
- * The main method reads <instance file> containing training instances and saves weight vectors to <code>modelFile.k.mu.eta.c</code>.
- * <pre>
- * Usage: java RRMTrain -i <instance file> -w <model file> [-t <# of threads> -k <K> -m <mu> -e <eta> -c <c>]
- * </pre>
- * @see clear.train.RRMTrainer
+ * Algorithm interface.
  * @author Jinho D. Choi
- * <b>Last update:</b> 12/09/2009
+ * <b>Last update:</b> 11/5/2010
  */
-public class LiblinearVoteTrain
+public interface IAlgorithm
 {
-	private String  s_instanceFile = null;
-	private String  s_modelFile    = null;
-	private int     i_numThreads   = 2;
-	private byte    i_lossType     = 1;
-	private int     i_numVotes     = 10;
-	private double  d_c            = 0.1;
-	private double  d_eps          = 0.1;
-	private boolean b_bias         = false;
-	
-	public LiblinearVoteTrain(String[] args)
-	{
-		s_instanceFile = args[0];
-		s_modelFile    = args[1];
-		new LiblinearVoteTrainer(s_instanceFile, s_modelFile, i_numThreads, i_lossType, i_numVotes, d_c, d_eps, b_bias);
-	}
-	
-	static public void main(String[] args)
-	{
-		new LiblinearVoteTrain(args);
-	}
+	public double[] getWeight(AbstractKernel kernel, int currLabel);
 }

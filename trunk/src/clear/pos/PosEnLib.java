@@ -23,8 +23,6 @@
 */
 package clear.pos;
 
-import java.util.Arrays;
-import java.util.HashSet;
 
 /**
  * English part-of-speech tag library.
@@ -33,66 +31,58 @@ import java.util.HashSet;
  */
 public class PosEnLib
 {
-	static public String[] PHRAE_POS_ARR = {"S","SBAR","SBARQ","SINV","SQ","ADJP","ADVP","CONJP","FRAG","INTJ","LST","NAC","NP","NX","PP","PRN","PRT","QP","RRC","UCP","VP","WHADJP","WHADVP","WHNP","WHPP","X"};
-	static public HashSet<String> PHRASE_POS_SET = new HashSet<String>(Arrays.asList(PHRAE_POS_ARR));
-	
 	/** Pos-tag of nouns, singular or mass */
-	static public String NOUN   = "NN";
+	static public String NN   = "NN";
 	/** Pos-tag of verbs, base form */
-	static public String VERB   = "VB";
+	static public String VB   = "VB";
 	/** Pos-tag of adjectives */
-	static public String ADJ    = "JJ";
+	static public String JJ   = "JJ";
 	/** Pos-tag of adverbs */
-	static public String ADV    = "RB";
+	static public String RB   = "RB";
 	/** Pos-tag of modals */
-	static public String MODAL  = "MD";
+	static public String MD   = "MD";
 	/** Pos-tag of wh-determiners */
-	static public String WH_DET = "WDT";
+	static public String WDT  = "WDT";
 	/** Pos-tag of wh-pronouns */
-	static public String WH_PRO = "WP";
+	static public String WP   = "WP";
 	/** Pos-tag of wh-adverbs */
-	static public String WH_ADV = "WRB";
+	static public String WRB  = "WRB";
 	/** Pos-tag of preposition */
-	static public String IN     = "IN";
+	static public String IN   = "IN";
 	
 	/** @return true if <code>pos</code> is a noun. */
 	static public boolean isNoun(String pos)
 	{
-		return pos.startsWith(NOUN);
+		return pos.startsWith(NN);
 	}
 	
 	/** @return true if <code>pos</code> is a verb. */
 	static public boolean isVerb(String pos)
 	{
-		return pos.startsWith(VERB);
+		return pos.startsWith(VB);
 	}
 	
 	/** @return true if <code>pos</code> is an adjective. */
 	static public boolean isAdjective(String pos)
 	{
-		return pos.startsWith(ADJ);
+		return pos.startsWith(JJ);
 	}
 	
 	/** @return true if <code>pos</code> is an adverb. */
 	static public boolean isAdverb(String pos)
 	{
-		return pos.startsWith(ADV);
+		return pos.startsWith(RB);
 	}
 	
 	/** @return true if <code>pos</code> is a modal. */
 	static public boolean isModal(String pos)
 	{
-		return pos.equals(MODAL);
+		return pos.equals(MD);
 	}
 	
 	/** @return coarse-grained pos of <code>pos</code>. */
 	static public String cpos(String pos)
 	{
 		return (pos.length() < 2) ? pos : pos.substring(0, 2);
-	}
-	
-	static public boolean isPhrase(String pos)
-	{
-		return PHRASE_POS_SET.contains(pos);
 	}
 }

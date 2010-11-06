@@ -27,7 +27,6 @@ import java.util.ArrayList;
 
 import clear.util.tuple.JIntDoubleTuple;
 
-
 /**
  * Abstract mdoel.
  * @author Jinho D. Choi
