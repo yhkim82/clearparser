@@ -27,7 +27,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.StringTokenizer;
 
-import clear.dep.AbstractTree;
+import clear.dep.ITree;
 import clear.util.IOUtil;
 
 /**
@@ -104,7 +104,7 @@ abstract public class AbstractReader<NodeType, TreeType>
 	 * @return true if the next tree exists
 	 * @throws IOException 
 	 */
-	protected boolean appendNextTree(AbstractTree<NodeType> tree) throws IOException
+	protected boolean appendNextTree(ITree<NodeType> tree) throws IOException
 	{
 		// skip empty lines
 		String line;
@@ -122,15 +122,11 @@ abstract public class AbstractReader<NodeType, TreeType>
 		while ((line = f_in.readLine()) != null)
 		{
 			if (isSkip(line))
-			{
-				tree.trimToSize();
 				return true;
-			}
 			else
 				tree.add(toNode(line, id++));
 		}
 
-		tree.trimToSize();
 		return true;
 	}
 	

@@ -23,7 +23,7 @@
 */
 package clear.engine;
 
-import clear.train.RRMTrainer;
+import clear.train.algorithm.RRM;
 
 /**
  * Trains RRM (Robust Risk Minimization) model.
@@ -31,7 +31,7 @@ import clear.train.RRMTrainer;
  * <pre>
  * Usage: java RRMTrain -i <instance file> -w <model file> [-t <# of threads> -k <K> -m <mu> -e <eta> -c <c>]
  * </pre>
- * @see clear.train.RRMTrainer
+ * @see clear.train.algorithm.RRM
  * @author Jinho D. Choi
  * <b>Last update:</b> 12/09/2009
  */
@@ -48,7 +48,7 @@ public class RRMTrain
 	public RRMTrain(String[] args)
 	{
 		if (!initArgs(args))	return;
-		new RRMTrainer(s_instanceFile, s_modelFile, i_numThreads, i_K, d_mu, d_eta, d_c);
+		new RRM(s_instanceFile, s_modelFile, i_numThreads, i_K, d_mu, d_eta, d_c);
 	}
 	
 	/** Initializes arguments. */

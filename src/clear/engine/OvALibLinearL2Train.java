@@ -1,5 +1,5 @@
 /**
-* Copyright (c) 2009, Regents of the University of Colorado
+* Copyright (c) 2010, Regents of the University of Colorado
 * All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -21,17 +21,34 @@
 * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 * POSSIBILITY OF SUCH DAMAGE.
 */
-package clear.ftr;
+package clear.engine;
+
+import clear.train.OvALibLinearL2Trainer;
 
 /**
- * Feature library.
+ * Trains one-vs-all LibLinear L2-* classifier.
  * @author Jinho D. Choi
- * <b>Last update:</b> 11/4/2010
+ * <b>Last update:</b> 11/3/2010
  */
-public class FtrLib
+public class OvALibLinearL2Train
 {
-	/** Null feature tag */
-	static public final String TAG_NULL  = "#$NULL$#";
-	/** Delimiter between joined feature tags */
-	static public final String TAG_DELIM = "_";
+	private String s_instanceFile = null;
+	private String s_modelFile    = null;
+	private int    i_numThreads   = 2;
+	private byte   i_lossType     = 1;
+	private double d_c            = 0.1;
+	private double d_eps          = 0.1;
+	private double d_bias         = -1;
+	
+	public OvALibLinearL2Train(String[] args)
+	{
+		s_instanceFile = args[0];
+		s_modelFile    = args[1];
+		new OvALibLinearL2Trainer(s_instanceFile, s_modelFile, i_numThreads, i_lossType, d_c, d_eps, d_bias);
+	}
+	
+	static public void main(String[] args)
+	{
+		new OvALibLinearL2Train(args);
+	}
 }

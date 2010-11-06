@@ -21,17 +21,21 @@
 * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 * POSSIBILITY OF SUCH DAMAGE.
 */
-package clear.ftr;
+package clear.dep;
 
 /**
- * Feature library.
+ * Tree interface.
  * @author Jinho D. Choi
  * <b>Last update:</b> 11/4/2010
  */
-public class FtrLib
+public interface ITree<NodeType>
 {
-	/** Null feature tag */
-	static public final String TAG_NULL  = "#$NULL$#";
-	/** Delimiter between joined feature tags */
-	static public final String TAG_DELIM = "_";
+	/** Adds <code>node</code> at the end of the tree. */
+	public boolean add(NodeType node);
+	/** Adds <code>node</code> at the <code>index</code>'th position. */
+	public void add(int index, NodeType node);
+	/** @return <code>index</code>'th node. */
+	public NodeType get(int index);
+	/** @return size of the tree. */
+	public int  size();
 }

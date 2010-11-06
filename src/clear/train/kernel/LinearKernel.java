@@ -21,17 +21,19 @@
 * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 * POSSIBILITY OF SUCH DAMAGE.
 */
-package clear.ftr;
+package clear.train.kernel;
 
 /**
- * Feature library.
+ * Linear kernel.
  * @author Jinho D. Choi
- * <b>Last update:</b> 11/4/2010
+ * <b>Last update:</b> 11/5/2010
  */
-public class FtrLib
+public class LinearKernel extends AbstractKernel
 {
-	/** Null feature tag */
-	static public final String TAG_NULL  = "#$NULL$#";
-	/** Delimiter between joined feature tags */
-	static public final String TAG_DELIM = "_";
+	public LinearKernel(String instanceFile)
+	{
+		super(instanceFile);
+	}
+	
+	protected void kernelize() {}
 }

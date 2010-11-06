@@ -1,5 +1,5 @@
 /**
-* Copyright (c) 2009, Regents of the University of Colorado
+* Copyright (c) 2010, Regents of the University of Colorado
 * All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -21,69 +21,22 @@
 * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 * POSSIBILITY OF SUCH DAMAGE.
 */
-package clear.decode;
-
-import java.util.ArrayList;
-import java.util.Collections;
-
-import clear.model.OneVsAllVoteModel;
-import clear.util.tuple.JIntDoubleTuple;
+package clear.train.kernel;
 
 /**
- * Liblinear decoders.
+ * Permutation kernel.
  * @author Jinho D. Choi
- * <br><b>Last update:</b> 10/19/2010
+ * <b>Last update:</b> 11/5/2010
  */
-public class OneVsAllDecoder extends AbstractDecoder
+public class PermutationKernel extends AbstractKernel
 {
-	private OneVsAllVoteModel m_model;
-	
-	public OneVsAllDecoder(String modelFile)
+	public PermutationKernel(String instanceFile)
 	{
-		m_model = new OneVsAllVoteModel(modelFile);
+		super(instanceFile);
 	}
-	
-	public JIntDoubleTuple predict(int[] x)
-	{
-		return predictAux(m_model.getScores(x));
-	}
-	
-	public JIntDoubleTuple predict(ArrayList<Integer> x)
-	{
-		return predictAux(m_model.getScores(x));
-	}
-	
-	private JIntDoubleTuple predictAux(double[] scores)
-	{
-		JIntDoubleTuple max = new JIntDoubleTuple(0, scores[0]);
-		int i;
-		
-		for (i=1; i < m_model.n_labels; i++)
-		{
-			if (scores[i] > max.d)	max.set(i, scores[i]);
-		}
 
-		return max;
-	}
-	
-	public ArrayList<JIntDoubleTuple> predictAll(int[] x)
+	protected void kernelize()
 	{
-		return predictAllAux(m_model.getScores(x));
-	}
-	
-	public ArrayList<JIntDoubleTuple> predictAll(ArrayList<Integer> x)
-	{
-		return predictAllAux(m_model.getScores(x));
-	}
-	
-	private ArrayList<JIntDoubleTuple> predictAllAux(double[] scores)
-	{
-		ArrayList<JIntDoubleTuple> aRes = new ArrayList<JIntDoubleTuple>();
-		
-		for (int i=0; i<scores.length; i++)
-			aRes.add(new JIntDoubleTuple(i, scores[i]));
-		
-		Collections.sort(aRes);
-		return aRes;
+				
 	}
 }

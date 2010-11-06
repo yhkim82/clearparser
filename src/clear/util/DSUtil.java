@@ -23,11 +23,8 @@
 */
 package clear.util;
 
-import gnu.trove.TIntCollection;
-import gnu.trove.list.array.TIntArrayList;
-import gnu.trove.map.hash.TObjectIntHashMap;
-
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.StringTokenizer;
 
@@ -39,21 +36,12 @@ import java.util.StringTokenizer;
 public class DSUtil
 {
 	/** @return List of integers converted from <code>strArr</code> */
-	static public TIntArrayList toTIntArrayList(String[] strArr)
+	static public ArrayList<Integer> toTIntArrayList(String[] strArr)
 	{
-		TIntArrayList list = new TIntArrayList(strArr.length);
+		ArrayList<Integer> list = new ArrayList<Integer>(strArr.length);
 		
 		for (String str : strArr)
 			list.add(Integer.parseInt(str));
-		
-		return list;
-	}
-	
-	/** @return Sorted list of integers converted from <code>col</code> */
-	static public TIntArrayList toSortedTIntArrayList(TIntCollection col)
-	{
-		TIntArrayList list = new TIntArrayList(col);
-		list.sort();
 		
 		return list;
 	}
@@ -70,16 +58,15 @@ public class DSUtil
 	}
 	
 	/** @return HashMap whose keys are strings from <code>list</code> and values are sequential integers starting at <code>beginId</code> */
-	static public TObjectIntHashMap<String> toHashMap(ArrayList<String> list, int beginId)
+	static public HashMap<String,Integer> toHashMap(ArrayList<String> list, int beginId)
 	{
-		TObjectIntHashMap<String> map = new TObjectIntHashMap<String>(list.size());
+		HashMap<String,Integer> map = new HashMap<String,Integer>(list.size());
 		
 		for (int i=0; i<list.size(); i++)
 			map.put(list.get(i), i+beginId);
 		
 		return map;
 	}
-	
 	
 	static public int max(int[] arr)
 	{
@@ -111,6 +98,16 @@ public class DSUtil
 		for (double x : arr)	max = Math.max(max, x);
 		
 		return max;
+	}
+	
+	static public int[] toIntArray(String[] sArr, int beginIdx)
+	{
+		int[] iArr = new int[sArr.length - beginIdx];
+		
+		for (int i=beginIdx,j=0; i<sArr.length; i++,j++)
+			iArr[j] = Integer.parseInt(sArr[i]);
+		
+		return iArr;
 	}
 	
 	static public int[] toIntArray(StringTokenizer tok)

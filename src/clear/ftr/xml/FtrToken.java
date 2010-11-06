@@ -1,5 +1,5 @@
 /**
-* Copyright (c) 2009, Regents of the University of Colorado
+* Copyright (c) 2010, Regents of the University of Colorado
 * All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -21,39 +21,55 @@
 * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 * POSSIBILITY OF SUCH DAMAGE.
 */
-package clear.engine;
-
-import clear.train.LiblinearTrainer;
+package clear.ftr.xml;
 
 /**
- * Trains RRM (Robust Risk Minimization) model.
- * The main method reads <instance file> containing training instances and saves weight vectors to <code>modelFile.k.mu.eta.c</code>.
- * <pre>
- * Usage: java RRMTrain -i <instance file> -w <model file> [-t <# of threads> -k <K> -m <mu> -e <eta> -c <c>]
- * </pre>
- * @see clear.train.RRMTrainer
+ * Feature token.
  * @author Jinho D. Choi
- * <b>Last update:</b> 12/09/2009
+ * <b>Last update:</b> 11/4/2010
  */
-public class LiblinearTrain
+public class FtrToken
 {
-	private String  s_instanceFile = null;
-	private String  s_modelFile    = null;
-	private int     i_numThreads   = 2;
-	private byte    i_lossType     = 1;
-	private double  d_c            = 0.1;
-	private double  d_eps          = 0.1;
-	private boolean b_bias         = false;
+	/** Source of this feature (e.g., l: lambda, b: beta) */
+	public char   source;
+	/** Offset from {@link FtrToken#source}[0] (e.g., -1, 0, 1) */
+	public int    offset;
+	/** Relation to {@link FtrToken#source}[0] (e.g., hd, lm, rm) */
+	public String relation;
+	/** Field of this feature (e.g., f, m, p, d) */
+	public String field;
 	
-	public LiblinearTrain(String[] args)
+	public FtrToken(char source, int offset, String relation, String field)
 	{
-		s_instanceFile = args[0];
-		s_modelFile    = args[1];
-		new LiblinearTrainer(s_instanceFile, s_modelFile, i_numThreads, i_lossType, d_c, d_eps, b_bias);
+		set(source, offset, relation, field);
 	}
 	
-	static public void main(String[] args)
+	public void set(char source, int offset, String relation, String field)
 	{
-		new LiblinearTrain(args);
+		this.source   = source;
+		this.offset   = offset;
+		this.relation = relation;
+		this.field    = field;
+	}
+	
+	public String toString()
+	{
+		StringBuilder build = new StringBuilder();
+		
+		build.append(source);
+		
+		if (offset != 0)
+			build.append(offset);
+		
+		if (relation != null)
+		{
+			build.append(AbstractFtrXml.DELIM_R);
+			build.append(relation);
+		}
+		
+		build.append(AbstractFtrXml.DELIM_F);
+		build.append(field);
+		
+		return build.toString();
 	}
 }

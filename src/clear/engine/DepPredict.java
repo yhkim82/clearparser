@@ -30,13 +30,12 @@ import org.w3c.dom.Element;
 
 import clear.dep.DepLib;
 import clear.dep.DepNode;
-import clear.dep.DepParser;
 import clear.dep.DepTree;
+import clear.parse.ShiftEagerParser;
 import clear.reader.AbstractReader;
 import clear.reader.CoNLLReader;
 import clear.reader.DepReader;
 import clear.reader.PosReader;
-import clear.reader.RawReader;
 import clear.util.IOUtil;
 
 /**
@@ -77,13 +76,12 @@ public class DepPredict extends AbstractEngine
 		
 		AbstractReader<DepNode, DepTree> reader = null;
 		
-		if      (s_format.equals(AbstractReader.FORMAT_RAW))	reader = new RawReader  (s_testFile, s_language, s_posModelFile, s_morphDictDir);
-		else if (s_format.equals(AbstractReader.FORMAT_POS))	reader = new PosReader  (s_testFile, s_language, s_morphDictDir);
+		if 		(s_format.equals(AbstractReader.FORMAT_POS))	reader = new PosReader  (s_testFile, s_language, s_morphDictDir);
 		else if (s_format.equals(AbstractReader.FORMAT_DEP))	reader = new DepReader  (s_testFile, false);
 		else 													reader = new CoNLLReader(s_testFile, false);
 		
 		System.out.println("Predict: "+s_outputFile);
-		DepParser   parser = new DepParser(s_lexiconDir, s_modelFile, 	s_featureXml, i_flag);
+		ShiftEagerParser   parser = new ShiftEagerParser(s_lexiconDir, s_modelFile, 	s_featureXml, i_flag);
 		PrintStream fout   = IOUtil.createPrintFileStream(s_outputFile);
 	//	PrintStream fplot  = JIO.createPrintFileOutputStream("plot.txt");
 		DepTree     tree;

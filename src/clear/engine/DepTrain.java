@@ -27,8 +27,8 @@ import org.w3c.dom.Element;
 
 import clear.dep.DepLib;
 import clear.dep.DepNode;
-import clear.dep.DepParser;
 import clear.dep.DepTree;
+import clear.parse.ShiftEagerParser;
 import clear.reader.AbstractReader;
 import clear.reader.CoNLLReader;
 import clear.reader.DepReader;
@@ -193,7 +193,7 @@ public class DepTrain extends AbstractEngine
 		if (s_format.equals(AbstractReader.FORMAT_DEP))	reader = new DepReader  (s_trainFile, true);
 		else 											reader = new CoNLLReader(s_trainFile, true);
 
-		DepParser parser = new DepParser(s_lexiconDir, s_featureFile, s_featureXml, flag);
+		ShiftEagerParser parser = new ShiftEagerParser(s_lexiconDir, s_featureFile, s_featureXml, flag);
 		DepTree   tree;
 		
 		System.out.print("Parsing: ");	int n;

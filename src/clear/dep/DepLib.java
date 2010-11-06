@@ -30,17 +30,6 @@ package clear.dep;
  */
 public class DepLib
 {
-	/** Flag to print configuration files */
-	static public final byte FLAG_PRINT_LEXICON     = 0;
-	/** Flag to print training instances */
-	static public final byte FLAG_PRINT_INSTANCE   = 1;
-	/** Flag to print transitions */
-	static public final byte FLAG_PRINT_TRANSITION = 2;
-	/** Flag to predict with greedy search */
-	static public final byte FLAG_PREDICT          = 3;
-	/** Flag to predict with k-best search */
-	static public final byte FLAG_PREDICT_BEST     = 4;
-	
 	/** ID of the root node */
 	static public final int ROOT_ID      =  0;
 	/** ID of a null node */

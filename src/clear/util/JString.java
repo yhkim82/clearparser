@@ -3,24 +3,8 @@ package clear.util;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 
-import gnu.trove.list.array.TIntArrayList;
-
 public class JString
 {
-	/** @return delim.join(list) as in Python */
-	static public String join(TIntArrayList list, String delim)
-	{
-		StringBuilder buff = new StringBuilder();
-		
-		for (int i=0; i<list.size(); i++)
-		{
-			buff.append(list.get(i));
-			if (i+1 < list.size())	buff.append(delim);
-		}
-		
-		return buff.toString();
-	}
-	
 	/** @return delim.join(list) as in Python */
 	static public String join(ArrayList<String> list, String delim)
 	{

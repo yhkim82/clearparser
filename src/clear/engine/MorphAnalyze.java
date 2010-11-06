@@ -21,31 +21,71 @@
 * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 * POSSIBILITY OF SUCH DAMAGE.
 */
-package clear.dep.ftr;
+package clear.engine;
+
+import java.io.BufferedReader;
+import java.io.PrintStream;
+
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
+import org.kohsuke.args4j.Option;
+
+import clear.morph.MorphEnAnalyzer;
+import clear.reader.AbstractReader;
+import clear.util.IOUtil;
 
 /**
- * Dependency feature token.
+ * Runs a morphological analyzer.
  * @author Jinho D. Choi
- * <b>Last update:</b> 7/7/2010
+ * <b>Last update:</b> 11/4/2010
  */
-public class DepFtrToken
+public class MorphAnalyze
 {
-	/** 'l' for lambda, 'b' for beta */
-	public char    token;
-	/** Offset from {@link DepFtrToken#token} (e.g., -1, 0, 1) */
-	public int     offset;
-	/** Relation to {@link DepFtrToken#token} (e.g., hd, lm, rm)  */
-	public String  relation;
+	@Option(name="-i", usage="input file", required=true, metaVar="REQUIRED")
+	String inputFile;
+	@Option(name="-o", usage="output file", required=true, metaVar="REQUIRED")
+	String outputFile;
+	@Option(name="-d", usage="dictionary jar-file", required=true, metaVar="REQUIRED")
+	String dictFile;
 	
-	public DepFtrToken(char node, int offset, String relation)
+	public MorphAnalyze(String[] args)
 	{
-		set(node, offset, relation);
+		CmdLineParser cmd  = new CmdLineParser(this);
+		
+		try
+		{
+			cmd.parseArgument(args);
+			
+			BufferedReader  fin   = IOUtil.createBufferedFileReader(inputFile);
+			PrintStream     fout  = IOUtil.createPrintFileStream(outputFile);
+			MorphEnAnalyzer morph = new MorphEnAnalyzer(dictFile);
+			
+			String line, form, pos, lemma;
+			String[] tmp;
+			
+			while ((line = fin.readLine()) != null)
+			{
+				tmp   = line.split(AbstractReader.FIELD_DELIM);
+				form  = tmp[0];
+				pos   = tmp[1];
+				lemma = morph.getLemma(form, pos);
+				
+				fout.println(line + AbstractReader.FIELD_DELIM + lemma);
+			}
+			
+			fin .close();
+			fout.close();
+		}
+		catch (CmdLineException e)
+		{
+			System.err.println(e.getMessage());
+			cmd.printUsage(System.err);
+		}
+		catch (Exception e) {e.printStackTrace();}
 	}
 	
-	public void set(char node, int offset, String relation)
+	public static void main(String[] args)
 	{
-		this.token    = node;
-		this.offset   = offset;
-		this.relation = relation;
+		new MorphAnalyze(args);
 	}
 }
