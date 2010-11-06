@@ -16,7 +16,7 @@ java clear.engine.MorphAnalyze -i dat/morph.in -o dat/morph.out -d lib/en_dict.j
 
 == Output file ==
 
- * The output file adds one more column for lemma to the input file, delimited by a tab character.  A sample output file can be found from '[http://clearparser.googlecode.com/svn/trunk/dat/morph.out dat/morph.out]'.
+ * The output file adds one more column for lemmas to the input file, delimited by a tab character.  A sample output file can be found from '[http://clearparser.googlecode.com/svn/trunk/dat/morph.out dat/morph.out]'.
 
 == Dictionary file ==
 
