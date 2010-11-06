@@ -1,26 +1,23 @@
 #summary Morphological analyzer: guidelines
 
-Clear morphological analyzer converts word-forms to their lemmas using dictionaries and part-of-speech tags.  For example, all plural nouns are converted to their singular forms, all regular/irregular verb-forms are converted to their base-forms, etc.  The analyzer uses the [http://wordnet.princeton.edu/wordnet WordNet] dictionaries but is implemented slightly differently from their [http://wordnet.princeton.edu/wordnet/man/morph.3WN.html morphological analyzer].  Currently, Clear morphological analyzer only supports English; more languages will be supported near in the future.
-<br><br>
+Clear morphological analyzer takes a pair of word-form and its part-of-speech tag, and generates the lemma of the word-form.  It is a dictionary-based analyzer developed on top of the [http://wordnet.princeton.edu/wordnet WordNet] morphy.  Besides the WordNet rules, it finds lemmas for some abbreviations (& -> and, 're -> be), generalizes ordinals (21st -> $#ORD#$), and shortens all numbers (1900s -> 0s, 3.14 -> 0.0).  These generalized lemmas found to be useful for some NLP tasks (e.g., dependency parsing).  Currently, Clear morphological analyzer supports only English, but more language supports are expected soon.
+<br>
 
 == How to run Clear morphological analyzer ==
 
 {{{
-java clear.engine.MorphAnalyze -i <input file> -o <output file>
+java clear.engine.MorphAnalyze -i <input file> -o <output file> -d <dictionary jar-file>
+java clear.engine.MorphAnalyze -i dat/morph.in -o dat/morph.out -d lib/en_dict.jar
 }}}
-<br>
 
-== Input file format ==
+== Input file  ==
 
- * FORM
- * POSTAG
-<br>
+ * The input file needs to follow the [DataFormat part-of-speech format] without blank lines.  A sample input file can be found from '[http://clearparser.googlecode.com/svn/trunk/dat/morph.in dat/morph.in]'.
 
-== Output file format ==
+== Output file ==
 
- * FORM
- * POSTAG
- * LEMMA
-<br>
+ * The output file adds one more column for lemma to the input file, delimited by a tab character.  A sample output file can be found from '[http://clearparser.googlecode.com/svn/trunk/dat/morph.out dat/morph.out]'.
 
-== How it is implemented ==
+== Dictionary file ==
+
+ * English dictionary file can be found from '[http://clearparser.googlecode.com/svn/trunk/lib/en_dict.jar lib/en_dict.jar]'.
