@@ -23,6 +23,8 @@
 */
 package clear.train.kernel;
 
+import com.carrotsearch.hppc.IntArrayList;
+
 /**
  * Permutation kernel.
  * @author Jinho D. Choi
@@ -38,5 +40,15 @@ public class PermutationKernel extends AbstractKernel
 	protected void kernelize()
 	{
 				
+	}
+	
+	static public int[] kernelize(int[] x)
+	{
+		return x;
+	}
+	
+	static public void kernelize(IntArrayList x)
+	{
+		
 	}
 }

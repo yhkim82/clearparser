@@ -31,6 +31,7 @@ package clear.ftr.xml;
 public class FtrTemplate
 {
 	public FtrToken[] tokens;
+	public String     type;
 	public int        cutoff;
 	
 	public FtrTemplate(int n, int cutoff)
@@ -49,11 +50,19 @@ public class FtrTemplate
 		tokens[index] = token;
 	}
 	
+	public void setType(String type)
+	{
+		this.type = type;
+	}
+	
 	public String toString()
 	{
 		StringBuilder build = new StringBuilder();
 		
 		toStringAux(build, AbstractFtrXml.N, Integer.toString(tokens.length));
+		
+		build.append(" ");
+		toStringAux(build, AbstractFtrXml.T, type);
 		
 		if (cutoff > 0)
 		{

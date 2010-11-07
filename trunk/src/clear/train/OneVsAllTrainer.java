@@ -23,41 +23,68 @@
 */
 package clear.train;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
+import clear.model.OneVsAllModel;
 import clear.train.algorithm.IAlgorithm;
-import clear.train.kernel.AbstractKernel;
-import clear.train.kernel.LinearKernel;
-import clear.train.kernel.PermutationKernel;
 
 /**
- * Abstract trainer.
+ * One-vs-all trainer.
  * @author Jinho D. Choi
  * <b>Last update:</b> 11/6/2010
  */
-abstract public class AbstractTrainer
+public class OneVsAllTrainer extends AbstractTrainer
 {
-	static public final byte   ST_BINARY       = 0;
-	static public final byte   ST_ONE_VS_ALL   = 1;
+	volatile protected OneVsAllModel m_model;
 	
-	protected String         s_modelFile;
-	protected IAlgorithm     a_algorithm;
-	protected AbstractKernel k_kernel;
-	protected int            i_numThreads;
-	
-	public AbstractTrainer(String instanceFile, String modelFile, IAlgorithm algorithm, byte kernel, int numThreads)
+	public OneVsAllTrainer(String instanceFile, String modelFile, IAlgorithm algorithm, byte kernel, int numThreads)
 	{
-		s_modelFile  = modelFile;
-		a_algorithm  = algorithm;
-		i_numThreads = numThreads;
-		
-		if (kernel == AbstractKernel.LINEAR)
-			k_kernel = new LinearKernel     (instanceFile);
-		else
-			k_kernel = new PermutationKernel(instanceFile);
-		
-		initModel();
-		train();
+		super(instanceFile, modelFile, algorithm, kernel, numThreads);
 	}
 	
-	abstract protected void initModel();
-	abstract protected void train();
+	protected void initModel()
+	{
+		m_model = new OneVsAllModel(k_kernel);
+	}
+	
+	protected void train()
+	{
+		ExecutorService executor = Executors.newFixedThreadPool(i_numThreads);;
+		System.out.println("\n* Training");
+		
+		for (int currLabel=0; currLabel<k_kernel.L; currLabel++)
+			executor.execute(new TrainTask(currLabel));
+		
+		executor.shutdown();
+		
+		try
+		{
+			executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+			System.out.println("\n* Saving: "+s_modelFile);
+			m_model.save(s_modelFile);
+		}
+		catch (InterruptedException e) {e.printStackTrace();}
+	}
+
+	class TrainTask implements Runnable
+	{
+		/** Current label to train */
+		int curr_label;
+		
+		/**
+		 * Trains a one-vs-all model using {@link AbstractTrainer#a_xs} and {@link AbstractTrainer#a_ys} with respect to <code>currLabel</code>.
+		 * @param currLabel current label to train ({@link this#curr_label})
+		 */
+		public TrainTask(int currLabel)
+		{
+			curr_label = currLabel;
+		}
+		
+		public void run()
+		{
+			m_model.copyWeight(curr_label, a_algorithm.getWeight(k_kernel, curr_label));
+		}
+	}
 }

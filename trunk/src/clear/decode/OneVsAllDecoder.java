@@ -1,5 +1,5 @@
 /**
-* Copyright (c) 2010, Regents of the University of Colorado
+* Copyright (c) 2009, Regents of the University of Colorado
 * All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -21,43 +21,75 @@
 * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 * POSSIBILITY OF SUCH DAMAGE.
 */
-package clear.train;
+package clear.decode;
 
-import clear.train.algorithm.IAlgorithm;
-import clear.train.kernel.AbstractKernel;
-import clear.train.kernel.LinearKernel;
-import clear.train.kernel.PermutationKernel;
+import java.util.Arrays;
+
+import clear.model.OneVsAllModel;
+import clear.util.tuple.JIntDoubleTuple;
+
+import com.carrotsearch.hppc.IntArrayList;
 
 /**
- * Abstract trainer.
+ * One-vs-all decoder.
  * @author Jinho D. Choi
- * <b>Last update:</b> 11/6/2010
+ * <br><b>Last update:</b> 11/6/2010
  */
-abstract public class AbstractTrainer
+public class OneVsAllDecoder extends AbstractMultiDecoder
 {
-	static public final byte   ST_BINARY       = 0;
-	static public final byte   ST_ONE_VS_ALL   = 1;
+	protected OneVsAllModel m_model;
 	
-	protected String         s_modelFile;
-	protected IAlgorithm     a_algorithm;
-	protected AbstractKernel k_kernel;
-	protected int            i_numThreads;
-	
-	public AbstractTrainer(String instanceFile, String modelFile, IAlgorithm algorithm, byte kernel, int numThreads)
+	public OneVsAllDecoder(String modelFile, byte kernel)
 	{
-		s_modelFile  = modelFile;
-		a_algorithm  = algorithm;
-		i_numThreads = numThreads;
-		
-		if (kernel == AbstractKernel.LINEAR)
-			k_kernel = new LinearKernel     (instanceFile);
-		else
-			k_kernel = new PermutationKernel(instanceFile);
-		
-		initModel();
-		train();
+		super(kernel);
+		m_model = new OneVsAllModel(modelFile);
 	}
 	
-	abstract protected void initModel();
-	abstract protected void train();
+	public JIntDoubleTuple predict(int[] x)
+	{
+		return predictAux(m_model.getScores(kernelize(x)));
+	}
+	
+	public JIntDoubleTuple predict(IntArrayList x)
+	{
+		kernelize(x);
+		return predictAux(m_model.getScores(x));
+	}
+	
+	private JIntDoubleTuple predictAux(double[] scores)
+	{
+		int[] aLabels = m_model.a_labels;
+		JIntDoubleTuple max = new JIntDoubleTuple(aLabels[0], scores[0]);
+		int i;
+		
+		for (i=1; i < m_model.n_labels; i++)
+		{
+			if (scores[i] > max.d)	max.set(aLabels[i], scores[i]);
+		}
+
+		return max;
+	}
+	
+	public JIntDoubleTuple[] predictAll(int[] x)
+	{
+		return predictAllAux(m_model.getScores(kernelize(x)));
+	}
+	
+	public JIntDoubleTuple[] predictAll(IntArrayList x)
+	{
+		kernelize(x);
+		return predictAllAux(m_model.getScores(x));
+	}
+	
+	private JIntDoubleTuple[] predictAllAux(double[] scores)
+	{
+		JIntDoubleTuple[] aRes = new JIntDoubleTuple[m_model.n_labels];
+		int[] aLabels = m_model.a_labels;
+		
+		for (int i=0; i<m_model.n_labels; i++)
+			aRes[i] = new JIntDoubleTuple(aLabels[i], scores[i]);
+		
+		Arrays.sort(aRes);
+		return aRes;
+	}
 }

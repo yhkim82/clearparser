@@ -23,29 +23,37 @@
 */
 package clear.decode;
 
-import java.util.ArrayList;
-
+import clear.train.kernel.AbstractKernel;
+import clear.train.kernel.PermutationKernel;
 import clear.util.tuple.JIntDoubleTuple;
 
+import com.carrotsearch.hppc.IntArrayList;
+
 /**
- * Abstract mdoel.
+ * Abstract decoder.
  * @author Jinho D. Choi
- * <br><b>Last update:</b> 7/1/2010
+ * <br><b>Last update:</b> 11/6/2010
  */
 public abstract class AbstractDecoder
 {
-	/**
-	 * Returns a tuple of predicated <label, score> for a feature vector <code>x</code>.
-	 * The score is scaled between 0 and 1.
-	 * @param x feature vector
-	 */
-	abstract public JIntDoubleTuple predict(ArrayList<Integer> x);
+	protected byte i_kernel;
 	
-	/**
-	 * Returns a sorted list of predicated <label, score> for a feature vector <code>x</code>.
-	 * The list is sorted in descending order with respect to the scores.
-	 * The score is scaled between 0 and 1.
-	 * @param x feature vector
-	 */
-	abstract public ArrayList<JIntDoubleTuple> predictAll(ArrayList<Integer> x);
+	public AbstractDecoder(byte kernel)
+	{
+		i_kernel = kernel;
+	}
+	
+	protected int[] kernelize(int[] x)
+	{
+		return PermutationKernel.kernelize(x);
+	}
+	
+	protected void kernelize(IntArrayList x)
+	{
+		if (i_kernel == AbstractKernel.PERMUTATION)
+			PermutationKernel.kernelize(x);
+	}
+
+	abstract public JIntDoubleTuple predict(int[] x);
+	abstract public JIntDoubleTuple predict(IntArrayList x);
 }

@@ -1,5 +1,5 @@
 /**
-* Copyright (c) 2009, Regents of the University of Colorado
+* Copyright (c) 2010, Regents of the University of Colorado
 * All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -21,54 +21,32 @@
 * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 * POSSIBILITY OF SUCH DAMAGE.
 */
-package clear.engine;
+package clear.model;
 
+import clear.train.kernel.AbstractKernel;
 
-import java.io.PrintStream;
-
-import clear.dep.DepLib;
-import clear.dep.DepTree;
-import clear.reader.CoNLLReader;
-import clear.util.IOUtil;
+import com.carrotsearch.hppc.IntArrayList;
 
 /**
- * Predicts dependency trees.
- * 
- * <pre>
- * Usage: java harvest.DepPredic -t <test file> -o <output file> -m <model file> -c <configuration directory> [-f <flag> -a <algorithm> -l <lower bound> -u <upper bound>]
- * </pre>
- * 
- * Flags
- * - {@link DepLib#FLAG_PREDICT}: greedy search
- * - {@link DepLib#FLAG_PREDICT_BEST}: k-best search
- * 
- * Algorithms
- * - {@link DepLib#ALG_NIVRE}: Nivre's list-based, non-projective algorithm
- * - {@link DepLib#ALG_CHOI }: Choi's algorithm
- * 
+ * Abstract model for multi-classification.
  * @author Jinho D. Choi
- * <b>Last update:</b> 4/26/2010
+ * <b>Last update:</b> 11/5/2010
  */
-public class DepSplit
+abstract public class AbstractMultiModel extends AbstractModel
 {
-	public DepSplit(String filename)
+	public int n_labels;
+	
+	public AbstractMultiModel(AbstractKernel kernel)
 	{
-		CoNLLReader reader = new CoNLLReader(filename, true);
-		DepTree   tree;
-		PrintStream[] fout = new PrintStream[10];
-		
-		for (int i=0; i<fout.length; i++)
-			fout[i] = IOUtil.createPrintFileStream(filename+"."+i);
-		
-		while ((tree = reader.nextTree()) != null)
-		{
-			int index = (tree.size() >= 101) ? 9 : (tree.size()-1) / 10;
-			fout[index].println(tree+"\n");
-		}
+		super(kernel);
 	}
 	
-	static public void main(String[] args)
+	public AbstractMultiModel(String modelFile)
 	{
-		new DepSplit(args[0]);
+		super(modelFile);
 	}
+	
+	abstract public void     copyWeight(int label, double[] weight);
+	abstract public double[] getScores(int[] x);
+	abstract public double[] getScores(IntArrayList x);
 }

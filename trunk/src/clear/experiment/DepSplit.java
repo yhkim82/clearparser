@@ -21,69 +21,54 @@
 * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 * POSSIBILITY OF SUCH DAMAGE.
 */
-package clear.decode;
+package clear.experiment;
 
-import java.util.ArrayList;
-import java.util.Collections;
 
-import clear.model.OvAModel;
-import clear.util.tuple.JIntDoubleTuple;
+import java.io.PrintStream;
+
+import clear.dep.DepLib;
+import clear.dep.DepTree;
+import clear.reader.CoNLLReader;
+import clear.util.IOUtil;
 
 /**
- * Liblinear decoders.
+ * Predicts dependency trees.
+ * 
+ * <pre>
+ * Usage: java harvest.DepPredic -t <test file> -o <output file> -m <model file> -c <configuration directory> [-f <flag> -a <algorithm> -l <lower bound> -u <upper bound>]
+ * </pre>
+ * 
+ * Flags
+ * - {@link DepLib#FLAG_PREDICT}: greedy search
+ * - {@link DepLib#FLAG_PREDICT_BEST}: k-best search
+ * 
+ * Algorithms
+ * - {@link DepLib#ALG_NIVRE}: Nivre's list-based, non-projective algorithm
+ * - {@link DepLib#ALG_CHOI }: Choi's algorithm
+ * 
  * @author Jinho D. Choi
- * <br><b>Last update:</b> 10/19/2010
+ * <b>Last update:</b> 4/26/2010
  */
-public class OvADecoder extends AbstractDecoder
+public class DepSplit
 {
-	private OvAModel m_model;
-	
-	public OvADecoder(String modelFile)
+	public DepSplit(String filename)
 	{
-		m_model = new OvAModel(modelFile);
-	}
-	
-	public JIntDoubleTuple predict(int[] x)
-	{
-		return predictAux(m_model.getScores(x));
-	}
-	
-	public JIntDoubleTuple predict(ArrayList<Integer> x)
-	{
-		return predictAux(m_model.getScores(x));
-	}
-	
-	private JIntDoubleTuple predictAux(double[] scores)
-	{
-		JIntDoubleTuple max = new JIntDoubleTuple(0, scores[0]);
-		int i;
+		CoNLLReader reader = new CoNLLReader(filename, true);
+		DepTree   tree;
+		PrintStream[] fout = new PrintStream[10];
 		
-		for (i=1; i < m_model.n_labels; i++)
+		for (int i=0; i<fout.length; i++)
+			fout[i] = IOUtil.createPrintFileStream(filename+"."+i);
+		
+		while ((tree = reader.nextTree()) != null)
 		{
-			if (scores[i] > max.d)	max.set(i, scores[i]);
+			int index = (tree.size() >= 101) ? 9 : (tree.size()-1) / 10;
+			fout[index].println(tree+"\n");
 		}
-
-		return max;
 	}
 	
-	public ArrayList<JIntDoubleTuple> predictAll(int[] x)
+	static public void main(String[] args)
 	{
-		return predictAllAux(m_model.getScores(x));
-	}
-	
-	public ArrayList<JIntDoubleTuple> predictAll(ArrayList<Integer> x)
-	{
-		return predictAllAux(m_model.getScores(x));
-	}
-	
-	private ArrayList<JIntDoubleTuple> predictAllAux(double[] scores)
-	{
-		ArrayList<JIntDoubleTuple> aRes = new ArrayList<JIntDoubleTuple>();
-		
-		for (int i=0; i<scores.length; i++)
-			aRes.add(new JIntDoubleTuple(i, scores[i]));
-		
-		Collections.sort(aRes);
-		return aRes;
+		new DepSplit(args[0]);
 	}
 }

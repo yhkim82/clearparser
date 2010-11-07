@@ -1,5 +1,5 @@
 /**
-* Copyright (c) 2010, Regents of the University of Colorado
+* Copyright (c) 2009, Regents of the University of Colorado
 * All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -21,43 +21,42 @@
 * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 * POSSIBILITY OF SUCH DAMAGE.
 */
-package clear.train;
+package clear.decode;
 
-import clear.train.algorithm.IAlgorithm;
-import clear.train.kernel.AbstractKernel;
-import clear.train.kernel.LinearKernel;
-import clear.train.kernel.PermutationKernel;
+import clear.model.BinaryModel;
+import clear.util.tuple.JIntDoubleTuple;
+
+import com.carrotsearch.hppc.IntArrayList;
 
 /**
- * Abstract trainer.
+ * Binary decoder.
  * @author Jinho D. Choi
- * <b>Last update:</b> 11/6/2010
+ * <br><b>Last update:</b> 10/19/2010
  */
-abstract public class AbstractTrainer
+public class BinaryDecoder extends AbstractDecoder
 {
-	static public final byte   ST_BINARY       = 0;
-	static public final byte   ST_ONE_VS_ALL   = 1;
+	protected BinaryModel m_model;
 	
-	protected String         s_modelFile;
-	protected IAlgorithm     a_algorithm;
-	protected AbstractKernel k_kernel;
-	protected int            i_numThreads;
-	
-	public AbstractTrainer(String instanceFile, String modelFile, IAlgorithm algorithm, byte kernel, int numThreads)
+	public BinaryDecoder(String modelFile, byte kernel)
 	{
-		s_modelFile  = modelFile;
-		a_algorithm  = algorithm;
-		i_numThreads = numThreads;
-		
-		if (kernel == AbstractKernel.LINEAR)
-			k_kernel = new LinearKernel     (instanceFile);
-		else
-			k_kernel = new PermutationKernel(instanceFile);
-		
-		initModel();
-		train();
+		super(kernel);
+		m_model = new BinaryModel(modelFile);
 	}
 	
-	abstract protected void initModel();
-	abstract protected void train();
+	public JIntDoubleTuple predict(int[] x)
+	{
+		return predictAux(m_model.getScore(kernelize(x)));
+	}
+	
+	public JIntDoubleTuple predict(IntArrayList x)
+	{
+		kernelize(x);
+		return predictAux(m_model.getScore(x));
+	}
+	
+	private JIntDoubleTuple predictAux(double score)
+	{
+		if (score > 0)	return new JIntDoubleTuple(m_model.a_labels[0],  score);
+		else			return new JIntDoubleTuple(m_model.a_labels[1], -score);
+	}
 }

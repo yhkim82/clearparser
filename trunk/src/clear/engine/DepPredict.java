@@ -26,9 +26,11 @@ package clear.engine;
 
 import java.io.PrintStream;
 
-import org.w3c.dom.Element;
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
+import org.kohsuke.args4j.Option;
 
-import clear.dep.DepLib;
+import clear.decode.OneVsAllDecoder;
 import clear.dep.DepNode;
 import clear.dep.DepTree;
 import clear.parse.ShiftEagerParser;
@@ -45,22 +47,22 @@ import clear.util.IOUtil;
  */
 public class DepPredict extends AbstractEngine
 {
-	protected final String TAG_PREDICT                = "predict";
-	protected final String TAG_PREDICT_POS_MODEL_FILE = "pos_model_file";
-	protected final String TAG_PREDICT_MORPH_DICT_DIR = "morph_dict_dir";
+	private final String TAG_MORPH_DICT = "morph_dict";
 	
-	/** Test file */
-	private String s_testFile     = null;
-	/** Output file */
-	private String s_outputFile   = null;
-	/** Configuration file */
-	private String s_configFile   = null;
-	/** Part-of-speech model file */
-	private String s_posModelFile = null;
+	@Option(name="-c", usage="configuration file", required=true, metaVar="REQUIRED")
+	private String s_configFile = null;
+	@Option(name="-i", usage="input file", required=true, metaVar="REQUIRED")
+	private String s_inputFile  = null;
+	@Option(name="-o", usage="output file", required=true, metaVar="REQUIRED")
+	private String s_outputFile = null;
+	@Option(name="-m", usage="model file", required=true, metaVar="REQUIRED")
+	private String s_modelFile  = null;
 	/** Lemmatizer dictionary directory */
-	private String s_morphDictDir = null;
+	private String s_morphDict  = null;
 	/** Flag to choose parsing algorithm */
-	private byte   i_flag         = DepLib.FLAG_PREDICT;
+	private byte   i_flag       = ShiftEagerParser.FLAG_PREDICT;
+	/** Lexicon file */
+	private String s_lexiconFile;
 	
 	private int[]    n_size_total = new int[10];
 	private double[] d_time       = new double[10];
@@ -68,150 +70,60 @@ public class DepPredict extends AbstractEngine
 	
 	public DepPredict(String[] args)
 	{
-		if (!initArgs(args))					return;
-		if (!initConfigElement(s_configFile))	return;
-		if (!initCommonElements())				return;
-		if (!initPredictElements())				return;
-		printCommonConfig();	System.out.println();
-		
-		AbstractReader<DepNode, DepTree> reader = null;
-		
-		if 		(s_format.equals(AbstractReader.FORMAT_POS))	reader = new PosReader  (s_testFile, s_language, s_morphDictDir);
-		else if (s_format.equals(AbstractReader.FORMAT_DEP))	reader = new DepReader  (s_testFile, false);
-		else 													reader = new CoNLLReader(s_testFile, false);
-		
-		System.out.println("Predict: "+s_outputFile);
-		ShiftEagerParser   parser = new ShiftEagerParser(s_lexiconDir, s_modelFile, 	s_featureXml, i_flag);
-		PrintStream fout   = IOUtil.createPrintFileStream(s_outputFile);
-	//	PrintStream fplot  = JIO.createPrintFileOutputStream("plot.txt");
-		DepTree     tree;
-		
-		long st, et;
-		int  n = 0;
-
-		while (true)
-		{
-			st   = System.currentTimeMillis();
-			tree = reader.nextTree();
-			if (tree == null)	break;
-			parser.parse(tree);	n++;
-			et   = System.currentTimeMillis();
-			fout.println(tree+"\n");
-			if (n%100 == 0)	System.out.print("\r- Parsing: "+n);
-			
-			int index = (tree.size() >= 101) ? 9 : (tree.size()-1) / 10;
-			d_time [index]     += (et - st);
-			d_time_total       += (et - st);
-			n_size_total[index]++;
-		//	fplot.println(tree.size()+"\t"+tree.n_trans);
-		}	System.out.println("\r- Parsing: "+n);
-		
-		System.out.println("\nParsing time per sentence length:");
-		for (int i=0; i<d_time.length; i++)
-			System.out.printf("<= %3d: %4.2f (ms)\n", (i+1)*10, d_time[i]/n_size_total[i]);
-		
-		System.out.printf("\nAverage parsing time: %4.2f (ms)\n", d_time_total/n);
-	}
-	
-	/** Initializes arguments. */
-	private boolean initArgs(String[] args)
-	{
-		if (args.length == 0 || args.length % 2 != 0)
-		{
-			printUsage();
-			return false;
-		}
+		CmdLineParser cmd  = new CmdLineParser(this);
 		
 		try
 		{
-			for (int i=0; i<args.length; i+=2)
+			cmd.parseArgument(args);
+
+			if (!initConfigElement(s_configFile))	return;
+			s_lexiconFile  = s_modelFile + EXT_LEXICON_FILE;
+			
+			System.out.println("- Loading model: "+s_modelFile);
+			OneVsAllDecoder decoder = new OneVsAllDecoder(s_modelFile, i_kernel); 
+			
+			AbstractReader<DepNode, DepTree> reader = null;
+			if 		(s_format.equals(AbstractReader.FORMAT_POS))	reader = new PosReader  (s_inputFile, s_language, s_morphDict);
+			else if (s_format.equals(AbstractReader.FORMAT_DEP))	reader = new DepReader  (s_inputFile, false);
+			else 													reader = new CoNLLReader(s_inputFile, false);
+			
+			System.out.println("Predict: "+s_outputFile);
+			ShiftEagerParser   parser = new ShiftEagerParser(i_flag, s_featureXml, decoder, s_lexiconFile, s_inputFile);
+			PrintStream fout   = IOUtil.createPrintFileStream(s_outputFile);
+		//	PrintStream fplot  = JIO.createPrintFileOutputStream("plot.txt");
+			DepTree     tree;
+			
+			long st, et;
+			int  n = 0;
+
+			while (true)
 			{
-				if      (args[i].equals("-t"))	s_testFile   = args[i+1];
-				else if (args[i].equals("-o"))	s_outputFile = args[i+1];
-				else if (args[i].equals("-c"))	s_configFile = args[i+1];
-				else if (args[i].equals("-f"))	i_flag       = Byte.parseByte(args[i+1]);
-				else    { printUsage(); return false; }
-			}
+				st   = System.currentTimeMillis();
+				tree = reader.nextTree();
+				if (tree == null)	break;
+				parser.parse(tree);	n++;
+				et   = System.currentTimeMillis();
+				fout.println(tree+"\n");
+				if (n%100 == 0)	System.out.print("\r- Parsing: "+n);
+				
+				int index = (tree.size() >= 101) ? 9 : (tree.size()-1) / 10;
+				d_time [index]     += (et - st);
+				d_time_total       += (et - st);
+				n_size_total[index]++;
+			//	fplot.println(tree.size()+"\t"+tree.n_trans);
+			}	System.out.println("\r- Parsing: "+n);
+			
+			System.out.println("\nParsing time per sentence length:");
+			for (int i=0; i<d_time.length; i++)
+				System.out.printf("<= %3d: %4.2f (ms)\n", (i+1)*10, d_time[i]/n_size_total[i]);
+			
+			System.out.printf("\nAverage parsing time: %4.2f (ms)\n", d_time_total/n);
 		}
-		catch (NumberFormatException e)
+		catch (CmdLineException e)
 		{
-			e.printStackTrace();
-			return false;
+			System.err.println(e.getMessage());
+			cmd.printUsage(System.err);
 		}
-		
-		if (s_testFile == null)
-		{
-			System.err.println("Error: <test file> must be specified.");
-			return false;
-		}
-		
-		if (s_outputFile == null)
-		{
-			System.err.println("Error: <output file> must be specified.");
-			return false;
-		}
-		
-		if (s_configFile == null)
-		{
-			System.err.println("Error: <configure file> must be specified.");
-			return false;
-		}
-		
-		if (i_flag != DepLib.FLAG_PREDICT && i_flag != DepLib.FLAG_PREDICT_BEST)
-		{
-			System.err.println("Error: invalid <flag = "+i_flag+">.");
-			return false;
-		}
-		
-		return true;
-	}
-	
-	/** Initializes <predict> element from the configuration file. */
-	protected boolean initPredictElements()
-	{
-		Element ePredict, ePosModelFile, eMorphDictDir;
-		
-		// <predict>
-		if ((ePredict = getElement(e_config, TAG_PREDICT)) == null)
-		{
-			if (s_format.equals(AbstractReader.FORMAT_RAW) || (s_language.equals(AbstractReader.LANG_EN) && s_format.equals(AbstractReader.FORMAT_POS)))
-			{
-				System.err.println("Error: <"+TAG_PREDICT+"> must be specified.");
-				return false;
-			}
-			else
-				return true;
-		}
-		
-		// <pos_model_file>
-		if ((ePosModelFile = getElement(ePredict, TAG_PREDICT_POS_MODEL_FILE)) != null)
-			s_posModelFile = ePosModelFile.getTextContent().trim();
-		else if (s_format.equals(AbstractReader.FORMAT_RAW))
-		{
-			System.err.println("Error: <"+TAG_PREDICT_POS_MODEL_FILE+"> must be specified for ["+s_format+"] format.");
-			return false;
-		}
-		
-		// <morph_dict_dir>
-		if ((eMorphDictDir = getElement(ePredict, TAG_PREDICT_MORPH_DICT_DIR)) != null)
-			s_morphDictDir = eMorphDictDir.getTextContent().trim();
-		else if (s_language.equals(AbstractReader.LANG_EN) && (s_format.equals(AbstractReader.FORMAT_RAW) || s_format.equals(AbstractReader.FORMAT_POS)))
-		{
-			System.err.println("Error: <"+TAG_PREDICT_MORPH_DICT_DIR+"> must be specified for ["+s_format+"] format.");
-			return false;
-		}
-	
-		return true;
-	}
-	
-	/** Prints usage */
-	private void printUsage()
-	{
-		String usage = "Usage: java clear.engine.DepPredic -t <test file> -o <output file> -c <configuration file> [-f <flag = "+ i_flag+">]";
-		System.out.println(usage);
-		
-		System.out.println("<flag> ::= " + DepLib.FLAG_PREDICT + ": greedy search");
-		System.out.println("           " + DepLib.FLAG_PREDICT_BEST   + ": k-best search");
 	}
 	
 	static public void main(String[] args)

@@ -23,13 +23,14 @@
 */
 package clear.ftr.xml;
 
-import java.util.ArrayList;
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
 
 /**
  * Reads dependency feature templates from a xml file.
  * @author Jinho D. Choi
- * <b>Last update:</b> 11/4/2010
+ * <b>Last update:</b> 11/6/2010
  */
 public class DepFtrXml extends AbstractFtrXml
 {
@@ -44,17 +45,29 @@ public class DepFtrXml extends AbstractFtrXml
 	static public final String F_POS	= "p";
 	static public final String F_DEPREL	= "d";
 	
-	public ArrayList<FtrTemplate> a_rule;	// rule-based features
+	/** Rule feature templates */
+	public FtrTemplate[] a_rule_templates;
 	
 	public DepFtrXml(String featureXml)
 	{
 		super(featureXml);
-	}
+	}	
 	
 	protected void initFeatures(Document doc) throws Exception
 	{
-		a_rule = new ArrayList<FtrTemplate>();
-		getFeatures(doc.getElementsByTagName(RULE), a_rule);
+		NodeList eList = doc.getElementsByTagName(RULE);
+		int i, n = eList.getLength();
+		Element eFeature;
+
+		a_rule_templates = new FtrTemplate[n];
+		
+		for (i=0; i<n; i++)
+		{
+			eFeature = (Element)eList.item(i);
+			if (eFeature.getAttribute(VISIBLE).trim().equals("false"))	continue;
+			
+			a_rule_templates[i] = getFtrTemplate(eFeature);
+		}
 	}
 	
 	protected boolean validSource(char token)
@@ -75,17 +88,26 @@ public class DepFtrXml extends AbstractFtrXml
 	public String toString()
 	{
 		StringBuilder build = new StringBuilder();
+		int i, j;
 		
 		build.append("<"+TEMPLATE+">\n");
 		
-		for (FtrTemplate ftr : a_ngram)
-			toStringAux(build, NGRAM, ftr);
+		for (i=0; i<a_ngram_templates.length; i++)
+			for (j=0; j<a_ngram_templates[i].length; j++)
+				toStringAux(build, NGRAM, a_ngram_templates[i][j]);
 		
-		for (FtrTemplate ftr : a_rule)
-			toStringAux(build, RULE, ftr);
+		for (i=0; i<a_rule_templates.length; i++)
+			toStringAux(build, RULE, a_rule_templates[i]);
 		
 		build.append("</"+TEMPLATE+">");
 		
 		return build.toString();
 	}
+	
+/*	static public void main(String[] args)
+	{
+		DepFtrXml xml = new DepFtrXml(args[0]);
+		
+		System.out.println(xml.toString());
+	}*/
 }

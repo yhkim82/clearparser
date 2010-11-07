@@ -26,7 +26,7 @@ package clear.train.algorithm;
 import clear.train.kernel.AbstractKernel;
 
 /**
- * LibLinear L2-* algorithm.
+ * LibLinear L2-SVM algorithm.
  * @author Jinho D. Choi
  * <b>Last update:</b> 11/4/2010
  */
@@ -59,7 +59,9 @@ public class LibLinearL2 implements IAlgorithm
 		byte[] aY    = new byte[kernel.N];
 		
 		int active_size = kernel.N;
-		int i, s, iter;	byte yi;
+		int i, j, s, iter;
+		byte  yi;
+		int[] xi;
 		
 		// PG: projected gradient, for shrinking and stopping
 		double PG;
@@ -103,10 +105,12 @@ public class LibLinearL2 implements IAlgorithm
 			{
 				i  = index[s];
 				yi = aY[i];
+				xi = kernel.a_xs.get(i);
 
 				G = (d_bias > 0) ? weight[0] * d_bias : 0;
-				for (int idx : kernel.a_xs.get(i))
-					G += weight[idx];
+				for (j=0; j<xi.length; j++)
+					G += weight[xi[j]];
+				
 				G = G * yi - 1;
 				G += alpha[i] * diag[GETI(aY, i)];
 				U = upper_bound[GETI(aY, i)];
@@ -149,8 +153,9 @@ public class LibLinearL2 implements IAlgorithm
 					alpha[i] = Math.min(Math.max(alpha[i] - G / QD[i], 0.0), U);
 					d = (alpha[i] - alpha_old) * yi;
 					
-					if (d_bias > 0)					weight[0  ] += d * d_bias;
-					for (int idx : kernel.a_xs.get(i))	weight[idx] += d;
+					if (d_bias > 0)	weight[0  ] += d * d_bias;
+					
+					for (j=0; j<xi.length; j++)	weight[xi[j]] += d;
 				}
 			}
 			
@@ -186,7 +191,7 @@ public class LibLinearL2 implements IAlgorithm
 		StringBuilder build = new StringBuilder();
 		
 		build.append("- label = ");
-		build.append(currLabel);
+		build.append(kernel.a_labels[currLabel]);
 		build.append(": iter = ");
 		build.append(iter);
 		build.append(", nSV = ");

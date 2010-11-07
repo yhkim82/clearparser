@@ -23,15 +23,21 @@
 */
 package clear.engine;
 
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
+import org.kohsuke.args4j.Option;
 import org.w3c.dom.Element;
 
-import clear.dep.DepLib;
 import clear.dep.DepNode;
 import clear.dep.DepTree;
 import clear.parse.ShiftEagerParser;
 import clear.reader.AbstractReader;
 import clear.reader.CoNLLReader;
 import clear.reader.DepReader;
+import clear.train.OneVsAllTrainer;
+import clear.train.algorithm.IAlgorithm;
+import clear.train.algorithm.LibLinearL2;
+import clear.train.algorithm.RRM;
 
 /**
  * Trains dependency parser.
@@ -40,160 +46,66 @@ import clear.reader.DepReader;
  */
 public class DepTrain extends AbstractEngine
 {
-	final String TAG_LIBLINEAR         = "liblinear";
-	final String TAG_LIBLINEAR_TRAINER = "trainer";
-	final String TAG_LIBLINEAR_S       = "s";
-	final String TAG_LIBLINEAR_C       = "c";
-	final String TAG_LIBLINEAR_E       = "e";
-	final String TAG_LIBLINEAR_B       = "B";
+	private final String EXT_INSTANCE_FILE = ".ftr";
 	
-	/** Training file */
-	private String s_trainFile   = null; 
-	/** Configuration file */
-	private String s_configFile  = null;
-	/** Feature file */
-	private String s_featureFile = null;
-	/** Liblinear: train executable */
-	protected String  s_trainer  = null;
-	/** Liblinear: algorithm */
-	protected int     i_s        = 3;
-	/** Liblinear: cost */
-	protected double  d_c        = 0.1;
-	/** Liblinear: epsilon */
-	protected double  d_e        = 0.1;
-	/** Liblinear: bias */
-	protected double  d_b        = -1;
-	/** Flag for training method */
-	private byte   i_flag        = DepLib.FLAG_PRINT_LEXICON;
+	@Option(name="-c", usage="configuration file", required=true, metaVar="REQUIRED")
+	private String s_configFile = null;
+	@Option(name="-t", usage="training file", required=true, metaVar="REQUIRED")
+	private String s_trainFile  = null; 
+	@Option(name="-m", usage="model file", required=true, metaVar="REQUIRED")
+	private String s_modelFile  = null;
+	@Option(name="-f", usage=ShiftEagerParser.FLAG_PRINT_LEXICON+": train model (default), "+ShiftEagerParser.FLAG_PRINT_TRANSITION+": print transitions", metaVar="OPTIONAL")
+	private byte   i_flag       = ShiftEagerParser.FLAG_PRINT_LEXICON;
+	/** Lexicon file */
+	private String s_lexiconFile;
+	/** Instance file */
+	private String s_instanceFile;
 	
 	public DepTrain(String[] args)
 	{
-		if (!initArgs(args))					return;
-		if (!initConfigElement(s_configFile))	return;
-		if (!initCommonElements())				return;
-		if (!initTrainElements())				return;
-		
-		s_featureFile = s_modelFile + ".ftr";
-		
-		if (i_flag == DepLib.FLAG_PRINT_LEXICON)
-		{
-			printCommonConfig();
-			System.out.println("- train_file : "+s_trainFile);
-			
-			System.out.println("\nPrint lexicon files: ["+s_lexiconDir+"]");
-			trainDepParser(DepLib.FLAG_PRINT_LEXICON);
-			
-			System.out.println("\nPrint training instances: " +s_featureFile);
-			trainDepParser(DepLib.FLAG_PRINT_INSTANCE);
-			
-			System.out.println("\nTrain liblinear model: " +s_modelFile);
-			trainLibLinear();
-		}
-		else
-			trainDepParser(DepLib.FLAG_PRINT_TRANSITION);
-	}
-	
-	/** Initializes arguments. */
-	private boolean initArgs(String[] args)
-	{
-		if (args.length == 0 || args.length % 2 != 0)
-		{
-			printUsage();
-			return false;
-		}
+		CmdLineParser cmd  = new CmdLineParser(this);
 		
 		try
 		{
-			for (int i=0; i<args.length; i+=2)
-			{
-				if      (args[i].equals("-t"))	s_trainFile  = args[i+1];
-				else if (args[i].equals("-c"))	s_configFile = args[i+1];
-				else if (args[i].equals("-f"))	i_flag       = Byte.parseByte(args[i+1]);
-				else    { printUsage(); return false; }
-			}
-		}
-		catch (NumberFormatException e) {e.printStackTrace();return false;}
-		
-		if (s_trainFile == null)
-		{
-			System.err.println("Error: <training file> must be specified.");
-			return false;
-		}
-		
-		if (i_flag != DepLib.FLAG_PRINT_TRANSITION && s_configFile == null)
-		{
-			System.err.println("Error: <configuration file> must be specified.");
-			return false;
-		}
+			cmd.parseArgument(args);
 
-		if (i_flag != DepLib.FLAG_PRINT_LEXICON && i_flag != DepLib.FLAG_PRINT_TRANSITION)
-		{
-			System.err.println("Error: invalid <flag = "+i_flag+">.");
-			return false;
-		}
-		
-		return true;
-	}
-	
-	/** Initializes <liblinear> element. */
-	protected boolean initTrainElements()
-	{
-		// check format
-		if (s_format.equals(AbstractReader.FORMAT_RAW) || s_format.equals(AbstractReader.FORMAT_POS))
-		{
-			System.err.println("Error: invalid <format = "+s_format+"> for training.");
-			return false;
-		}
-		
-		Element eLiblinear, eTrainExc;
-		
-		// <liblinear>
-		if ((eLiblinear = getElement(e_config, TAG_LIBLINEAR)) == null)
-		{
-			System.err.println("Error: <"+TAG_LIBLINEAR+"> must be specified.");
-			return false;
-		}
-		
-		// <trainer>
-		if ((eTrainExc = getElement(eLiblinear, TAG_LIBLINEAR_TRAINER)) == null)
-		{
-			System.err.println("Error: <"+TAG_LIBLINEAR+"."+TAG_LIBLINEAR_TRAINER+"> must be specified.");
-			return false;
-		}
-		
-		s_trainer = eTrainExc.getTextContent().trim();
-		
-		// liblinear parameters
-		try
-		{
-			String tmp;
+			if (!initConfigElement(s_configFile))	return;
+			s_lexiconFile  = s_modelFile + EXT_LEXICON_FILE;
+			s_instanceFile = s_modelFile + EXT_INSTANCE_FILE;
 			
-			if ((tmp = eLiblinear.getAttribute(TAG_LIBLINEAR_S).trim()).length() > 0)
-				i_s = Integer.parseInt  (tmp);
-			
-			if ((tmp = eLiblinear.getAttribute(TAG_LIBLINEAR_C).trim()).length() > 0)
-				d_c = Double.parseDouble(tmp);
-			
-			if ((tmp = eLiblinear.getAttribute(TAG_LIBLINEAR_E).trim()).length() > 0)
-				d_e = Double.parseDouble(tmp);
-			
-			if ((tmp = eLiblinear.getAttribute(TAG_LIBLINEAR_B).trim()).length() > 0)
-				d_b = Double.parseDouble(tmp);
+			if (i_flag == ShiftEagerParser.FLAG_PRINT_LEXICON)
+			{
+				printCommonConfig();
+				System.out.println("- train_file : "+s_trainFile);
+				
+				System.out.println("\nPrint lexicon file: "+s_lexiconFile);
+				trainDepParser(ShiftEagerParser.FLAG_PRINT_LEXICON, s_instanceFile);
+				
+				System.out.println("\nPrint training instances: "+s_instanceFile);
+				trainDepParser(ShiftEagerParser.FLAG_PRINT_INSTANCE, s_instanceFile);
+				
+				System.out.println("\nTrain learning model: "+s_modelFile);
+				trainModel();
+			}
+			else
+				trainDepParser(ShiftEagerParser.FLAG_PRINT_TRANSITION, s_modelFile);
 		}
-		catch (NumberFormatException e){e.printStackTrace(); return false;}
-		
-		return true;
+		catch (CmdLineException e)
+		{
+			System.err.println(e.getMessage());
+			cmd.printUsage(System.err);
+		}
 	}
 	
 	/** Trains the dependency parser. */
-	private void trainDepParser(byte flag)
+	private void trainDepParser(byte flag, String outputFile)
 	{
 		AbstractReader<DepNode, DepTree> reader = null;
 		
 		if (s_format.equals(AbstractReader.FORMAT_DEP))	reader = new DepReader  (s_trainFile, true);
 		else 											reader = new CoNLLReader(s_trainFile, true);
-
-		ShiftEagerParser parser = new ShiftEagerParser(s_lexiconDir, s_featureFile, s_featureXml, flag);
+		
+		ShiftEagerParser parser = new ShiftEagerParser(flag, s_featureXml, s_lexiconFile, outputFile);
 		DepTree   tree;
 		
 		System.out.print("Parsing: ");	int n;
@@ -204,54 +116,76 @@ public class DepTrain extends AbstractEngine
 			if (n % 1000 == 0)	System.out.printf("%s%dK", "\r- Parsing: ", n/1000);
 		}	System.out.println("\r- Parsing: "+n);
 		
-		if (flag == DepLib.FLAG_PRINT_LEXICON)	parser.saveTags(s_lexiconDir);
+		if (flag == ShiftEagerParser.FLAG_PRINT_LEXICON)		parser.saveTags(s_lexiconFile);
+		else if (flag == ShiftEagerParser.FLAG_PRINT_INSTANCE)	parser.close();
 	}
 	
 	/** Trains the LibLinear classifier. */
-	private void trainLibLinear()
+	private void trainModel()
 	{
-		StringBuilder build = new StringBuilder();
+		IAlgorithm algorithm = null;
 		
-		build.append(s_trainer);
-		build.append(" -s "+i_s);
-		build.append(" -c "+d_c);
-		build.append(" -e "+d_e);
-		build.append(" -B "+d_b);
-		build.append(" "+s_featureFile);
-		build.append(" "+s_modelFile);
+		Element element;
+		String name, tmp;
 		
-		String cmd = build.toString();
-		System.out.println("- Command : "+cmd);
+		element = getElement(e_config, "algorithm");
+		name    = element.getAttribute("name").trim();
 		
-		try
+		if (name.equals(IAlgorithm.LIBLINEAR_L2))
 		{
-			Runtime rt = Runtime.getRuntime();
-			long    st = System.currentTimeMillis();
-			Process ps = rt.exec(cmd);	ps.waitFor();
-			long  time = System.currentTimeMillis() - st;
-			System.out.printf("- Duration: %d hours, %d minutes\n", time/(1000*60*60), time/(1000*60));
+			byte lossType = 1;
+			double c = 0.1, eps = 0.1, bias = -1;
+			
+			if ((tmp = element.getAttribute("l").trim()).length() > 0)
+				lossType = Byte.parseByte(tmp);
+			
+			if ((tmp = element.getAttribute("c").trim()).length() > 0)
+				c = Double.parseDouble(tmp);
+			
+			if ((tmp = element.getAttribute("e").trim()).length() > 0)
+				eps = Double.parseDouble(tmp);
+			
+			if ((tmp = element.getAttribute("b").trim()).length() > 0)
+				bias = Double.parseDouble(tmp);
+			
+			algorithm = new LibLinearL2(lossType, c, eps, bias);
 		}
-		catch (Exception e) {e.printStackTrace();}
-		
-	/*	Train trainer = new Train();
-		try
+		else if (name.equals(IAlgorithm.RRM))
 		{
-			Problem   prob  = trainer.readProblem(new File(s_featureFile), d_b);
-			Parameter param = new Parameter(SolverType.values()[i_s], d_c, d_e);
-			Model     model = Linear.train(prob, param);
-			Linear.saveModel(new File(s_modelFile), model);
+			int k = 40;
+			double mu = 1.0, eta = 0.001, c = 0.1;
+			
+			if ((tmp = element.getAttribute("k").trim()).length() > 0)
+				k = Integer.parseInt(tmp);
+			
+			if ((tmp = element.getAttribute("m").trim()).length() > 0)
+				mu = Double.parseDouble(tmp);
+			
+			if ((tmp = element.getAttribute("e").trim()).length() > 0)
+				eta = Double.parseDouble(tmp);
+			
+			if ((tmp = element.getAttribute("c").trim()).length() > 0)
+				c = Double.parseDouble(tmp);
+			
+			algorithm = new RRM(k, mu, eta, c);
 		}
-		catch (Exception e) {e.printStackTrace();}*/
-	}
-	
-	/** Prints usage. */
-	private void printUsage()
-	{
-		String usage = "Usage: java clear.engine.DepTrain -t <training file> -c <configuration file> [-f <flag = " + i_flag   +">]";
-		System.err.println(usage);
 		
-		System.err.println("<flag> ::= " + DepLib.FLAG_PRINT_LEXICON    + ": train a model using LibLinear");
-		System.err.println("           " + DepLib.FLAG_PRINT_TRANSITION + ": print transitions to the standard I/O");
+		if (algorithm == null)	return;
+		
+		int numThreads = 2;
+		
+		element = getElement(e_config, "threads");
+		if (element != null)	numThreads = Integer.parseInt(element.getTextContent().trim());
+		
+		System.out.println("- algorithm: "+name);
+		System.out.println("- kernel   : "+i_kernel);
+		System.out.println("- threads  : "+numThreads);
+		System.out.println();
+		
+		long st = System.currentTimeMillis();
+		new OneVsAllTrainer(s_instanceFile, s_modelFile, algorithm, i_kernel, numThreads);
+		long time = System.currentTimeMillis() - st;
+		System.out.printf("- Duration: %d hours, %d minutes\n", time/(1000*60*60), time/(1000*60));
 	}
 	
 	static public void main(String[] args)

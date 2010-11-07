@@ -33,6 +33,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
 import clear.reader.AbstractReader;
+import clear.train.kernel.AbstractKernel;
 
 /**
  * <b>Last update:</b> 6/29/2010
@@ -40,24 +41,21 @@ import clear.reader.AbstractReader;
  */
 public class AbstractEngine
 {
-	protected final String TAG_COMMON             = "common";
-	protected final String TAG_COMMON_LANGUAGE    = "language";
-	protected final String TAG_COMMON_FORMAT      = "format";
-	protected final String TAG_COMMON_LEXICON_DIR = "lexicon_dir";
-	protected final String TAG_COMMON_MODEL_FILE  = "model_file";
-	protected final String TAG_COMMON_FEATURE_XML = "feature_xml";
+	protected final String TAG_LANGUAGE     = "language";
+	protected final String TAG_FORMAT       = "format";
+	protected final String TAG_FEATURE_XML  = "feature_xml";
+	protected final String TAG_LEARN_KERNEL = "kernel";
+	protected final String EXT_LEXICON_FILE = ".lex";
 	
 	/** Language */
-	protected String  s_language   = null;
+	protected String  s_language   = AbstractReader.LANG_EN;
 	/** Format */
 	protected String  s_format     = null;
-	/** Lexicon directory */
-	protected String  s_lexiconDir = null;
-	/** Model file */
-	protected String  s_modelFile  = null;
 	/** Feature template file */
 	protected String  s_featureXml = null;
-	/** Configure element */
+	/** Kernel type */
+	protected byte    i_kernel     = AbstractKernel.LINEAR;
+	/** Configuration element */
 	protected Element e_config;
 	
 	/** Initializes <configuration> element. */
@@ -69,84 +67,31 @@ public class AbstractEngine
 		{
 			DocumentBuilder builder = dFactory.newDocumentBuilder();
 			Document        doc     = builder.parse(new File(configXml));
-			e_config                = doc.getDocumentElement();
+			
+			e_config = doc.getDocumentElement();
+			initElements();
 		}
 		catch (Exception e) {e.printStackTrace();return false;}
 		
 		return true;
 	}
 	
-	/** Initializes <common> element. */	
-	protected boolean initCommonElements()
+	/** Initializes a configuration file. */	
+	protected void initElements()
 	{
-		Element eCommon, eLanguage, eFormat, eConfigDir, eModelFile, eFeatureXml;
+		Element element;
 		
-		// <common>
-		if ((eCommon = getElement(e_config, TAG_COMMON)) == null)
-		{
-			System.err.println("Error: <"+TAG_COMMON+"> must be specified.");
-			return false;
-		}
+		if ((element = getElement(e_config, TAG_LANGUAGE)) != null)
+			s_language = element.getTextContent().trim();
 		
-		// <language>
-		if ((eLanguage = getElement(eCommon, TAG_COMMON_LANGUAGE)) == null)
-		{
-			System.err.println("Error: <"+TAG_COMMON+"."+TAG_COMMON_LANGUAGE+"> must be specified.");
-			return false;
-		}
+		if ((element = getElement(e_config, TAG_FORMAT)) != null)
+			s_format = element.getTextContent().trim();
 		
-		s_language = eLanguage.getTextContent().trim();
-	
-		if (!s_language.equals(AbstractReader.LANG_CH) && !s_language.equals(AbstractReader.LANG_EN) && !s_language.equals(AbstractReader.LANG_HI))
-		{
-			System.err.println("Error: invalid <"+TAG_COMMON+"."+TAG_COMMON_LANGUAGE+" = "+s_language+">.");
-			return false;
-		}
+		if ((element = getElement(e_config, TAG_FEATURE_XML)) != null)
+			s_featureXml = element.getTextContent().trim();
 		
-		// <format>
-		if ((eFormat = getElement(eCommon, TAG_COMMON_FORMAT)) == null)
-		{
-			System.err.println("Error: <"+TAG_COMMON+"."+TAG_COMMON_FORMAT+"> must be specified.");
-			return false;
-		}
-		
-		s_format = eFormat.getTextContent().trim();
-		
-		if (!s_format.equals(AbstractReader.FORMAT_RAW) && !s_format.equals(AbstractReader.FORMAT_POS) && !s_format.equals(AbstractReader.FORMAT_DEP) &&
-			!s_format.equals(AbstractReader.FORMAT_SRL) && !s_format.equals(AbstractReader.FORMAT_CONLL))
-		{
-			System.err.println("Error: invalid <"+TAG_COMMON+"."+TAG_COMMON_FORMAT+" = "+s_format+">.");
-			return false;
-		}
-		
-		// <lexicon_dir>
-		if ((eConfigDir = getElement(eCommon, TAG_COMMON_LEXICON_DIR)) == null)
-		{
-			System.err.println("Error: <"+TAG_COMMON+"."+TAG_COMMON_LEXICON_DIR+"> must be specified.");
-			return false;
-		}
-		
-		s_lexiconDir = eConfigDir.getTextContent().trim();
-		
-		// <model_file>
-		if ((eModelFile = getElement(eCommon, TAG_COMMON_MODEL_FILE)) == null)
-		{
-			System.err.println("Error: <"+TAG_COMMON+"."+TAG_COMMON_MODEL_FILE+"> must be specified.");
-			return false;
-		}
-		
-		s_modelFile = eModelFile.getTextContent().trim();
-		
-		// <feature_xml>
-		if ((eFeatureXml = getElement(eCommon, TAG_COMMON_FEATURE_XML)) == null)
-		{
-			System.err.println("Error: <"+TAG_COMMON+"."+TAG_COMMON_FEATURE_XML+"> must be specified.");
-			return false;
-		}
-		
-		s_featureXml = eFeatureXml.getTextContent().trim();
-		
-		return true;
+		if ((element = getElement(e_config, TAG_LEARN_KERNEL)) != null)
+			i_kernel = Byte.parseByte(element.getTextContent().trim());
 	}
 	
 	/** Prints <common> configuration. */
@@ -155,8 +100,6 @@ public class AbstractEngine
 		System.out.println("Configurations");
 		System.out.println("- language   : "+s_language);
 		System.out.println("- format     : "+s_format);
-		System.out.println("- lexicon_dir: "+s_lexiconDir);
-		System.out.println("- model_file : "+s_modelFile);
 		System.out.println("- feature_xml: "+s_featureXml);
 	}
 	

@@ -25,6 +25,8 @@ package clear.ftr.xml;
 
 import java.io.FileInputStream;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -36,20 +38,30 @@ import org.w3c.dom.NodeList;
 /**
  * Read abstract features from a xml file.
  * @author Jinho D. Choi
- * <b>Last update:</b> 11/4/2010
+ * <b>Last update:</b> 11/6/2010
  */
 abstract public class AbstractFtrXml
 {
-	static public final String TEMPLATE	= "feature_template";
-	static public final String NGRAM	= "ngram";
-	static public final String N		= "n";			// # of tokens
-	static public final String C		= "c";			// cutoff
-	static public final String F		= "f";			// field
-	static public final String VISIBLE	= "visible";	// "true"|"false"
-	static public final String DELIM_F	= ":";			// field    delimiter (e.g., l+1.f)
-	static public final String DELIM_R	= "_";			// relation delimiter (e.g., l_hd)
+	static protected final String TEMPLATE	= "feature_template";
+	/** N-gram feature */
+	static protected final String NGRAM		= "ngram";
+	/** Number of tokens */
+	static protected final String N			= "n";
+	/** Cutoff (>= 0) */
+	static protected final String C			= "c";
+	/** Type (e.g., "pp", "ump") */
+	static protected final String T			= "t";
+	/** Discrete field (e.g., "f", "m", "p", "d") */
+	static protected final String F			= "f";
+	/** "true" | "false" */
+	static protected final String VISIBLE	= "visible"; 
+	/** Field delimiter (e.g., l+1.f) */
+	static protected final String DELIM_F	= ":";
+	/** Relation delimiter (e.g., l_hd) */
+	static protected final String DELIM_R	= "_";
 	
-	public ArrayList<FtrTemplate> a_ngram;				// n-gram features
+	/** N-gram feature [type][templates] */
+	public FtrTemplate[][] a_ngram_templates;
 	
 	public AbstractFtrXml(String featureXml)
 	{
@@ -71,38 +83,74 @@ abstract public class AbstractFtrXml
 		catch (Exception e) {e.printStackTrace();System.exit(1);}
 	}
 	
+	/** Initializes n-gram feature templates. */
 	protected void initNgrams(Document doc) throws Exception
 	{
-		a_ngram = new ArrayList<FtrTemplate>();
-		getFeatures (doc.getElementsByTagName(NGRAM), a_ngram);
-	}
-	
-	protected void getFeatures(NodeList lsNgram, ArrayList<FtrTemplate> list) throws Exception
-	{
-		int i, j, n, c;
+		NodeList eList = doc.getElementsByTagName(NGRAM);
+		HashMap<String, ArrayList<FtrTemplate>> map = new HashMap<String, ArrayList<FtrTemplate>>();
 		
-		for (i=0; i<lsNgram.getLength(); i++)
+		int i, n = eList.getLength();
+		Element eFeature;
+		
+		for (i=0; i<n; i++)
 		{
-			Element eFeature = (Element)lsNgram.item(i);
-			String  visible  = eFeature.getAttribute(VISIBLE).trim();
-			if (visible.equals("false"))	continue;
+			eFeature = (Element)eList.item(i);
+			if (eFeature.getAttribute(VISIBLE).trim().equals("false"))	continue;
 			
-			n = Integer.parseInt(eFeature.getAttribute(N));
-			c = (eFeature.hasAttribute(C)) ? Integer.parseInt(eFeature.getAttribute(C)) : 0;
+			FtrTemplate ftr = getFtrTemplate(eFeature);
 			
-			FtrTemplate ftr = new FtrTemplate(n, c);
-			
-			for (j=0; j<n; j++)
-				ftr.addFtrToken(j, getFtrToken(eFeature.getAttribute(F + j)));
-			
-			list.add(ftr);
+			if (map.containsKey(ftr.type))
+			{
+				map.get(ftr.type).add(ftr);
+			}
+			else
+			{
+				ArrayList<FtrTemplate> list = new ArrayList<FtrTemplate>();
+				list.add(ftr);
+				map.put(ftr.type, list);
+			}
 		}
 		
-		list.trimToSize();
+		n = map.size();
+		a_ngram_templates = new FtrTemplate[n][];
+		ArrayList<String> keys = new ArrayList<String>(map.keySet());
+		Collections.sort(keys);
+		
+		for (i=0; i<n; i++)
+		{
+			ArrayList<FtrTemplate> list = map.get(keys.get(i));
+			FtrTemplate[] arr = new FtrTemplate[list.size()];
+			list.toArray(arr);
+			a_ngram_templates[i] = arr;
+		}
+	}
+	
+	protected FtrTemplate getFtrTemplate(Element eFeature)
+	{
+		int nToken = Integer.parseInt(eFeature.getAttribute(N));
+		int cutoff = (eFeature.hasAttribute(C)) ? Integer.parseInt(eFeature.getAttribute(C)) : 0;
+		
+		FtrTemplate   ftr   = new FtrTemplate(nToken, cutoff);
+		StringBuilder build = new StringBuilder();
+
+		int i;	String type;
+		
+		for (i=0; i<nToken; i++)
+		{
+			FtrToken tok = getFtrToken(eFeature.getAttribute(F + i));
+			ftr.addFtrToken(i, tok);
+			build.append(tok.field);
+		}
+		
+		if (eFeature.hasAttribute(T))	type = eFeature.getAttribute(T).trim();
+		else							type = build.toString();
+		
+		ftr.setType(type);
+		return ftr;
 	}
 	
 	/** @param ftr (e.g., "l.f", "l+1.m", "l-1.p", "l0_hd.d") */
-	protected FtrToken getFtrToken(String ftr) throws Exception
+	protected FtrToken getFtrToken(String ftr)
 	{
 		String[] aField    = ftr      .split(DELIM_F);	// {"l-1_hd", "p"}
 		String[] aRelation = aField[0].split(DELIM_R);	// {"l-1", "hd"} 
