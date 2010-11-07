@@ -28,6 +28,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.StringTokenizer;
 
+import com.carrotsearch.hppc.IntArrayList;
+
 /**
  * Data structure utilities.
  * @author Jinho D. Choi
@@ -110,6 +112,16 @@ public class DSUtil
 		return iArr;
 	}
 	
+	static public IntArrayList toIntArrayList(String[] sArr, int beginIdx)
+	{
+		IntArrayList iArr = new IntArrayList(sArr.length - beginIdx);
+		
+		for (int i=beginIdx; i<sArr.length; i++)
+			iArr.add(Integer.parseInt(sArr[i]));
+		
+		return iArr;
+	}
+	
 	static public int[] toIntArray(StringTokenizer tok)
 	{
 		int[] arr = new int[tok.countTokens()];
@@ -184,6 +196,20 @@ public class DSUtil
 		for (int i : arr)	str += i + delim;
 		
 		return str.trim();
+	}
+	
+	static public String toString(IntArrayList arr, String delim)
+	{
+		StringBuilder build = new StringBuilder();
+		int i, n = arr.size();
+		
+		for (i=0; i<n; i++)
+		{
+			build.append(arr.get(i));
+			build.append(delim);
+		}
+		
+		return build.toString().trim();
 	}
 	
 	static public String toString(int[] arr, String delim)

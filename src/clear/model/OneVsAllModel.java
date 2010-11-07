@@ -28,34 +28,36 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 import clear.train.kernel.AbstractKernel;
 
+import com.carrotsearch.hppc.IntArrayList;
+
 /**
  * One-vs-all model.
  * @author Jinho D. Choi
  * <b>Last update:</b> 11/5/2010
  */
-public class OvAModel extends AbstractModel
+public class OneVsAllModel extends AbstractMultiModel
 {
-	public OvAModel(String modelFile)
-	{
-		super(modelFile);
-	}
-
-	public OvAModel(AbstractKernel kernel)
+	public OneVsAllModel(AbstractKernel kernel)
 	{
 		super(kernel);
+	}
+	
+	public OneVsAllModel(String modelFile)
+	{
+		super(modelFile);
 	}
 	
 	public void init(AbstractKernel kernel)
 	{
 		n_labels   = kernel.L;
 		n_features = kernel.D;
+		a_labels   = kernel.a_labels;
 		d_weights  = new double[n_labels * n_features];
 	}
 	
@@ -67,8 +69,10 @@ public class OvAModel extends AbstractModel
 			
 			n_labels   = Integer.parseInt(fin.readLine());
 			n_features = Integer.parseInt(fin.readLine());
-			d_weights  = new double[n_features * n_labels];
+			a_labels   = new int[n_labels];
+			d_weights  = new double[n_labels * n_features];
 			
+			readLabels (fin);
 			readWeights(fin);
 			fin.close();
 		}
@@ -83,6 +87,7 @@ public class OvAModel extends AbstractModel
 			
 			fout.println(n_labels);
 			fout.println(n_features);
+			printLabels (fout);
 			printWeights(fout);
 			
 			fout.flush();	fout.close();
@@ -90,34 +95,17 @@ public class OvAModel extends AbstractModel
 		catch (Exception e) {e.printStackTrace();}
 	}
 	
+	private int getBeginIndex(int label, int index)
+	{
+		return index * n_labels + label;
+	}
+	
 	public void copyWeight(int label, double[] weight)
 	{
 		int i;
 		
 		for (i=0; i<n_features; i++)
-			d_weights[i * n_labels + label] = weight[i];
-	}
-	
-	public double getScore(int label, int[] x)
-	{
-		double score = d_weights[label];
-		int    i;
-		
-		for (i=0; i < x.length; i++)
-			score += d_weights[x[i] * n_labels + label];
-		
-		return score;
-	}
-	
-	public double getScore(int label, ArrayList<Integer> x)
-	{
-		double score = d_weights[label];
-		int    i;
-		
-		for (i=0; i < x.size(); i++)
-			score += d_weights[x.get(i) * n_labels + label];
-		
-		return score;
+			d_weights[getBeginIndex(label, i)] = weight[i];
 	}
 	
 	public double[] getScores(int[] x)
@@ -128,13 +116,13 @@ public class OvAModel extends AbstractModel
 		for (i=0; i < x.length; i++)
 		{
 			for (label=0; label<n_labels; label++)
-				scores[label] += d_weights[x[i] * n_labels + label];
+				scores[label] += d_weights[getBeginIndex(label, x[i])];
 		}
 		
 		return scores;
 	}
 	
-	public double[] getScores(ArrayList<Integer> x)
+	public double[] getScores(IntArrayList x)
 	{
 		double[] scores = Arrays.copyOf(d_weights, n_labels);
 		int      i, label;
@@ -142,7 +130,7 @@ public class OvAModel extends AbstractModel
 		for (i=0; i < x.size(); i++)
 		{
 			for (label=0; label<n_labels; label++)
-				scores[label] += d_weights[x.get(i) * n_labels + label];
+				scores[label] += d_weights[getBeginIndex(label, x.get(i))];
 		}
 		
 		return scores;

@@ -24,10 +24,8 @@
 package clear.parse;
 
 import java.io.PrintStream;
-import java.util.ArrayList;
 
-import clear.decode.AbstractDecoder;
-import clear.decode.OvADecoder;
+import clear.decode.AbstractMultiDecoder;
 import clear.dep.DepLib;
 import clear.dep.DepNode;
 import clear.dep.DepTree;
@@ -42,10 +40,12 @@ import clear.util.IOUtil;
 import clear.util.tuple.JIntDoubleTuple;
 import clear.util.tuple.JObjectDoubleTuple;
 
+import com.carrotsearch.hppc.IntArrayList;
+
 /**
  * Shift-eager dependency parser.
  * @author Jinho D. Choi
- * <b>Last update:</b> 11/4/2010
+ * <b>Last update:</b> 11/6/2010
  */
 public class ShiftEagerParser
 {
@@ -70,15 +70,15 @@ public class ShiftEagerParser
 	static public final String LB_DELIM     = "-";
 	
 	/** {@link ShiftEagerParser#FLAG_*} */
-	private byte            i_flag;
+	private byte                 i_flag;
 	/** Feature templates */
-	private DepFtrXml       t_xml;
+	private DepFtrXml            t_xml;
 	/** Feature mappings */
-	private DepFtrMap       t_map;
+	private DepFtrMap            t_map;
 	/** Machine learning decoder */
-	private AbstractDecoder c_dec;
+	private AbstractMultiDecoder c_dec;
 	/** Prints training instances */
-	private PrintStream     f_out;
+	private PrintStream          f_out;
 	
 	/** Current dependency tree */
 	private DepTree d_tree;
@@ -88,13 +88,13 @@ public class ShiftEagerParser
 	private int     i_beta;
 
 	/**
-	 * Initializes this parser.
-	 * @param lexiconFile name of a lexicon file
-	 * @param inputFile   name of a feature/model file for training/decoding
-	 * @param featureXml  name of a feature XML file
+	 * Initializes this parser for training.
 	 * @param flag        {@link ShiftEagerParser#i_flag}
+	 * @param featureXml  name of a feature XML file
+	 * @param lexiconFile name of a lexicon file
+	 * @param outputFile  name of a instance/transition output file
 	 */
-	public ShiftEagerParser(String lexiconFile, String inputFile, String featureXml, byte flag)
+	public ShiftEagerParser(byte flag, String featureXml, String lexiconFile, String outputFile)
 	{
 		i_flag = flag;
 		t_xml  = new DepFtrXml(featureXml);
@@ -107,20 +107,32 @@ public class ShiftEagerParser
 		{
 			System.out.println("- Loading lexicon file: "+lexiconFile);
 			t_map = new DepFtrMap(t_xml, lexiconFile);
-			f_out = IOUtil.createPrintFileStream(inputFile);
+		//	f_out = IOUtil.createPrintFileStream(outputFile);
+			f_out = IOUtil.createPrintFileGzipStream(outputFile);
 		}
-		else if (flag == FLAG_PRINT_TRANSITION)
+		else	// if (flag == FLAG_PRINT_TRANSITION)
 		{
-			f_out = IOUtil.createPrintFileStream(inputFile);
+			f_out = IOUtil.createPrintFileStream(outputFile);
 		}
-		else if (flag == FLAG_PREDICT)
-		{
-			System.out.println("- Loading lexicon file  : "+lexiconFile);
-			t_map = new DepFtrMap(t_xml, lexiconFile);
-			System.out.println("- Loading learning model: "+inputFile);
-			c_dec = new OvADecoder(inputFile);
-			System.out.println();
-		}
+	}
+	
+	/**
+	 * Initializes this parser for decoding.
+	 * @param flag        {@link ShiftEagerParser#i_flag}
+	 * @param featureXml  name of a feature XML file
+	 * @param decoder     multi-classification decoder
+	 * @param lexiconFile name of a lexicon file
+	 * @param inputFile   name of an input file
+	 */
+	public ShiftEagerParser(byte flag, String featureXml, AbstractMultiDecoder decoder, String lexiconFile, String inputFile)
+	{
+		i_flag = flag;
+		t_xml  = new DepFtrXml(featureXml);
+		c_dec  = decoder;
+		
+		System.out.println("- Loading lexicon file: "+lexiconFile);
+		t_map = new DepFtrMap(t_xml, lexiconFile);
+		System.out.println();
 	}
 	
 	/** Initializes lambda1, lambda2, and beta using <code>tree</code>. */
@@ -250,11 +262,11 @@ public class ShiftEagerParser
 			i_beta   = curr.id;
 		}
 		
-		ArrayList<JIntDoubleTuple> aRes = c_dec.predictAll(getFeatureArray());
+		JIntDoubleTuple[] aRes = c_dec.predictAll(getFeatureArray());
 		
-		for (int i=0; i<aRes.size(); i++)
+		for (int i=0; i<aRes.length; i++)
 		{
-			JIntDoubleTuple res = aRes.get(i);
+			JIntDoubleTuple res = aRes[i];
 			
 			String label = t_map.indexToLabel(res.i);
 			int    index = label.indexOf(LB_DELIM);
@@ -363,12 +375,12 @@ public class ShiftEagerParser
 	
 	private void addRules(int dir)
 	{
-		int i, n = t_xml.a_rule.size();
+		int i, n = t_xml.a_rule_templates.size();
 		String ftr;
 		
 		for (i=0; i<n; i++)
 		{
-			ftr = getFeature(t_xml.a_rule.get(i));
+			ftr = getFeature(t_xml.a_rule_templates.get(i));
 			if (ftr == null)	continue;
 			
 			t_map.addRule(i, ftr, dir);
@@ -380,6 +392,11 @@ public class ShiftEagerParser
 	{
 		System.out.println("- Saving lexicon files: "+lexiconFile);
 		t_map.save(t_xml, lexiconFile);
+	}
+	
+	public void close()
+	{
+		f_out.flush();	f_out.close();
 	}
 	
 	/**
@@ -442,16 +459,16 @@ public class ShiftEagerParser
 	//	return t_map.labelToIndex(label) + AbstractKernel.COL_DELIM + DSUtil.toString(getFeatureArray(),":1 ");
 	}
 	
-	private ArrayList<Integer> getFeatureArray()
+	private IntArrayList getFeatureArray()
 	{
 		if (i_flag == FLAG_PRINT_LEXICON)	// store features for configuration files
 		{
-			int i, n = t_xml.a_ngram.size();
+			int i, n = t_xml.a_ngram_templates.size();
 			String ftr;
 			
 			for (i=0; i<n; i++)
 			{
-				ftr = getFeature(t_xml.a_ngram.get(i));
+				ftr = getFeature(t_xml.a_ngram_templates.get(i));
 				if (ftr == null)	continue;
 				
 				t_map.addNgram(i, ftr);
@@ -464,7 +481,7 @@ public class ShiftEagerParser
 		}
 		
 		// add features
-		ArrayList<Integer> arr = new ArrayList<Integer>();
+		IntArrayList arr = new IntArrayList();
 		int idx[] = {0};
 		
 		addNgramFeatures      (arr, idx);
@@ -474,14 +491,14 @@ public class ShiftEagerParser
 		return arr;
 	}
 	
-	private void addNgramFeatures(ArrayList<Integer> arr, int[] beginIndex)
+	private void addNgramFeatures(IntArrayList arr, int[] beginIndex)
 	{
-		int i, n = t_xml.a_ngram.size(), value;
+		int i, n = t_xml.a_ngram_templates.size(), value;
 		String ftr;
 		
 		for (i=0; i<n; i++)
 		{
-			ftr = getFeature(t_xml.a_ngram.get(i));
+			ftr = getFeature(t_xml.a_ngram_templates.get(i));
 			if (ftr == null)	continue;
 		
 			value = t_map.ngramToIndex(i, ftr);
@@ -491,14 +508,14 @@ public class ShiftEagerParser
 		beginIndex[0] += t_map.n_ngram;
 	}
 	
-	private void addRuleFeatures(ArrayList<Integer> arr, int[] beginIndex)
+	private void addRuleFeatures(IntArrayList arr, int[] beginIndex)
 	{
-		int i, n = t_xml.a_rule.size(), value;
+		int i, n = t_xml.a_rule_templates.size(), value;
 		String ftr;
 		
 		for (i=0; i<n; i++)
 		{
-			ftr = getFeature(t_xml.a_rule.get(i));
+			ftr = getFeature(t_xml.a_rule_templates.get(i));
 			if (ftr == null)	continue;
 		
 			value = t_map.ruleToIndex(i, ftr);
@@ -513,7 +530,7 @@ public class ShiftEagerParser
 	 * Adds punctuation features.
 	 * This method is called from {@link ShiftEagerParser#getFeatureArray()}.
 	 */
-	private void addPunctuationFeatures(ArrayList<Integer> arr, int[] beginIndex)
+	private void addPunctuationFeatures(IntArrayList arr, int[] beginIndex)
 	{
 		int index;
 		
@@ -546,8 +563,8 @@ public class ShiftEagerParser
 			field = getField(ftr.tokens[i]);
 			if (field == null)	return null;
 			
-			build.append(field);
 			if (i > 0)	build.append(FtrLib.TAG_DELIM);
+			build.append(field);
 		}
 		
 		return build.toString();

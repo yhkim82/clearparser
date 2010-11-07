@@ -112,7 +112,7 @@ public class RRM implements IAlgorithm
 		StringBuilder build = new StringBuilder();
 		
 		build.append("- label = ");
-		build.append(currLabel);
+		build.append(kernel.a_labels[currLabel]);
 		build.append(": k = ");
 		build.append(bestK);
 		build.append(", acc = ");
@@ -161,7 +161,7 @@ public class RRM implements IAlgorithm
 			y_i   = aY[i];
 			score = getScore(pWeight, nWeight, kernel.a_xs.get(i));
 		
-			if (score >= 0)
+			if (score > 0)
 			{
 				if (y_i == 1)	correct++;
 				pTotal++;

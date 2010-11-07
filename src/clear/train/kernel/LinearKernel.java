@@ -35,5 +35,8 @@ public class LinearKernel extends AbstractKernel
 		super(instanceFile);
 	}
 	
-	protected void kernelize() {}
+	protected void kernelize()
+	{
+		// nothing to be added
+	}
 }

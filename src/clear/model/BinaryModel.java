@@ -24,93 +24,97 @@
 package clear.model;
 
 import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 import clear.train.kernel.AbstractKernel;
 
+import com.carrotsearch.hppc.IntArrayList;
+
 /**
- * Abstract model.
+ * Binary model.
  * @author Jinho D. Choi
  * <b>Last update:</b> 11/5/2010
  */
-abstract public class AbstractModel
+public class BinaryModel extends AbstractModel
 {
-	public int      n_features;
-	public int[]    a_labels;
-	public double[] d_weights;
-	
-	/** For training. */
-	public AbstractModel(AbstractKernel kernel)
+	public BinaryModel(AbstractKernel kernel)
 	{
-		init(kernel);
+		super(kernel);
 	}
 	
-	/** For decoding. */
-	public AbstractModel(String modelFile)
+	public BinaryModel(String modelFile)
 	{
-		load(modelFile);
+		super(modelFile);
 	}
-	
-	protected void readLabels(BufferedReader fin) throws Exception
-	{
-		String[] tmp = fin.readLine().split(" ");
-		int i;
-		
-		for (i=0; i<tmp.length; i++)
-			a_labels[i] = Integer.parseInt(tmp[i]);
-	}
-	
-	protected void readWeights(BufferedReader fin) throws Exception
-	{
-		int[] buffer = new int[128];
-		int   i, b;
-		
-		for (i=0; i < d_weights.length; i++)
-		{
-			b = 0;
-			
-			while (true)
-			{
-				int ch = fin.read();
-				
-				if (ch == ' ')	break;
-				else			buffer[b++] = ch;
-			}
 
-			d_weights[i] = Double.parseDouble((new String(buffer, 0, b)));
-		}
-	}
-	
-	protected void printLabels(PrintStream fout) throws Exception
+	public void init(AbstractKernel kernel)
 	{
-		StringBuilder build = new StringBuilder();
-		int i;
-		
-		build.append(a_labels[0]);
-		for (i=1; i<a_labels.length; i++)
-		{
-			build.append(" ");
-			build.append(a_labels[i]);
-		}
-		
-		fout.println(build.toString());
+		n_features = kernel.D;
+		a_labels   = kernel.a_labels;
+		d_weights  = new double[n_features];
 	}
 	
-	protected void printWeights(PrintStream fout) throws Exception
+	public void load(String modelFile)
 	{
-		StringBuilder build = new StringBuilder();
-		int i;
-		
-		for (i=0; i<d_weights.length; i++)
+		try
 		{
-			build.append(d_weights[i]);
-			build.append(' ');
+			BufferedReader fin = new BufferedReader(new InputStreamReader(new GZIPInputStream(new FileInputStream(modelFile))));
+			
+			n_features = Integer.parseInt(fin.readLine());
+			a_labels   = new int[2];
+			d_weights  = new double[n_features];
+			
+			readLabels (fin);
+			readWeights(fin);
+			fin.close();
 		}
-		
-		fout.println(build.toString());
+		catch (Exception e) {e.printStackTrace();}
 	}
 	
-	abstract public void init(AbstractKernel kernel);
-	abstract public void load(String modelFile);
-	abstract public void save(String modelFile);
+	public void save(String modelFile)
+	{
+		try
+		{
+			PrintStream fout = new PrintStream(new GZIPOutputStream(new FileOutputStream(modelFile)));
+			
+			fout.println(n_features);
+			
+			printLabels (fout);
+			printWeights(fout);
+			fout.flush();	fout.close();
+		}
+		catch (Exception e) {e.printStackTrace();}
+	}
+	
+	public void copyWeight(double[] weight)
+	{
+		System.arraycopy(weight, 0, d_weights, 0, n_features);
+	}
+	
+	public double getScore(int[] x)
+	{
+		double score = d_weights[0];
+		int    i;
+		
+		for (i=0; i < x.length; i++)
+			score += d_weights[x[i]];
+		
+		return score;
+	}
+	
+	public double getScore(IntArrayList x)
+	{
+		double score = d_weights[0];
+		int    i;
+		
+		for (i=0; i < x.size(); i++)
+			score += d_weights[x.get(i)];
+		
+		return score;
+	}
 }

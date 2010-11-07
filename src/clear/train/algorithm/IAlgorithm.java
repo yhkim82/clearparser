@@ -32,5 +32,8 @@ import clear.train.kernel.AbstractKernel;
  */
 public interface IAlgorithm
 {
+	static public final String LIBLINEAR_L2 = "lib";
+	static public final String RRM          = "rrm";
+	
 	public double[] getWeight(AbstractKernel kernel, int currLabel);
 }

@@ -25,11 +25,13 @@ package clear.train.kernel;
 
 import java.io.BufferedReader;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import clear.util.DSUtil;
 import clear.util.IOUtil;
 
 import com.carrotsearch.hppc.IntArrayList;
+import com.carrotsearch.hppc.IntOpenHashSet;
 
 /**
  * Abstract kernel.
@@ -38,10 +40,15 @@ import com.carrotsearch.hppc.IntArrayList;
  */
 abstract public class AbstractKernel
 {
+	/** Linear kernel */
+	static public final byte LINEAR      = 0;
+	/** Permutation kernel */
+	static public final byte PERMUTATION = 1;
+	
 	/** Delimiter between index and value (e.g. 3:0.12) */
-	public static final String FTR_DELIM = ":";
+	static public final String FTR_DELIM = ":";
 	/** Delimiter between columns (e.g. 0:0.12 3:0.45) */
-	public static final String COL_DELIM = " ";
+	static public final String COL_DELIM = " ";
 	
 	/** Total number of training instances */
 	public int N; 
@@ -49,6 +56,8 @@ abstract public class AbstractKernel
 	public int D;
 	/** Total number of labels */
 	public int L;
+	/** List of labels */
+	public int[]            a_labels;    
 	/** Training labels */
 	public IntArrayList     a_ys;
 	/** Training feature-vectors */
@@ -81,12 +90,15 @@ abstract public class AbstractKernel
 		a_ys = new IntArrayList    (NUM);
 		a_xs = new ArrayList<int[]>(NUM);
 
+		IntOpenHashSet sLabels = new IntOpenHashSet();
 		String line;
+		String[] tok;	int y;	int[] x;
+		
 		for (N=0; (line = fin.readLine()) != null; N++)
 		{
-			String[] tok = line.split(COL_DELIM);
-			int   y = Integer.parseInt (tok[0]);
-			int[] x = DSUtil.toIntArray(tok, 1);
+			tok = line.split(COL_DELIM);
+			y   = Integer.parseInt (tok[0]);
+			x   = DSUtil.toIntArray(tok, 1);
 			
 			// add label and feature
 			a_ys.add(y);
@@ -94,17 +106,22 @@ abstract public class AbstractKernel
 
 			// indices in feature are in ascending order
 			D = Math.max(D, x[x.length-1]);
-			L = Math.max(L, y);
+			sLabels.add(y);
 			
-			if (N%100000 == 0)	System.out.print("\r* Initializing: "+(N/1000)+"K");
-		}	System.out.println();
+			if (N%100000 == 0)	System.out.print("\r* Initializing  : "+(N/1000)+"K");
+		}	System.out.println("\r* Initializing  : " + instanceFile);
 		
 		fin.close();
 		a_ys.trimToSize();
 		a_xs.trimToSize();
 		
-		D++;	// feature dimension = last feature-index + 1
-		L++;	// # of labels = last label + 1
+		// feature dimension = last feature-index + 1
+		D++;
+		
+		// sort labels;
+		a_labels = sLabels.toArray();
+		Arrays.sort(a_labels);
+		L = a_labels.length;
 
 		kernelize();
 		System.out.println("- # of instances: " + N);

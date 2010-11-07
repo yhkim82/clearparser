@@ -23,67 +23,36 @@
 */
 package clear.train;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-
-import clear.model.OvAModel;
+import clear.model.BinaryModel;
 import clear.train.algorithm.IAlgorithm;
-import clear.train.kernel.AbstractKernel;
 
 /**
- * One-vs-all trainer.
+ * Binary trainer.
  * @author Jinho D. Choi
- * <b>Last update:</b> 11/5/2010
+ * <b>Last update:</b> 11/6/2010
  */
-abstract public class OvATrainer extends AbstractTrainer
+public class BinaryTrainer extends AbstractTrainer
 {
-	public OvATrainer(AbstractKernel kernel, IAlgorithm alg, String modelFile, int numThreads)
+	protected BinaryModel m_model;
+	
+	public BinaryTrainer(String instanceFile, String modelFile, IAlgorithm algorithm, byte kernel)
 	{
-		super(kernel, alg, modelFile, numThreads);
+		super(instanceFile, modelFile, algorithm, kernel, 1);
 	}
 	
-	protected void initModel(AbstractKernel kernel)
+	protected void initModel()
 	{
-		m_model = new OvAModel(kernel);
+		m_model = new BinaryModel(k_kernel);
 	}
 	
-	protected void train(String modelFile, int numThreads)
+	protected void train()
 	{
-		ExecutorService executor = Executors.newFixedThreadPool(numThreads);;
-		System.out.println("\n* Training");
-		
-		for (int currLabel=0; currLabel < k_kernel.L; currLabel++)
-			executor.execute(new TrainTask(currLabel));
-		
-		executor.shutdown();
-		
-		try
-		{
-			executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
-			System.out.println("\n* Saving: "+modelFile);
-			m_model.save(modelFile);
-		}
-		catch (InterruptedException e) {e.printStackTrace();}
-	}
+		int curr_label = k_kernel.a_labels[0];
 
-	class TrainTask implements Runnable
-	{
-		/** Current label to train */
-		int curr_label;
+		System.out.println("\n* Training");
+		m_model.copyWeight(a_algorithm.getWeight(k_kernel, curr_label));
 		
-		/**
-		 * Trains a one-vs-all model using {@link AbstractTrainer#a_xs} and {@link AbstractTrainer#a_ys} with respect to <code>currLabel</code>.
-		 * @param currLabel current label to train ({@link this#curr_label})
-		 */
-		public TrainTask(int currLabel)
-		{
-			curr_label = currLabel;
-		}
-		
-		public void run()
-		{
-			m_model.copyWeight(curr_label, a_alg.getWeight(k_kernel, curr_label));
-		}
+		System.out.println("\n* Saving: "+s_modelFile);
+		m_model.save(s_modelFile);
 	}
 }
