@@ -31,6 +31,7 @@ package clear.ftr.xml;
 public class FtrTemplate
 {
 	public FtrToken[] tokens;
+	/** Type of this feature template (e.g. "p", "mp", "ppp") */
 	public String     type;
 	public int        cutoff;
 	

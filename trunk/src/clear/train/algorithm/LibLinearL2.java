@@ -153,7 +153,7 @@ public class LibLinearL2 implements IAlgorithm
 					alpha[i] = Math.min(Math.max(alpha[i] - G / QD[i], 0.0), U);
 					d = (alpha[i] - alpha_old) * yi;
 					
-					if (d_bias > 0)	weight[0  ] += d * d_bias;
+					if (d_bias > 0)	weight[0] += d * d_bias;
 					
 					for (j=0; j<xi.length; j++)	weight[xi[j]] += d;
 				}

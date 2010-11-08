@@ -117,7 +117,7 @@ public class DepNode
 	/** @return ({@link DepNode#hasHead}) ? {@link DepNode#deprel} : {@link FtrLib#TAG_NULL}. */
 	public String getDeprel()
 	{
-		return hasHead ? deprel : FtrLib.TAG_NULL;
+		return hasHead ? deprel : null;
 	}
 	
 	/** @return true if the node is a null node. */

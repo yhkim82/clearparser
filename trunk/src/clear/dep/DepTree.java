@@ -139,9 +139,11 @@ public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
      */
 	public int getLeftNearestPunctuation(int currId, int leftBoundId, DepFtrMap map)
 	{
-		for (int i=currId-1; i>=leftBoundId; i--)
+		int i, puncIndex;
+		
+		for (i=currId-1; i>=leftBoundId; i--)
 		{
-			int puncIndex = map.punctuationToIndex(get(i).form);
+			puncIndex = map.punctuationToIndex(get(i).form);
 			if (puncIndex >= 0)    return puncIndex;
 		}
 		
@@ -166,9 +168,11 @@ public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
      */
 	public int getRightNearestPunctuation(int currId, int rightBoundId, DepFtrMap map)
 	{
-		for (int i=currId+1; i<=rightBoundId; i++)
+		int i, puncIndex;
+		
+		for (i=currId+1; i<=rightBoundId; i++)
 		{
-			int puncIndex = map.punctuationToIndex(get(i).form);
+			puncIndex = map.punctuationToIndex(get(i).form);
 			if (puncIndex >= 0)    return puncIndex;
 		}
 		

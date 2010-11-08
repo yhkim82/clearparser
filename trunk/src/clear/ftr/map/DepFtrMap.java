@@ -24,15 +24,11 @@
 package clear.ftr.map;
 
 import java.io.BufferedReader;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 
 import clear.ftr.xml.DepFtrXml;
+import clear.util.IOUtil;
 
 import com.carrotsearch.hppc.ObjectIntOpenHashMap;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
@@ -48,12 +44,11 @@ public class DepFtrMap extends AbstractFtrMap<DepFtrXml>
 	static public final String DELIM_RULE = " ";
 	
 	/** Contains rule features */
-	protected ArrayList<ObjectIntOpenHashMap<String>> m_rule;
+	protected ArrayList<ObjectIntOpenHashMap<String>>	m_rule;
 	/** Takes "punctuation" as a key and its index as a value */
-	protected ObjectIntOpenHashMap<String>            m_punctuation;
-	
+	protected ObjectIntOpenHashMap<String>				m_punctuation;
 	/** Number of punctuation */
-	protected int n_punctuation;
+	public    int										n_punctuation;
 	
 	public DepFtrMap(DepFtrXml xml)
 	{
@@ -63,6 +58,11 @@ public class DepFtrMap extends AbstractFtrMap<DepFtrXml>
 	public DepFtrMap(DepFtrXml xml, String lexiconFile)
 	{
 		super(xml, lexiconFile);
+	}
+	
+	public DepFtrMap(DepFtrXml xml, BufferedReader fin)
+	{
+		super(xml, fin);
 	}
 	
 	protected void init(DepFtrXml xml)
@@ -82,46 +82,54 @@ public class DepFtrMap extends AbstractFtrMap<DepFtrXml>
 	{
 		try
 		{
-			BufferedReader fin = new BufferedReader(new InputStreamReader(new GZIPInputStream(new FileInputStream(lexiconFile))));
-			loadDefault(fin);
-			
-			ObjectIntOpenHashMap<String> map;
-			int n, m, i, j;
-			String[] arr;
-			String   key;
-			
-			// rules
-			m = Integer.parseInt(fin.readLine());
-			m_rule = new ArrayList<ObjectIntOpenHashMap<String>>(m);
-			
-			for (j=0; j<m; j++)
-			{
-				n = Integer.parseInt(fin.readLine());
-				map = new ObjectIntOpenHashMap<String>(n);
-				
-				for (i=0; i<n; i++)
-				{
-					key = fin.readLine();
-					arr = key.split(DELIM_RULE);
-					map.put(arr[0], Integer.parseInt(arr[1]));
-				}
-				
-				m_rule.add(map);
-			}
-			
-			// punctuation
-			n = Integer.parseInt(fin.readLine());
-			m_punctuation = new ObjectIntOpenHashMap<String>(n);
-			
-			for (i=1; i<=n; i++)
-			{
-				key = fin.readLine();
-				m_punctuation.put(key, i);
-			}
-			
+			BufferedReader fin = IOUtil.createBufferedFileReader(lexiconFile);
+			loadAux(fin);
 			fin.close();
 		}
 		catch (Exception e) {e.printStackTrace();System.exit(1);}
+	}
+	
+	protected void load(BufferedReader fin)
+	{
+		try
+		{
+			loadAux(fin);
+		}
+		catch (Exception e) {e.printStackTrace();System.exit(1);}
+	}
+	
+	private void loadAux(BufferedReader fin) throws Exception
+	{
+		loadDefault(fin);
+		
+		ObjectIntOpenHashMap<String> map;
+		int n, m, i, j;
+		String[] arr;
+		
+		// rules
+		m = Integer.parseInt(fin.readLine());
+		m_rule = new ArrayList<ObjectIntOpenHashMap<String>>(m);
+		
+		for (j=0; j<m; j++)
+		{
+			n = Integer.parseInt(fin.readLine());
+			map = new ObjectIntOpenHashMap<String>(n);
+			
+			for (i=0; i<n; i++)
+			{
+				arr = fin.readLine().split(DELIM_RULE);
+				map.put(arr[0], Integer.parseInt(arr[1]));
+			}
+			
+			m_rule.add(map);
+		}
+		
+		// punctuation
+		n_punctuation = Integer.parseInt(fin.readLine());
+		m_punctuation = new ObjectIntOpenHashMap<String>(n_punctuation);
+		
+		for (i=1; i<=n_punctuation; i++)
+			m_punctuation.put(fin.readLine(), i);
 	}
 	
 	/** Saves all tags to <code>lexiconFile</code>. */
@@ -129,44 +137,59 @@ public class DepFtrMap extends AbstractFtrMap<DepFtrXml>
 	{
 		try
 		{
-			PrintStream fout = new PrintStream(new GZIPOutputStream(new FileOutputStream(lexiconFile)));
-			saveDefault(xml, fout, ngramCutoff);
+			PrintStream fout = IOUtil.createPrintFileStream(lexiconFile);
+			saveAux(xml, fout, ngramCutoff);
 			
-			ObjectIntOpenHashMap<String> map;
-			int j, m, value, ruleCutoff;	String key;
-			
-			// rules
-			m = m_rule.size();
-			fout.println(m);
-			
-			for (j=0; j<m; j++)
-			{
-				map        = m_rule.get(j);
-				ruleCutoff = xml.a_rule_templates[j].cutoff;
-				fout.println(countKeys(map, ruleCutoff));
-				
-				for (ObjectCursor<String> str : map.keySet())
-				{
-					key   = str.value;
-					value = map.get(key);
-					
-					if (Math.abs(value) > ruleCutoff)
-					{
-						if      (value < 0)	fout.println(key + DELIM_RULE +"-1");
-						else if (value > 0)	fout.println(key + DELIM_RULE + "1");
-					}
-				}
-			}
-			
-			// punctuation
-			fout.println(m_punctuation.size());
-			
-			for (ObjectCursor<String> str : m_punctuation.keySet())
-				fout.println(str.value);
-			
-			fout.flush();	fout.close();
+			fout.flush();
+			fout.close();
 		}
 		catch (Exception e) {e.printStackTrace();}
+	}
+	
+	/** Saves all tags to <code>fout</code>. */
+	public void save(DepFtrXml xml, PrintStream fout, int ngramCutoff)
+	{
+		try
+		{
+			saveAux(xml, fout, ngramCutoff);
+		}
+		catch (Exception e) {e.printStackTrace();}
+	}
+	
+	/** Saves all tags to <code>lexiconFile</code>. */
+	private void saveAux(DepFtrXml xml, PrintStream fout, int ngramCutoff)
+	{
+		saveDefault(xml, fout, ngramCutoff);
+		
+		ObjectIntOpenHashMap<String> map;
+		int j, m, value, cutoff;	String key;
+		
+		// rules
+		m = m_rule.size();
+		fout.println(m);
+		
+		for (j=0; j<m; j++)
+		{
+			map    = m_rule.get(j);
+			cutoff = xml.a_rule_templates[j].cutoff;
+			fout.println(countKeys(map, cutoff));
+			
+			for (ObjectCursor<String> str : map.keySet())
+			{
+				key   = str.value;
+				value = map.get(key);
+				
+				if (Math.abs(value) > cutoff)
+				{
+					if      (value < 0)	fout.println(key + DELIM_RULE +"-1");
+					else if (value > 0)	fout.println(key + DELIM_RULE + "1");
+				}
+			}
+		}
+		
+		// punctuation
+		cutoff = 0;
+		saveHashMap(fout, m_punctuation, cutoff);
 	}
 		
 	public void addRule(int index, String ftr, int dir)

@@ -24,14 +24,10 @@
 package clear.model;
 
 import java.io.BufferedReader;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.InputStreamReader;
 import java.io.PrintStream;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 
 import clear.train.kernel.AbstractKernel;
+import clear.util.IOUtil;
 
 import com.carrotsearch.hppc.IntArrayList;
 
@@ -51,10 +47,16 @@ public class BinaryModel extends AbstractModel
 	{
 		super(modelFile);
 	}
+	
+	public BinaryModel(BufferedReader fin)
+	{
+		super(fin);
+	}
 
 	public void init(AbstractKernel kernel)
 	{
 		n_features = kernel.D;
+		n_labels   = 2;
 		a_labels   = kernel.a_labels;
 		d_weights  = new double[n_features];
 	}
@@ -63,32 +65,61 @@ public class BinaryModel extends AbstractModel
 	{
 		try
 		{
-			BufferedReader fin = new BufferedReader(new InputStreamReader(new GZIPInputStream(new FileInputStream(modelFile))));
+			BufferedReader fin = IOUtil.createBufferedFileReader(modelFile);
 			
-			n_features = Integer.parseInt(fin.readLine());
-			a_labels   = new int[2];
-			d_weights  = new double[n_features];
-			
-			readLabels (fin);
-			readWeights(fin);
+			loadAux(fin);
 			fin.close();
 		}
 		catch (Exception e) {e.printStackTrace();}
+	}
+	
+	public void load(BufferedReader fin)
+	{
+		try
+		{
+			loadAux(fin);
+		}
+		catch (Exception e) {e.printStackTrace();}
+	}
+	
+	private void loadAux(BufferedReader fin) throws Exception
+	{
+		n_features = Integer.parseInt(fin.readLine());
+		n_labels   = 2;
+		a_labels   = new int[2];
+		d_weights  = new double[n_features];
+		
+		readLabels (fin);
+		readWeights(fin);
 	}
 	
 	public void save(String modelFile)
 	{
 		try
 		{
-			PrintStream fout = new PrintStream(new GZIPOutputStream(new FileOutputStream(modelFile)));
+			PrintStream fout = IOUtil.createPrintFileStream(modelFile);
 			
-			fout.println(n_features);
-			
-			printLabels (fout);
-			printWeights(fout);
-			fout.flush();	fout.close();
+			saveAux(fout);
+			fout.flush();
+			fout.close();
 		}
 		catch (Exception e) {e.printStackTrace();}
+	}
+	
+	public void save(PrintStream fout)
+	{
+		try
+		{
+			saveAux(fout);
+		}
+		catch (Exception e) {e.printStackTrace();}
+	}
+	
+	private void saveAux(PrintStream fout) throws Exception
+	{
+		fout.println(n_features);
+		printLabels (fout);
+		printWeights(fout);
 	}
 	
 	public void copyWeight(double[] weight)

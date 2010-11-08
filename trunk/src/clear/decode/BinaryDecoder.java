@@ -23,6 +23,8 @@
 */
 package clear.decode;
 
+import java.io.BufferedReader;
+
 import clear.model.BinaryModel;
 import clear.util.tuple.JIntDoubleTuple;
 
@@ -41,6 +43,12 @@ public class BinaryDecoder extends AbstractDecoder
 	{
 		super(kernel);
 		m_model = new BinaryModel(modelFile);
+	}
+	
+	public BinaryDecoder(BufferedReader fin, byte kernel)
+	{
+		super(kernel);
+		m_model = new BinaryModel(fin);
 	}
 	
 	public JIntDoubleTuple predict(int[] x)

@@ -41,6 +41,7 @@ import clear.util.tuple.JIntDoubleTuple;
 import clear.util.tuple.JObjectDoubleTuple;
 
 import com.carrotsearch.hppc.IntArrayList;
+import com.carrotsearch.hppc.ObjectIntOpenHashMap;
 
 /**
  * Shift-eager dependency parser.
@@ -86,53 +87,52 @@ public class ShiftEagerParser
 	private int     i_lambda;
 	/** Index of beta */
 	private int     i_beta;
-
+	
 	/**
-	 * Initializes this parser for training.
+	 * Initializes this parser for {@link ShiftEagerParser#FLAG_PRINT_LEXICON} or {@link ShiftEagerParser#FLAG_PRINT_TRANSITION}.
 	 * @param flag        {@link ShiftEagerParser#i_flag}
-	 * @param featureXml  name of a feature XML file
-	 * @param lexiconFile name of a lexicon file
-	 * @param outputFile  name of a instance/transition output file
+	 * @param filename    name of a feature-xml/transition-output file
 	 */
-	public ShiftEagerParser(byte flag, String featureXml, String lexiconFile, String outputFile)
+	public ShiftEagerParser(byte flag, String filename)
 	{
 		i_flag = flag;
-		t_xml  = new DepFtrXml(featureXml);
 		
 		if (flag == FLAG_PRINT_LEXICON)
 		{
+			t_xml = new DepFtrXml(filename);
 			t_map = new DepFtrMap(t_xml);
-		}
-		else if (flag == FLAG_PRINT_INSTANCE)
-		{
-			System.out.println("- Loading lexicon file: "+lexiconFile);
-			t_map = new DepFtrMap(t_xml, lexiconFile);
-		//	f_out = IOUtil.createPrintFileStream(outputFile);
-			f_out = IOUtil.createPrintFileGzipStream(outputFile);
 		}
 		else	// if (flag == FLAG_PRINT_TRANSITION)
 		{
-			f_out = IOUtil.createPrintFileStream(outputFile);
+			f_out = IOUtil.createPrintFileStream(filename);
 		}
 	}
-	
+
 	/**
-	 * Initializes this parser for decoding.
+	 * Initializes this parser for {@link ShiftEagerParser#FLAG_PRINT_INSTANCE}.
 	 * @param flag        {@link ShiftEagerParser#i_flag}
 	 * @param featureXml  name of a feature XML file
-	 * @param decoder     multi-classification decoder
 	 * @param lexiconFile name of a lexicon file
-	 * @param inputFile   name of an input file
+	 * @param instanceFile  name of a instance/transition output file
 	 */
-	public ShiftEagerParser(byte flag, String featureXml, AbstractMultiDecoder decoder, String lexiconFile, String inputFile)
+	public ShiftEagerParser(byte flag, String featureXml, String lexiconFile, String instanceFile)
 	{
 		i_flag = flag;
 		t_xml  = new DepFtrXml(featureXml);
+		t_map  = new DepFtrMap(t_xml, lexiconFile);
+		f_out  = IOUtil.createPrintFileStream(instanceFile);
+	}
+
+	/**
+	 * {@link ShiftEagerParser#FLAG_PREDICT}
+	 * @param flag  {@link ShiftEagerParser#i_flag}
+	 */
+	public ShiftEagerParser(byte flag, DepFtrXml xml, DepFtrMap map, AbstractMultiDecoder decoder)
+	{
+		i_flag = flag;
+		t_xml  = xml;
+		t_map  = map;
 		c_dec  = decoder;
-		
-		System.out.println("- Loading lexicon file: "+lexiconFile);
-		t_map = new DepFtrMap(t_xml, lexiconFile);
-		System.out.println();
 	}
 	
 	/** Initializes lambda1, lambda2, and beta using <code>tree</code>. */
@@ -222,26 +222,30 @@ public class ShiftEagerParser
 	/** Predicts dependencies for tokens that have not found their heads during parsing. */
 	private void postProcess()
 	{
-		for (int currId=1; currId<d_tree.size(); currId++)
+		int currId, maxId, i, n = d_tree.size();
+		JObjectDoubleTuple<String> max;
+		DepNode curr, node;
+		
+		for (currId=1; currId<n; currId++)
 		{
-			DepNode curr = d_tree.get(currId);
+			curr = d_tree.get(currId);
 			if (curr.hasHead)	continue;
 			
-			JObjectDoubleTuple<String> max = new JObjectDoubleTuple<String>(null, -1000);
-			int maxId = -1;
+			max   = new JObjectDoubleTuple<String>(null, -1000);
+			maxId = -1;
 			
-			for (int leftId=currId-1; leftId>=0; leftId--)
+			for (i=currId-1; i>=0; i--)
 			{
-				DepNode left = d_tree.get(leftId);
-				if (d_tree.isAncestor(curr, left))	continue;
-				maxId = getMaxHeadId(curr, left, maxId, max, LB_RIGHT_ARC);
+				node = d_tree.get(i);
+				if (d_tree.isAncestor(curr, node))	continue;
+				maxId = getMaxHeadId(curr, node, maxId, max, LB_RIGHT_ARC);
 			}
 			
-			for (int rightId=currId+1; rightId<d_tree.size(); rightId++)
+			for (i=currId+1; i<d_tree.size(); i++)
 			{
-				DepNode right = d_tree.get(rightId);
-				if (d_tree.isAncestor(curr, right))	continue;
-				maxId = getMaxHeadId(curr, right, maxId, max, LB_LEFT_ARC);
+				node = d_tree.get(i);
+				if (d_tree.isAncestor(curr, node))	continue;
+				maxId = getMaxHeadId(curr, node, maxId, max, LB_LEFT_ARC);
 			}
 		
 			if (maxId != -1)	curr.setHead(maxId, max.object, max.value);
@@ -263,15 +267,18 @@ public class ShiftEagerParser
 		}
 		
 		JIntDoubleTuple[] aRes = c_dec.predictAll(getFeatureArray());
+		JIntDoubleTuple   res;
+		String label, trans;
+		int    index;
 		
 		for (int i=0; i<aRes.length; i++)
 		{
-			JIntDoubleTuple res = aRes[i];
+			res = aRes[i];
 			
-			String label = t_map.indexToLabel(res.i);
-			int    index = label.indexOf(LB_DELIM);
+			label = t_map.indexToLabel(res.i);
+			index = label.indexOf(LB_DELIM);
 			if (index == -1)	continue;
-			String trans = label.substring(0, index);
+			trans = label.substring(0, index);
 			
 			if (trans.equals(sTrans))
 			{
@@ -295,19 +302,23 @@ public class ShiftEagerParser
 	{
 		if (!isDeterministic)
 		{
-			if      (i_flag == FLAG_PRINT_LEXICON )	addTags       (LB_SHIFT);
+			if      (i_flag == FLAG_PRINT_LEXICON )	addTags      (LB_SHIFT);
 			else if (i_flag == FLAG_PRINT_INSTANCE)	printInstance(LB_SHIFT);
 		}
 			
 		i_lambda = i_beta++;
 		
-		if (i_flag == FLAG_PRINT_TRANSITION)	printTransition("SHIFT", "");
+		if (i_flag == FLAG_PRINT_TRANSITION)
+		{
+			if (isDeterministic)	printTransition("DT-SHIFT", "");
+			else					printTransition("NT-SHIFT", "");
+		}
 	}
 	
 	/** Performs a no-arc transition. */
 	private void noArc()
 	{
-		if      (i_flag == FLAG_PRINT_LEXICON )	addTags       (LB_NO_ARC);
+		if      (i_flag == FLAG_PRINT_LEXICON )	addTags      (LB_NO_ARC);
 		else if (i_flag == FLAG_PRINT_INSTANCE)	printInstance(LB_NO_ARC);
 		
 		i_lambda--;
@@ -326,7 +337,7 @@ public class ShiftEagerParser
 	{
 		String  label = LB_LEFT_ARC + LB_DELIM + deprel;
 		
-	    if      (i_flag == FLAG_PRINT_LEXICON)  addTags(label);
+	    if      (i_flag == FLAG_PRINT_LEXICON)  addTags      (label);
 		else if (i_flag == FLAG_PRINT_INSTANCE)	printInstance(label);
 
 		lambda.setHead(beta.id, deprel, score);
@@ -334,7 +345,7 @@ public class ShiftEagerParser
 		i_lambda--;
 		
 		if (i_flag == FLAG_PRINT_TRANSITION)
-			printTransition("LEFT-ARC", lambda.id+" <-"+beta.deprel+"- "+beta.id);
+			printTransition("LEFT-ARC", lambda.id+" <-"+deprel+"- "+beta.id);
 	}
 	
 	/**
@@ -346,9 +357,9 @@ public class ShiftEagerParser
 	 */
 	private void rightArc(DepNode lambda, DepNode beta, String deprel, double score)
 	{
-		String  label = LB_RIGHT_ARC + LB_DELIM + deprel;
+		String label = LB_RIGHT_ARC + LB_DELIM + deprel;
 		
-		if      (i_flag == FLAG_PRINT_LEXICON)	addTags(label);
+		if      (i_flag == FLAG_PRINT_LEXICON)	addTags      (label);
 		else if (i_flag == FLAG_PRINT_INSTANCE)	printInstance(label);
 
 		beta.setHead(lambda.id, deprel, score);
@@ -356,7 +367,7 @@ public class ShiftEagerParser
 		i_lambda--;
 		
 		if (i_flag == FLAG_PRINT_TRANSITION)
-			printTransition("RIGHT-ARC", lambda.id+" -"+beta.deprel+"-> "+beta.id);
+			printTransition("RIGHT-ARC", lambda.id+" -"+deprel+"-> "+beta.id);
 	}
 	
 	/**
@@ -375,12 +386,13 @@ public class ShiftEagerParser
 	
 	private void addRules(int dir)
 	{
-		int i, n = t_xml.a_rule_templates.size();
+		FtrTemplate[] template = t_xml.a_rule_templates;
+		int i, n = template.length;
 		String ftr;
 		
 		for (i=0; i<n; i++)
 		{
-			ftr = getFeature(t_xml.a_rule_templates.get(i));
+			ftr = getFeature(template[i]);
 			if (ftr == null)	continue;
 			
 			t_map.addRule(i, ftr, dir);
@@ -388,13 +400,12 @@ public class ShiftEagerParser
 	}
 	
 	/** Saves tags from {@link ShiftEagerParser#t_map} to <code>lexiconFile</code>. */
-	public void saveTags(String lexiconFile)
+	public void saveTags(String lexiconFile, int ngramCutoff)
 	{
-		System.out.println("- Saving lexicon files: "+lexiconFile);
-		t_map.save(t_xml, lexiconFile);
+		t_map.save(t_xml, lexiconFile, ngramCutoff);
 	}
 	
-	public void close()
+	public void closeOutputStream()
 	{
 		f_out.flush();	f_out.close();
 	}
@@ -415,30 +426,33 @@ public class ShiftEagerParser
 	 */
 	private void printTransition(String trans, String arc)
 	{
+		StringBuilder build = new StringBuilder();
+		
 		// operation
-		String str = trans + "\t";
+		build.append(trans);
+		build.append("\t");
 		
 		// lambda_1
-		str += "[";
-		if (i_lambda >= 0)	str += "" +0;
-		if (i_lambda >= 1)	str += ":"+i_lambda;
-		str += "]\t";
+		build.append("[");
+		if (i_lambda >= 0)	build.append(0);
+		if (i_lambda >= 1)	build.append(":"+i_lambda);
+		build.append("]\t");
 		
 		// lambda_2
-		str += "[";
-		if (getLambda2Count() > 0)	str += "" +(i_lambda+1);
-		if (getLambda2Count() > 1)	str += ":"+(i_beta  -1);
-		str += "]\t";
+		build.append("[");
+		if (getLambda2Count() > 0)	build.append(i_lambda+1);
+		if (getLambda2Count() > 1)	build.append(":"+(i_beta-1));
+		build.append("]\t");
 		
 		// beta
-		str += "[";
-		if (i_beta < d_tree.size())		str += "" +i_beta;
-		if (i_beta <= d_tree.size())	str += ":"+(d_tree.size()-1);
-		str += "]\t";
+		build.append("[");
+		if (i_beta < d_tree.size())		build.append(i_beta);
+		if (i_beta <= d_tree.size())	build.append(":"+(d_tree.size()-1));
+		build.append("]\t");
 		
 		// transition
-		str += arc;
-		f_out.println(str);
+		build.append(arc);
+		f_out.println(build.toString());
 	}
 	
 	/** @return number of nodes in lambda_2 (list #2) */
@@ -463,15 +477,23 @@ public class ShiftEagerParser
 	{
 		if (i_flag == FLAG_PRINT_LEXICON)	// store features for configuration files
 		{
-			int i, n = t_xml.a_ngram_templates.size();
+			FtrTemplate[][] templates = t_xml.a_ngram_templates;
+			int i, j, n, m = templates.length;
+			FtrTemplate[] template;
 			String ftr;
 			
-			for (i=0; i<n; i++)
+			for (j=0; j<m; j++)
 			{
-				ftr = getFeature(t_xml.a_ngram_templates.get(i));
-				if (ftr == null)	continue;
+				template = templates[j];
+				n        = template.length;
 				
-				t_map.addNgram(i, ftr);
+				for (i=0; i<n; i++)
+				{
+					ftr = getFeature(template[i]);
+					if (ftr == null)	continue;
+					
+					t_map.addNgram(j, ftr);
+				}
 			}
 			
 			DepNode b0 = d_tree.get(i_beta);
@@ -482,7 +504,7 @@ public class ShiftEagerParser
 		
 		// add features
 		IntArrayList arr = new IntArrayList();
-		int idx[] = {0};
+		int idx[] = {1};
 		
 		addNgramFeatures      (arr, idx);
 		addRuleFeatures       (arr, idx);
@@ -493,35 +515,50 @@ public class ShiftEagerParser
 	
 	private void addNgramFeatures(IntArrayList arr, int[] beginIndex)
 	{
-		int i, n = t_xml.a_ngram_templates.size(), value;
+		FtrTemplate[][] templates = t_xml.a_ngram_templates;
+		
+		int i, j, n, m = templates.length, size, value;
+		ObjectIntOpenHashMap<String> map;
+		FtrTemplate[] template;
 		String ftr;
 		
-		for (i=0; i<n; i++)
+		for (j=0; j<m; j++)
 		{
-			ftr = getFeature(t_xml.a_ngram_templates.get(i));
-			if (ftr == null)	continue;
-		
-			value = t_map.ngramToIndex(i, ftr);
-			if (value > 0)	arr.add(value);
+			map  = t_map.getNgramHashMap(j);
+			size = t_map.n_ngram[j];
+			
+			template = templates[j];
+			n        = template.length;
+			
+			for (i=0; i<n; i++)
+			{
+				ftr = getFeature(template[i]);
+				if (ftr != null)
+				{
+					value = map.get(ftr);
+					if (value > 0)	arr.add(beginIndex[0]+value-1);
+				}
+				
+				beginIndex[0] += size;
+			}
 		}
-		
-		beginIndex[0] += t_map.n_ngram;
 	}
 	
 	private void addRuleFeatures(IntArrayList arr, int[] beginIndex)
 	{
-		int i, n = t_xml.a_rule_templates.size(), value;
+		int i, n = t_xml.a_rule_templates.length, value;
 		String ftr;
 		
 		for (i=0; i<n; i++)
 		{
-			ftr = getFeature(t_xml.a_rule_templates.get(i));
-			if (ftr == null)	continue;
+			ftr = getFeature(t_xml.a_rule_templates[i]);
+			if (ftr != null)
+			{
+				value = t_map.ruleToIndex(i, ftr);
+				if      (value < 0)	arr.add(beginIndex[0]);
+				else if (value > 0)	arr.add(beginIndex[0]+1);
+			}
 		
-			value = t_map.ruleToIndex(i, ftr);
-			if      (value < 0)	arr.add(beginIndex[0]);
-			else if (value > 0)	arr.add(beginIndex[0]+1);
-			
 			beginIndex[0] += 2;
 		}
 	}
@@ -532,19 +569,19 @@ public class ShiftEagerParser
 	 */
 	private void addPunctuationFeatures(IntArrayList arr, int[] beginIndex)
 	{
-		int index;
+		int index, n = t_map.n_punctuation;
 		
 		index = d_tree.getRightNearestPunctuation(i_lambda, i_beta-1, t_map);
 		if (index != -1)	arr.add(beginIndex[0] + index);
-		beginIndex[0] += t_map.n_punctuation;
+		beginIndex[0] += n;
 		
 		index = d_tree.getLeftNearestPunctuation(i_beta, i_lambda+1, t_map);
 		if (index != -1)	arr.add(beginIndex[0] + index);
-		beginIndex[0] += t_map.n_punctuation;
+		beginIndex[0] += n;
 
 		index = d_tree.getRightNearestPunctuation(i_beta, d_tree.size()-1, t_map);
 		if (index != -1)	arr.add(beginIndex[0] + index);
-		beginIndex[0] += t_map.n_punctuation;	// 88.54 -> 88.62
+		beginIndex[0] += n;	// 88.54 -> 88.62
 		
 	/*	index = d_tree.getLeftNearestPunctuation(i_lambda, 1, t_map);
 		if (index != -1)	arr.add(beginIndex[0] + index);
@@ -591,8 +628,9 @@ public class ShiftEagerParser
 		if      (token.field.equals(DepFtrXml.F_FORM))		return node.form;
 		else if (token.field.equals(DepFtrXml.F_LEMMA))		return node.lemma;
 		else if (token.field.equals(DepFtrXml.F_POS))		return node.pos;
-		else if (token.field.equals(DepFtrXml.F_DEPREL))	return node.deprel;
+		else if (token.field.equals(DepFtrXml.F_DEPREL))	return node.getDeprel();
 		
+		System.err.println("Error: unspecified feature '"+token.field+"'");
 		return null;
 	}
 }

@@ -23,6 +23,8 @@
 */
 package clear.model;
 
+import java.io.BufferedReader;
+
 import clear.train.kernel.AbstractKernel;
 
 import com.carrotsearch.hppc.IntArrayList;
@@ -34,8 +36,6 @@ import com.carrotsearch.hppc.IntArrayList;
  */
 abstract public class AbstractMultiModel extends AbstractModel
 {
-	public int n_labels;
-	
 	public AbstractMultiModel(AbstractKernel kernel)
 	{
 		super(kernel);
@@ -44,6 +44,11 @@ abstract public class AbstractMultiModel extends AbstractModel
 	public AbstractMultiModel(String modelFile)
 	{
 		super(modelFile);
+	}
+	
+	public AbstractMultiModel(BufferedReader fin)
+	{
+		super(fin);
 	}
 	
 	abstract public void     copyWeight(int label, double[] weight);

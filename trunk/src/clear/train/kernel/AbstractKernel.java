@@ -85,7 +85,7 @@ abstract public class AbstractKernel
 	{
 		final int NUM = 1000000;
 		
-		BufferedReader fin = IOUtil.createBufferedGZipFileReader(instanceFile);
+		BufferedReader fin = IOUtil.createBufferedFileReader(instanceFile);
 		
 		a_ys = new IntArrayList    (NUM);
 		a_xs = new ArrayList<int[]>(NUM);
