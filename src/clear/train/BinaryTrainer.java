@@ -23,6 +23,8 @@
 */
 package clear.train;
 
+import java.io.PrintStream;
+
 import clear.model.BinaryModel;
 import clear.train.algorithm.IAlgorithm;
 
@@ -40,6 +42,11 @@ public class BinaryTrainer extends AbstractTrainer
 		super(instanceFile, modelFile, algorithm, kernel, 1);
 	}
 	
+	public BinaryTrainer(String instanceFile, PrintStream fout, IAlgorithm algorithm, byte kernel, int numThreads)
+	{
+		super(instanceFile, fout, algorithm, kernel, numThreads);
+	}
+	
 	protected void initModel()
 	{
 		m_model = new BinaryModel(k_kernel);
@@ -52,7 +59,9 @@ public class BinaryTrainer extends AbstractTrainer
 		System.out.println("\n* Training");
 		m_model.copyWeight(a_algorithm.getWeight(k_kernel, curr_label));
 		
-		System.out.println("\n* Saving: "+s_modelFile);
-		m_model.save(s_modelFile);
+		System.out.println("\n* Saving");
+		
+		if (f_out == null)	m_model.save(s_modelFile);
+		else				m_model.save(f_out);
 	}
 }

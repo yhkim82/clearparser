@@ -24,15 +24,11 @@
 package clear.model;
 
 import java.io.BufferedReader;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.util.Arrays;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 
 import clear.train.kernel.AbstractKernel;
+import clear.util.IOUtil;
 
 import com.carrotsearch.hppc.IntArrayList;
 
@@ -53,6 +49,11 @@ public class OneVsAllModel extends AbstractMultiModel
 		super(modelFile);
 	}
 	
+	public OneVsAllModel(BufferedReader fin)
+	{
+		super(fin);
+	}
+	
 	public void init(AbstractKernel kernel)
 	{
 		n_labels   = kernel.L;
@@ -65,34 +66,62 @@ public class OneVsAllModel extends AbstractMultiModel
 	{
 		try
 		{
-			BufferedReader fin = new BufferedReader(new InputStreamReader(new GZIPInputStream(new FileInputStream(modelFile))));
+			BufferedReader fin = IOUtil.createBufferedFileReader(modelFile);
 			
-			n_labels   = Integer.parseInt(fin.readLine());
-			n_features = Integer.parseInt(fin.readLine());
-			a_labels   = new int[n_labels];
-			d_weights  = new double[n_labels * n_features];
-			
-			readLabels (fin);
-			readWeights(fin);
+			loadAux(fin);
 			fin.close();
 		}
 		catch (Exception e) {e.printStackTrace();}
+	}
+	
+	public void load(BufferedReader fin)
+	{
+		try
+		{
+			loadAux(fin);
+		}
+		catch (Exception e) {e.printStackTrace();}
+	}
+	
+	public void loadAux(BufferedReader fin) throws Exception
+	{
+		n_labels   = Integer.parseInt(fin.readLine());
+		n_features = Integer.parseInt(fin.readLine());
+		a_labels   = new int[n_labels];
+		d_weights  = new double[n_labels * n_features];
+		
+		readLabels (fin);
+		readWeights(fin);
 	}
 	
 	public void save(String modelFile)
 	{
 		try
 		{
-			PrintStream fout = new PrintStream(new GZIPOutputStream(new FileOutputStream(modelFile)));
+			PrintStream fout = IOUtil.createPrintFileStream(modelFile);
 			
-			fout.println(n_labels);
-			fout.println(n_features);
-			printLabels (fout);
-			printWeights(fout);
-			
-			fout.flush();	fout.close();
+			saveAux(fout);
+			fout.flush();
+			fout.close();
 		}
 		catch (Exception e) {e.printStackTrace();}
+	}
+	
+	public void save(PrintStream fout)
+	{
+		try
+		{
+			saveAux(fout);
+		}
+		catch (Exception e) {e.printStackTrace();}
+	}
+	
+	private void saveAux(PrintStream fout) throws Exception
+	{
+		fout.println(n_labels);
+		fout.println(n_features);
+		printLabels (fout);
+		printWeights(fout);
 	}
 	
 	private int getBeginIndex(int label, int index)

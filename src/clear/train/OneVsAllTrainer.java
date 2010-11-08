@@ -23,6 +23,7 @@
 */
 package clear.train;
 
+import java.io.PrintStream;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -44,11 +45,16 @@ public class OneVsAllTrainer extends AbstractTrainer
 		super(instanceFile, modelFile, algorithm, kernel, numThreads);
 	}
 	
+	public OneVsAllTrainer(String instanceFile, PrintStream fout, IAlgorithm algorithm, byte kernel, int numThreads)
+	{
+		super(instanceFile, fout, algorithm, kernel, numThreads);
+	}
+	
 	protected void initModel()
 	{
 		m_model = new OneVsAllModel(k_kernel);
 	}
-	
+
 	protected void train()
 	{
 		ExecutorService executor = Executors.newFixedThreadPool(i_numThreads);;
@@ -62,8 +68,10 @@ public class OneVsAllTrainer extends AbstractTrainer
 		try
 		{
 			executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
-			System.out.println("\n* Saving: "+s_modelFile);
-			m_model.save(s_modelFile);
+			System.out.println("\n* Saving");
+			
+			if (f_out == null)	m_model.save(s_modelFile);
+			else				m_model.save(f_out);
 		}
 		catch (InterruptedException e) {e.printStackTrace();}
 	}

@@ -45,7 +45,8 @@ public class AbstractEngine
 	protected final String TAG_FORMAT       = "format";
 	protected final String TAG_FEATURE_XML  = "feature_xml";
 	protected final String TAG_LEARN_KERNEL = "kernel";
-	protected final String EXT_LEXICON_FILE = ".lex";
+	protected final String ENTRY_LEXICA     = "lexica";
+	protected final String ENTRY_MODEL      = "model";
 	
 	/** Language */
 	protected String  s_language   = AbstractReader.LANG_EN;
@@ -97,7 +98,7 @@ public class AbstractEngine
 	/** Prints <common> configuration. */
 	protected void printCommonConfig()
 	{
-		System.out.println("Configurations");
+		System.out.println("* Configurations");
 		System.out.println("- language   : "+s_language);
 		System.out.println("- format     : "+s_format);
 		System.out.println("- feature_xml: "+s_featureXml);

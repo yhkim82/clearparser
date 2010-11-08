@@ -23,6 +23,8 @@
 */
 package clear.train;
 
+import java.io.PrintStream;
+
 import clear.train.algorithm.IAlgorithm;
 import clear.train.kernel.AbstractKernel;
 import clear.train.kernel.LinearKernel;
@@ -39,6 +41,7 @@ abstract public class AbstractTrainer
 	static public final byte   ST_ONE_VS_ALL   = 1;
 	
 	protected String         s_modelFile;
+	protected PrintStream    f_out;
 	protected IAlgorithm     a_algorithm;
 	protected AbstractKernel k_kernel;
 	protected int            i_numThreads;
@@ -46,6 +49,23 @@ abstract public class AbstractTrainer
 	public AbstractTrainer(String instanceFile, String modelFile, IAlgorithm algorithm, byte kernel, int numThreads)
 	{
 		s_modelFile  = modelFile;
+		f_out        = null;
+		a_algorithm  = algorithm;
+		i_numThreads = numThreads;
+		
+		if (kernel == AbstractKernel.LINEAR)
+			k_kernel = new LinearKernel     (instanceFile);
+		else
+			k_kernel = new PermutationKernel(instanceFile);
+		
+		initModel();
+		train();
+	}
+	
+	public AbstractTrainer(String instanceFile, PrintStream fout, IAlgorithm algorithm, byte kernel, int numThreads)
+	{
+		s_modelFile  = null;
+		f_out        = fout;
 		a_algorithm  = algorithm;
 		i_numThreads = numThreads;
 		

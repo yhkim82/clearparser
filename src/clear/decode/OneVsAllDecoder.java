@@ -23,6 +23,7 @@
 */
 package clear.decode;
 
+import java.io.BufferedReader;
 import java.util.Arrays;
 
 import clear.model.OneVsAllModel;
@@ -43,6 +44,12 @@ public class OneVsAllDecoder extends AbstractMultiDecoder
 	{
 		super(kernel);
 		m_model = new OneVsAllModel(modelFile);
+	}
+	
+	public OneVsAllDecoder(BufferedReader fin, byte kernel)
+	{
+		super(kernel);
+		m_model = new OneVsAllModel(fin);
 	}
 	
 	public JIntDoubleTuple predict(int[] x)

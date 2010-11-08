@@ -106,8 +106,8 @@ abstract public class AbstractFtrXml
 			else
 			{
 				ArrayList<FtrTemplate> list = new ArrayList<FtrTemplate>();
-				list.add(ftr);
 				map.put(ftr.type, list);
+				list.add(ftr);
 			}
 		}
 		
@@ -125,6 +125,7 @@ abstract public class AbstractFtrXml
 		}
 	}
 	
+	/** Convert an xml-feature to {@link FtrTemplate}. */
 	protected FtrTemplate getFtrTemplate(Element eFeature)
 	{
 		int nToken = Integer.parseInt(eFeature.getAttribute(N));

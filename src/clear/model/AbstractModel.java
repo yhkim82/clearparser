@@ -36,6 +36,7 @@ import clear.train.kernel.AbstractKernel;
 abstract public class AbstractModel
 {
 	public int      n_features;
+	public int      n_labels;
 	public int[]    a_labels;
 	public double[] d_weights;
 	
@@ -49,6 +50,11 @@ abstract public class AbstractModel
 	public AbstractModel(String modelFile)
 	{
 		load(modelFile);
+	}
+	
+	public AbstractModel(BufferedReader fin)
+	{
+		load(fin);
 	}
 	
 	protected void readLabels(BufferedReader fin) throws Exception
@@ -98,19 +104,26 @@ abstract public class AbstractModel
 	
 	protected void printWeights(PrintStream fout) throws Exception
 	{
-		StringBuilder build = new StringBuilder();
-		int i;
+		StringBuilder build;
+		int i = 0, j;
 		
-		for (i=0; i<d_weights.length; i++)
+		while (i < d_weights.length)
 		{
-			build.append(d_weights[i]);
-			build.append(' ');
-		}
+			build = new StringBuilder();
+			
+			for (j=0; j<n_features; j++)
+			{
+				build.append(d_weights[i++]);
+				build.append(' ');
+			}
 		
-		fout.println(build.toString());
+			fout.println(build.toString());
+		}
 	}
 	
 	abstract public void init(AbstractKernel kernel);
 	abstract public void load(String modelFile);
+	abstract public void load(BufferedReader fin);
 	abstract public void save(String modelFile);
+	abstract public void save(PrintStream fout);
 }

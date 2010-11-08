@@ -24,15 +24,23 @@
 package clear.engine;
 
 
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
 
+import clear.decode.AbstractMultiDecoder;
 import clear.decode.OneVsAllDecoder;
 import clear.dep.DepNode;
 import clear.dep.DepTree;
+import clear.ftr.map.DepFtrMap;
+import clear.ftr.xml.DepFtrXml;
 import clear.parse.ShiftEagerParser;
 import clear.reader.AbstractReader;
 import clear.reader.CoNLLReader;
@@ -47,7 +55,7 @@ import clear.util.IOUtil;
  */
 public class DepPredict extends AbstractEngine
 {
-	private final String TAG_MORPH_DICT = "morph_dict";
+//	private final String TAG_MORPH_DICT = "morph_dict";
 	
 	@Option(name="-c", usage="configuration file", required=true, metaVar="REQUIRED")
 	private String s_configFile = null;
@@ -61,8 +69,6 @@ public class DepPredict extends AbstractEngine
 	private String s_morphDict  = null;
 	/** Flag to choose parsing algorithm */
 	private byte   i_flag       = ShiftEagerParser.FLAG_PREDICT;
-	/** Lexicon file */
-	private String s_lexiconFile;
 	
 	private int[]    n_size_total = new int[10];
 	private double[] d_time       = new double[10];
@@ -75,22 +81,39 @@ public class DepPredict extends AbstractEngine
 		try
 		{
 			cmd.parseArgument(args);
-
 			if (!initConfigElement(s_configFile))	return;
-			s_lexiconFile  = s_modelFile + EXT_LEXICON_FILE;
 			
-			System.out.println("- Loading model: "+s_modelFile);
-			OneVsAllDecoder decoder = new OneVsAllDecoder(s_modelFile, i_kernel); 
+			ZipInputStream zin = new ZipInputStream(new FileInputStream(s_modelFile));
+			ZipEntry zEntry;
+			
+			DepFtrXml xml = new DepFtrXml(s_featureXml);
+			DepFtrMap map = null;
+			AbstractMultiDecoder decoder = null;
+			
+			System.out.println("* Predict: "+s_inputFile);
+			
+			while ((zEntry = zin.getNextEntry()) != null)
+			{
+				if (zEntry.getName().equals(ENTRY_LEXICA))
+				{
+					System.out.println("- loading lexica");
+					map = new DepFtrMap(xml, new BufferedReader(new InputStreamReader(zin)));
+				}
+				else if (zEntry.getName().equals(ENTRY_MODEL))
+				{
+					System.out.println("- loading model");
+					decoder = new OneVsAllDecoder(new BufferedReader(new InputStreamReader(zin)), i_kernel);
+				}
+			}
 			
 			AbstractReader<DepNode, DepTree> reader = null;
 			if 		(s_format.equals(AbstractReader.FORMAT_POS))	reader = new PosReader  (s_inputFile, s_language, s_morphDict);
 			else if (s_format.equals(AbstractReader.FORMAT_DEP))	reader = new DepReader  (s_inputFile, false);
 			else 													reader = new CoNLLReader(s_inputFile, false);
 			
-			System.out.println("Predict: "+s_outputFile);
-			ShiftEagerParser   parser = new ShiftEagerParser(i_flag, s_featureXml, decoder, s_lexiconFile, s_inputFile);
-			PrintStream fout   = IOUtil.createPrintFileStream(s_outputFile);
-		//	PrintStream fplot  = JIO.createPrintFileOutputStream("plot.txt");
+			ShiftEagerParser parser = new ShiftEagerParser(i_flag, xml, map, decoder);
+			PrintStream      fout   = IOUtil.createPrintFileStream(s_outputFile);
+		//	PrintStream      fplot  = JIO.createPrintFileOutputStream("plot.txt");
 			DepTree     tree;
 			
 			long st, et;
@@ -104,16 +127,16 @@ public class DepPredict extends AbstractEngine
 				parser.parse(tree);	n++;
 				et   = System.currentTimeMillis();
 				fout.println(tree+"\n");
-				if (n%100 == 0)	System.out.print("\r- Parsing: "+n);
+				if (n%100 == 0)	System.out.print("\r- parsing: "+n);
 				
 				int index = (tree.size() >= 101) ? 9 : (tree.size()-1) / 10;
 				d_time [index]     += (et - st);
 				d_time_total       += (et - st);
 				n_size_total[index]++;
 			//	fplot.println(tree.size()+"\t"+tree.n_trans);
-			}	System.out.println("\r- Parsing: "+n);
+			}	System.out.println("\r- parsing: "+n);
 			
-			System.out.println("\nParsing time per sentence length:");
+			System.out.println("\n* Parsing time per sentence length");
 			for (int i=0; i<d_time.length; i++)
 				System.out.printf("<= %3d: %4.2f (ms)\n", (i+1)*10, d_time[i]/n_size_total[i]);
 			
@@ -124,6 +147,7 @@ public class DepPredict extends AbstractEngine
 			System.err.println(e.getMessage());
 			cmd.printUsage(System.err);
 		}
+		catch (Exception e) {e.printStackTrace();}
 	}
 	
 	static public void main(String[] args)
