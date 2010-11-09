@@ -33,7 +33,7 @@ The <*common*> element is required for both training and decoding.  It consists 
 
 == <*train*> ==
 
-The <*train*> element is required for training.  It consists of 1 required element (algorithm) and 2 optional elements.
+The <*train*> element is required for training.  It consists of 1 required element (*algorithm*) and 2 optional elements (*cutoff*, *threads*).
 
  * <*algorithm*> specifies a learning algorithm.  It requires an attribute *name*.
   * *name* ::= lib (LibLinear L2-SVM; default) | rrm (Robust Risk Minimization)
@@ -44,7 +44,7 @@ The <*train*> element is required for training.  It consists of 1 required eleme
   * *k* ::= rrm: max # of iterations (default = 40)
   * *m* ::= rrm: initial weights (default = 1.0)
  * <*cutoff*> specifies cutoff values for features.  For example, if it is set to 1, only features that appear more than once will be used for training.
-  * *ngram* ::= N-gram feature cutoff (default = 0)
+  * *ngram* ::= n-gram feature cutoff (default = 0)
  * <*threads*> ::= # of threads to be used during training (default = 2)
 
 == <*predict*> ==
