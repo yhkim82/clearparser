@@ -8,6 +8,8 @@ java -Xms8g clear.engine.DepTrain -i ../dat/wsj/wsj-2-21.gold -m ../models/wsj-o
 predicting
 java -Xms8g clear.engine.DepPredict -c ../config/en_dep_config.xml -i ../dat/wsj/wsj-23.gold -m ../models/wsj-onto.mod -o tmp.txt -t ../config/en_dep_feature.xml
 
+evaluating
+java clear.engine.DepEvaluate -g ../dat/wsj/wsj-23.gold -s tmp.txt 
 = Details =
 
 Add your content here.  Format your content with:
