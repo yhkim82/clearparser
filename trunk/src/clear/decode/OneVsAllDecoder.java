@@ -34,32 +34,29 @@ import com.carrotsearch.hppc.IntArrayList;
 /**
  * One-vs-all decoder.
  * @author Jinho D. Choi
- * <br><b>Last update:</b> 11/6/2010
+ * <br><b>Last update:</b> 11/8/2010
  */
 public class OneVsAllDecoder extends AbstractMultiDecoder
 {
 	protected OneVsAllModel m_model;
 	
-	public OneVsAllDecoder(String modelFile, byte kernel)
+	public OneVsAllDecoder(String modelFile)
 	{
-		super(kernel);
 		m_model = new OneVsAllModel(modelFile);
 	}
 	
-	public OneVsAllDecoder(BufferedReader fin, byte kernel)
+	public OneVsAllDecoder(BufferedReader fin)
 	{
-		super(kernel);
 		m_model = new OneVsAllModel(fin);
 	}
 	
 	public JIntDoubleTuple predict(int[] x)
 	{
-		return predictAux(m_model.getScores(kernelize(x)));
+		return predictAux(m_model.getScores(x));
 	}
 	
 	public JIntDoubleTuple predict(IntArrayList x)
 	{
-		kernelize(x);
 		return predictAux(m_model.getScores(x));
 	}
 	
@@ -79,19 +76,18 @@ public class OneVsAllDecoder extends AbstractMultiDecoder
 	
 	public JIntDoubleTuple[] predictAll(int[] x)
 	{
-		return predictAllAux(m_model.getScores(kernelize(x)));
+		return predictAllAux(m_model.getScores(x));
 	}
 	
 	public JIntDoubleTuple[] predictAll(IntArrayList x)
 	{
-		kernelize(x);
 		return predictAllAux(m_model.getScores(x));
 	}
 	
 	private JIntDoubleTuple[] predictAllAux(double[] scores)
 	{
-		JIntDoubleTuple[] aRes = new JIntDoubleTuple[m_model.n_labels];
 		int[] aLabels = m_model.a_labels;
+		JIntDoubleTuple[] aRes = new JIntDoubleTuple[m_model.n_labels];
 		
 		for (int i=0; i<m_model.n_labels; i++)
 			aRes[i] = new JIntDoubleTuple(aLabels[i], scores[i]);

@@ -27,52 +27,40 @@ import java.io.PrintStream;
 
 import clear.train.algorithm.IAlgorithm;
 import clear.train.kernel.AbstractKernel;
-import clear.train.kernel.LinearKernel;
-import clear.train.kernel.PermutationKernel;
 
 /**
  * Abstract trainer.
  * @author Jinho D. Choi
- * <b>Last update:</b> 11/6/2010
+ * <b>Last update:</b> 11/8/2010
  */
 abstract public class AbstractTrainer
 {
-	static public final byte   ST_BINARY       = 0;
-	static public final byte   ST_ONE_VS_ALL   = 1;
+	static public final byte ST_BINARY     = 0;
+	static public final byte ST_ONE_VS_ALL = 1;
 	
-	protected String         s_modelFile;
+	protected String         s_modelFile;	// output file
 	protected PrintStream    f_out;
 	protected IAlgorithm     a_algorithm;
 	protected AbstractKernel k_kernel;
 	protected int            i_numThreads;
 	
-	public AbstractTrainer(String instanceFile, String modelFile, IAlgorithm algorithm, byte kernel, int numThreads)
+	public AbstractTrainer(String modelFile, IAlgorithm algorithm, AbstractKernel kernel, int numThreads)
 	{
-		s_modelFile  = modelFile;
-		f_out        = null;
-		a_algorithm  = algorithm;
-		i_numThreads = numThreads;
-		
-		if (kernel == AbstractKernel.LINEAR)
-			k_kernel = new LinearKernel     (instanceFile);
-		else
-			k_kernel = new PermutationKernel(instanceFile);
-		
-		initModel();
-		train();
+		init(modelFile, null, algorithm, kernel, numThreads);
 	}
 	
-	public AbstractTrainer(String instanceFile, PrintStream fout, IAlgorithm algorithm, byte kernel, int numThreads)
+	public AbstractTrainer(PrintStream fout, IAlgorithm algorithm, AbstractKernel kernel, int numThreads)
 	{
-		s_modelFile  = null;
+		init(null, fout, algorithm, kernel, numThreads);
+	}
+	
+	protected void init(String modelFile, PrintStream fout, IAlgorithm algorithm, AbstractKernel kernel, int numThreads)
+	{
+		s_modelFile  = modelFile;
 		f_out        = fout;
 		a_algorithm  = algorithm;
+		k_kernel     = kernel;
 		i_numThreads = numThreads;
-		
-		if (kernel == AbstractKernel.LINEAR)
-			k_kernel = new LinearKernel     (instanceFile);
-		else
-			k_kernel = new PermutationKernel(instanceFile);
 		
 		initModel();
 		train();

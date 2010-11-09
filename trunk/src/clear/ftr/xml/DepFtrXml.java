@@ -23,6 +23,8 @@
 */
 package clear.ftr.xml;
 
+import java.io.InputStream;
+
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -51,7 +53,12 @@ public class DepFtrXml extends AbstractFtrXml
 	public DepFtrXml(String featureXml)
 	{
 		super(featureXml);
-	}	
+	}
+	
+	public DepFtrXml(InputStream fin)
+	{
+		super(fin);
+	}
 	
 	protected void initFeatures(Document doc) throws Exception
 	{

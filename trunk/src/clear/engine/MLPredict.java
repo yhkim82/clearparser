@@ -42,7 +42,7 @@ import clear.util.tuple.JIntDoubleTuple;
 /**
  * Predicts using a classifier.
  * @author Jinho D. Choi
- * <b>Last update:</b> 11/6/2010
+ * <b>Last update:</b> 11/8/2010
  */
 public class MLPredict
 {
@@ -52,8 +52,6 @@ public class MLPredict
 	String s_outputFile;
 	@Option(name="-m", usage="model file", required=true, metaVar="REQUIRED")
 	String s_modelFile;
-	@Option(name="-k", usage="kernel ::= "+AbstractKernel.LINEAR+" (linear; default) | "+AbstractKernel.PERMUTATION+" (permutation)", metaVar="OPTIONAL")
-	byte   i_kernel = AbstractKernel.LINEAR;
 	@Option(name="-s", usage="strategy ::= "+AbstractTrainer.ST_BINARY+" (binary) | "+AbstractTrainer.ST_ONE_VS_ALL+" (one-vs-all; default)", metaVar="OPTIONAL")
 	byte   i_strategy = AbstractTrainer.ST_ONE_VS_ALL;
 	
@@ -71,9 +69,9 @@ public class MLPredict
 			AbstractDecoder decode;
 			
 			if (i_strategy == AbstractTrainer.ST_BINARY)
-				decode = new BinaryDecoder(s_modelFile, i_kernel);
+				decode = new BinaryDecoder(s_modelFile);
 			else	// One-vs-all
-				decode = new OneVsAllDecoder(s_modelFile, i_kernel);
+				decode = new OneVsAllDecoder(s_modelFile);
 			
 			BufferedReader fin  = IOUtil.createBufferedFileReader(s_inputFile);
 			PrintStream    fout = IOUtil.createPrintFileStream(s_outputFile);

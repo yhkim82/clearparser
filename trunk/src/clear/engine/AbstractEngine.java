@@ -33,26 +33,25 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
 import clear.reader.AbstractReader;
-import clear.train.kernel.AbstractKernel;
 
 /**
- * <b>Last update:</b> 6/29/2010
+ * <b>Last update:</b> 11/8/2010
  * @author Jinho D. Choi
  */
 public class AbstractEngine
 {
-	protected final String TAG_LANGUAGE     = "language";
-	protected final String TAG_FORMAT       = "format";
-	protected final String TAG_LEARN_KERNEL = "kernel";
-	protected final String ENTRY_LEXICA     = "lexica";
-	protected final String ENTRY_MODEL      = "model";
+	protected final String TAG_COMMON          = "common";
+	protected final String TAG_COMMON_LANGUAGE = "language";
+	protected final String TAG_COMMON_FORMAT   = "format";
+	
+	protected final String ENTRY_LEXICA  = "lexica";
+	protected final String ENTRY_MODEL   = "model";
+	protected final String ENTRY_FEATURE = "feature";
 	
 	/** Language */
 	protected String  s_language = AbstractReader.LANG_EN;
 	/** Format */
 	protected String  s_format   = AbstractReader.FORMAT_DEP;
-	/** Kernel type */
-	protected byte    i_kernel   = AbstractKernel.LINEAR;
 	/** Configuration element */
 	protected Element e_config;
 	
@@ -76,29 +75,19 @@ public class AbstractEngine
 		}
 	}
 	
-	/** Initializes a configuration file. */	
+	/** Initializes <common> elements. */	
 	protected boolean initElements()
 	{
+		Element eCommon = getElement(e_config, TAG_COMMON);
 		Element element;
 		
-		if ((element = getElement(e_config, TAG_LANGUAGE)) != null)
+		if ((element = getElement(eCommon, TAG_COMMON_LANGUAGE)) != null)
 			s_language = element.getTextContent().trim();
 		
-		if ((element = getElement(e_config, TAG_FORMAT)) != null)
+		if ((element = getElement(eCommon, TAG_COMMON_FORMAT)) != null)
 			s_format = element.getTextContent().trim();
 		
-		if ((element = getElement(e_config, TAG_LEARN_KERNEL)) != null)
-			i_kernel = Byte.parseByte(element.getTextContent().trim());
-		
 		return true;
-	}
-	
-	/** Prints <common> configuration. */
-	protected void printConfig()
-	{
-		System.out.println("* Configurations");
-		System.out.println("- language   : "+s_language);
-		System.out.println("- format     : "+s_format);
 	}
 	
 	protected Element getElement(Element parent, String name)

@@ -25,6 +25,7 @@ package clear.engine;
 
 
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
@@ -56,7 +57,8 @@ import clear.util.IOUtil;
  */
 public class DepPredict extends AbstractEngine
 {
-	private final String TAG_MORPH_DICT = "morph_dict";
+	private final String TAG_PREDICT            = "predict";
+	private final String TAG_PREDICT_MORPH_DICT = "morph_dict";
 	
 	@Option(name="-c", usage="configuration file", required=true, metaVar="REQUIRED")
 	private String s_configFile = null;
@@ -66,9 +68,7 @@ public class DepPredict extends AbstractEngine
 	private String s_outputFile = null;
 	@Option(name="-m", usage="model file", required=true, metaVar="REQUIRED")
 	private String s_modelFile  = null;
-	@Option(name="-t", usage="feature template file", required=true, metaVar="REQUIRED")
-	protected String  s_featureXml = null;
-	/** Lemmatizer dictionary directory */
+	/** Morphological dictionary directory */
 	private String s_morphDict  = null;
 	/** Flag to choose parsing algorithm */
 	private byte   i_flag       = ShiftEagerParser.FLAG_PREDICT;
@@ -89,8 +89,8 @@ public class DepPredict extends AbstractEngine
 			ZipInputStream zin = new ZipInputStream(new FileInputStream(s_modelFile));
 			ZipEntry zEntry;
 			
-			DepFtrXml xml = new DepFtrXml(s_featureXml);
-			DepFtrMap map = null;
+			DepFtrXml            xml     = null;
+			DepFtrMap            map     = null;
 			AbstractMultiDecoder decoder = null;
 			
 			printConfig();
@@ -98,6 +98,23 @@ public class DepPredict extends AbstractEngine
 			
 			while ((zEntry = zin.getNextEntry()) != null)
 			{
+				if (zEntry.getName().equals(ENTRY_FEATURE))
+				{
+					System.out.println("- loading feature template");
+					
+					BufferedReader reader = new BufferedReader(new InputStreamReader(zin));
+					StringBuilder  build  = new StringBuilder();
+					String string;
+
+					while ((string = reader.readLine()) != null)
+					{
+						build.append(string);
+						build.append("\n");
+					}
+					
+					xml = new DepFtrXml(new ByteArrayInputStream(build.toString().getBytes()));
+				}
+				
 				if (zEntry.getName().equals(ENTRY_LEXICA))
 				{
 					System.out.println("- loading lexica");
@@ -106,7 +123,7 @@ public class DepPredict extends AbstractEngine
 				else if (zEntry.getName().equals(ENTRY_MODEL))
 				{
 					System.out.println("- loading model");
-					decoder = new OneVsAllDecoder(new BufferedReader(new InputStreamReader(zin)), i_kernel);
+					decoder = new OneVsAllDecoder(new BufferedReader(new InputStreamReader(zin)));
 				}
 			}
 			
@@ -156,16 +173,18 @@ public class DepPredict extends AbstractEngine
 	
 	protected boolean initElements()
 	{
-		super.initElements();
-		Element element;
+		if (!super.initElements())	return false;
 		
 		if (s_format.equals(AbstractReader.FORMAT_POS))
 		{
-			if ((element = getElement(e_config, TAG_MORPH_DICT)) != null)
+			Element ePredict = getElement(e_config, TAG_PREDICT);
+			Element element;
+			
+			if ((element = getElement(ePredict, TAG_PREDICT_MORPH_DICT)) != null)
 				s_morphDict = element.getTextContent().trim();
 			else
 			{
-				System.err.println("Morphology dictionary file is not specified in '"+s_featureXml+"'");
+				System.err.println("Dictionary file is not specified in '"+s_configFile+"'");
 				return false;
 			}
 		}
@@ -175,12 +194,12 @@ public class DepPredict extends AbstractEngine
 	
 	protected void printConfig()
 	{
-		super.printConfig();
-		
-		System.out.println("- feature_xml: "+s_featureXml);
+		System.out.println("* Configurations");
+		System.out.println("- language  : "+s_language);
+		System.out.println("- format    : "+s_format);
 		if (s_morphDict != null)
-			System.out.println("- morph_dict : "+s_morphDict);
-		System.out.println("- input_file : "+s_inputFile);
+			System.out.println("- morph_dict: "+s_morphDict);
+		System.out.println("- input_file: "+s_inputFile);
 	}
 	
 	static public void main(String[] args)

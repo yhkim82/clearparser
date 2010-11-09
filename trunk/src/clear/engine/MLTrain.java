@@ -33,12 +33,12 @@ import clear.train.OneVsAllTrainer;
 import clear.train.algorithm.IAlgorithm;
 import clear.train.algorithm.LibLinearL2;
 import clear.train.algorithm.RRM;
-import clear.train.kernel.AbstractKernel;
+import clear.train.kernel.LinearKernel;
 
 /**
  * Trains a classifier.
  * @author Jinho D. Choi
- * <b>Last update:</b> 11/6/2010
+ * <b>Last update:</b> 11/8/2010
  */
 public class MLTrain
 {
@@ -48,8 +48,6 @@ public class MLTrain
 	String s_modelFile;
 	@Option(name="-a", usage="algorithm ::= "+IAlgorithm.LIBLINEAR_L2+" (LibLinear L2-SVM; default) |\n              "+IAlgorithm.RRM+" (Robust Risk Minimization)", metaVar="OPTIONAL")
 	String s_algorithm = IAlgorithm.LIBLINEAR_L2;
-	@Option(name="-k", usage="kernel ::= "+AbstractKernel.LINEAR+" (linear; default) | "+AbstractKernel.PERMUTATION+" (permutation)", metaVar="OPTIONAL")
-	byte   i_kernel = AbstractKernel.LINEAR;
 	@Option(name="-s", usage="strategy ::= "+AbstractTrainer.ST_BINARY+" (binary) | "+AbstractTrainer.ST_ONE_VS_ALL+" (one-vs-all; default)", metaVar="OPTIONAL")
 	byte   i_strategy = AbstractTrainer.ST_ONE_VS_ALL;
 	@Option(name="-n", usage="# of threads to train with (default = 2)", metaVar="OPTIONAL")
@@ -90,9 +88,9 @@ public class MLTrain
 			}
 			
 			if (i_strategy == AbstractTrainer.ST_BINARY)
-				new BinaryTrainer(s_instanceFile, s_modelFile, algorithm, i_kernel);
+				new BinaryTrainer(s_modelFile, algorithm, new LinearKernel(s_instanceFile));
 			else	// One-vs-all
-				new OneVsAllTrainer(s_instanceFile, s_modelFile, algorithm, i_kernel, i_numThreads);
+				new OneVsAllTrainer(s_modelFile, algorithm, new LinearKernel(s_instanceFile), i_numThreads);
 			
 			long time = System.currentTimeMillis() - st;
 			System.out.printf("\n* Training time: %d hours, %d minutes\n", time/(1000*3600), time/(1000*60));
