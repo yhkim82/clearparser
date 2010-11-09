@@ -3,10 +3,10 @@
 = Introduction =
 
 training
-java -Xms8g clear.engine.DepTrain -i ../dat/wsj/wsj-2-21.gold -m ../models/wsj-onto.mod -c ../config_en.xml -t ../ftr/en_dep_feature.xm
+java -Xms8g clear.engine.DepTrain -c ../config/en_dep_config.xml -t ../config/en_dep_feature.xml -i ../wsj/wsj-2-21.gold -m ../models/wsj-onto.mod
 
 predicting
-java -Xms8g clear.engine.DepPredict -c ../config/en_dep_config.xml -i ../dat/wsj/wsj-23.gold -m ../models/wsj-onto.mod -o tmp.txt -t ../config/en_dep_feature.xml
+java -Xms8g clear.engine.DepPredict -c ../config/en_dep_config.xml -i ../wsj/wsj-23.gold -m ../models/wsj-onto.mod -o ../wsj/wsj-23.parse
 
 evaluating
 java clear.engine.DepEvaluate -g ../dat/wsj/wsj-23.gold -s tmp.txt 
