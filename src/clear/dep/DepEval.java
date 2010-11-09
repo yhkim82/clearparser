@@ -81,8 +81,8 @@ public class DepEval
 	
 	public void print()
 	{
-		System.out.printf("LAS: %4.2f% (%d/%d)", getLas()*100, n_las, n_total);
-		System.out.printf("UAS: %4.2f% (%d/%d)", getUas()*100, n_uas, n_total);
-		System.out.printf("LS : %4.2f% (%d/%d)", getLs() *100, n_ls , n_total);
+		System.out.printf("LAS: %4.2f%% (%d/%d)\n", getLas()*100, n_las, n_total);
+		System.out.printf("UAS: %4.2f%% (%d/%d)\n", getUas()*100, n_uas, n_total);
+		System.out.printf("LS : %4.2f%% (%d/%d)\n", getLs() *100, n_ls , n_total);
 	}
 }

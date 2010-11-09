@@ -43,24 +43,21 @@ public class AbstractEngine
 {
 	protected final String TAG_LANGUAGE     = "language";
 	protected final String TAG_FORMAT       = "format";
-	protected final String TAG_FEATURE_XML  = "feature_xml";
 	protected final String TAG_LEARN_KERNEL = "kernel";
 	protected final String ENTRY_LEXICA     = "lexica";
 	protected final String ENTRY_MODEL      = "model";
 	
 	/** Language */
-	protected String  s_language   = AbstractReader.LANG_EN;
+	protected String  s_language = AbstractReader.LANG_EN;
 	/** Format */
-	protected String  s_format     = null;
-	/** Feature template file */
-	protected String  s_featureXml = null;
+	protected String  s_format   = AbstractReader.FORMAT_DEP;
 	/** Kernel type */
-	protected byte    i_kernel     = AbstractKernel.LINEAR;
+	protected byte    i_kernel   = AbstractKernel.LINEAR;
 	/** Configuration element */
 	protected Element e_config;
 	
 	/** Initializes <configuration> element. */
-	public boolean initConfigElement(String configXml)
+	public boolean initConfigElements(String configXml)
 	{
 		DocumentBuilderFactory dFactory = DocumentBuilderFactory.newInstance();
 		
@@ -70,15 +67,17 @@ public class AbstractEngine
 			Document        doc     = builder.parse(new File(configXml));
 			
 			e_config = doc.getDocumentElement();
-			initElements();
+			return initElements();
 		}
-		catch (Exception e) {e.printStackTrace();return false;}
-		
-		return true;
+		catch (Exception e)
+		{
+			e.printStackTrace();
+			return false;
+		}
 	}
 	
 	/** Initializes a configuration file. */	
-	protected void initElements()
+	protected boolean initElements()
 	{
 		Element element;
 		
@@ -88,20 +87,18 @@ public class AbstractEngine
 		if ((element = getElement(e_config, TAG_FORMAT)) != null)
 			s_format = element.getTextContent().trim();
 		
-		if ((element = getElement(e_config, TAG_FEATURE_XML)) != null)
-			s_featureXml = element.getTextContent().trim();
-		
 		if ((element = getElement(e_config, TAG_LEARN_KERNEL)) != null)
 			i_kernel = Byte.parseByte(element.getTextContent().trim());
+		
+		return true;
 	}
 	
 	/** Prints <common> configuration. */
-	protected void printCommonConfig()
+	protected void printConfig()
 	{
 		System.out.println("* Configurations");
 		System.out.println("- language   : "+s_language);
 		System.out.println("- format     : "+s_format);
-		System.out.println("- feature_xml: "+s_featureXml);
 	}
 	
 	protected Element getElement(Element parent, String name)

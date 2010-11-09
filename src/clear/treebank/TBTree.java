@@ -226,6 +226,30 @@ public class TBTree
 		return str+")";	
 	}
 	
+	public String toStanfordPos()
+	{
+		StringBuilder build = new StringBuilder();
+		
+		toStanfordPosAux(nd_root, build);
+		return build.toString().trim();
+	}
+	
+	private void toStanfordPosAux(TBNode curr, StringBuilder build)
+	{
+		if (!curr.isPhrase())
+		{
+			build.append(curr.form);
+			build.append("_");
+			build.append(curr.pos);
+			build.append(" ");
+		}
+		else
+		{
+			for (TBNode child : curr.getChildren())
+				toStanfordPosAux(child, build);
+		}
+	}
+	
 	public void countTags(HashMap<String,Integer> map, int[] tCount, int[] pCount, int[] overlap)
 	{
 		countTagsAux(nd_root, map, tCount, pCount, overlap);
