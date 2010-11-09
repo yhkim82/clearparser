@@ -10,6 +10,6 @@
 		<threads>2</threads>
 	</train>
 	<predict>
-		<morph_dict>lib/en_dict-1.0.jar</morph_dict>
+		<morph_dict>../lib/en_dict-1.0.jar</morph_dict>
 	</predict>
 </configuration>
