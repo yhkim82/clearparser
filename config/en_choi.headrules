@@ -27,3 +27,5 @@ WHNP	r	NN.*|NML;CD;VBG;NP;JJ.*;WP;QP;WHNP;WHADJP;.*
 WHPP	l	IN|TO;.*
 X	r	.*
 EDITED	r	VB.*|VP;NN.*|PRP|NP;IN|PP;S.*;.*
+CIT	l	NNP.*;NN.*;CD;.*
+CAPTION	r	.*
