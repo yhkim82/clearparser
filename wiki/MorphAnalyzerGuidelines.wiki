@@ -20,4 +20,4 @@ java clear.engine.MorphAnalyze -i dat/morph.in -o dat/morph.out -d lib/en_dict.j
 
 == Dictionary file ==
 
- * English dictionary file can be found from '[http://clearparser.googlecode.com/svn/trunk/lib/en_dict.jar lib/en_dict.jar]'.
+ * English dictionary file can be found from '[http://clearparser.googlecode.com/svn/trunk/lib/en_dict-1.0.jar lib/en_dict-1.0.jar]'.
