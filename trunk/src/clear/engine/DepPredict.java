@@ -34,6 +34,7 @@ import java.util.zip.ZipInputStream;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
+import org.w3c.dom.Element;
 
 import clear.decode.AbstractMultiDecoder;
 import clear.decode.OneVsAllDecoder;
@@ -55,7 +56,7 @@ import clear.util.IOUtil;
  */
 public class DepPredict extends AbstractEngine
 {
-//	private final String TAG_MORPH_DICT = "morph_dict";
+	private final String TAG_MORPH_DICT = "morph_dict";
 	
 	@Option(name="-c", usage="configuration file", required=true, metaVar="REQUIRED")
 	private String s_configFile = null;
@@ -65,6 +66,8 @@ public class DepPredict extends AbstractEngine
 	private String s_outputFile = null;
 	@Option(name="-m", usage="model file", required=true, metaVar="REQUIRED")
 	private String s_modelFile  = null;
+	@Option(name="-t", usage="feature template file", required=true, metaVar="REQUIRED")
+	protected String  s_featureXml = null;
 	/** Lemmatizer dictionary directory */
 	private String s_morphDict  = null;
 	/** Flag to choose parsing algorithm */
@@ -81,7 +84,7 @@ public class DepPredict extends AbstractEngine
 		try
 		{
 			cmd.parseArgument(args);
-			if (!initConfigElement(s_configFile))	return;
+			if (!initConfigElements(s_configFile))	return;
 			
 			ZipInputStream zin = new ZipInputStream(new FileInputStream(s_modelFile));
 			ZipEntry zEntry;
@@ -90,7 +93,8 @@ public class DepPredict extends AbstractEngine
 			DepFtrMap map = null;
 			AbstractMultiDecoder decoder = null;
 			
-			System.out.println("* Predict: "+s_inputFile);
+			printConfig();
+			System.out.println("\n* Predict");
 			
 			while ((zEntry = zin.getNextEntry()) != null)
 			{
@@ -148,6 +152,35 @@ public class DepPredict extends AbstractEngine
 			cmd.printUsage(System.err);
 		}
 		catch (Exception e) {e.printStackTrace();}
+	}
+	
+	protected boolean initElements()
+	{
+		super.initElements();
+		Element element;
+		
+		if (s_format.equals(AbstractReader.FORMAT_POS))
+		{
+			if ((element = getElement(e_config, TAG_MORPH_DICT)) != null)
+				s_morphDict = element.getTextContent().trim();
+			else
+			{
+				System.err.println("Morphology dictionary file is not specified in '"+s_featureXml+"'");
+				return false;
+			}
+		}
+		
+		return true;
+	}
+	
+	protected void printConfig()
+	{
+		super.printConfig();
+		
+		System.out.println("- feature_xml: "+s_featureXml);
+		if (s_morphDict != null)
+			System.out.println("- morph_dict : "+s_morphDict);
+		System.out.println("- input_file : "+s_inputFile);
 	}
 	
 	static public void main(String[] args)

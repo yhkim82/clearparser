@@ -42,11 +42,11 @@ public class PosReader extends AbstractReader<DepNode,DepTree>
 	 * Initializes the dependency reader for <code>filename</code>.
 	 * @param filename name of the file containing dependency trees
 	 */
-	public PosReader(String filename, String language, String morphDictDir)
+	public PosReader(String filename, String language, String morphDict)
 	{
 		super(filename);
 		
-		if ((language.equals(LANG_EN)))	morph_analyzer = new MorphEnAnalyzer(morphDictDir);
+		if ((language.equals(LANG_EN)))	morph_analyzer = new MorphEnAnalyzer(morphDict);
 	}
 	
 	/** 
