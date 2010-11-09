@@ -1,6 +1,6 @@
 #summary Data format
 
-ClearParser supports 4 data formats: a part-of-speech format, a dependency format, and the CoNLL-X format.
+ClearParser currently supports 3 data formats: a part-of-speech format, a dependency format, and the CoNLL-X format.
 
 == Part-of-speech format (pos) ==
 
