@@ -27,24 +27,25 @@ import java.io.PrintStream;
 
 import clear.model.BinaryModel;
 import clear.train.algorithm.IAlgorithm;
+import clear.train.kernel.AbstractKernel;
 
 /**
  * Binary trainer.
  * @author Jinho D. Choi
- * <b>Last update:</b> 11/6/2010
+ * <b>Last update:</b> 11/8/2010
  */
 public class BinaryTrainer extends AbstractTrainer
 {
 	protected BinaryModel m_model;
 	
-	public BinaryTrainer(String instanceFile, String modelFile, IAlgorithm algorithm, byte kernel)
+	public BinaryTrainer(String modelFile, IAlgorithm algorithm, AbstractKernel kernel)
 	{
-		super(instanceFile, modelFile, algorithm, kernel, 1);
+		super(modelFile, algorithm, kernel, 1);
 	}
 	
-	public BinaryTrainer(String instanceFile, PrintStream fout, IAlgorithm algorithm, byte kernel, int numThreads)
+	public BinaryTrainer(PrintStream fout, IAlgorithm algorithm, AbstractKernel kernel, int numThreads)
 	{
-		super(instanceFile, fout, algorithm, kernel, numThreads);
+		super(fout, algorithm, kernel, numThreads);
 	}
 	
 	protected void initModel()

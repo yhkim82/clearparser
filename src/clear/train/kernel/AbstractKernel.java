@@ -40,11 +40,6 @@ import com.carrotsearch.hppc.IntOpenHashSet;
  */
 abstract public class AbstractKernel
 {
-	/** Linear kernel */
-	static public final byte LINEAR      = 0;
-	/** Permutation kernel */
-	static public final byte PERMUTATION = 1;
-	
 	/** Delimiter between index and value (e.g. 3:0.12) */
 	static public final String FTR_DELIM = ":";
 	/** Delimiter between columns (e.g. 0:0.12 3:0.45) */

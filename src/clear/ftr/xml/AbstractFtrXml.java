@@ -24,6 +24,8 @@
 package clear.ftr.xml;
 
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -38,7 +40,7 @@ import org.w3c.dom.NodeList;
 /**
  * Read abstract features from a xml file.
  * @author Jinho D. Choi
- * <b>Last update:</b> 11/6/2010
+ * <b>Last update:</b> 11/8/2010
  */
 abstract public class AbstractFtrXml
 {
@@ -65,17 +67,26 @@ abstract public class AbstractFtrXml
 	
 	public AbstractFtrXml(String featureXml)
 	{
-		init(featureXml);
+		try
+		{
+			init(new FileInputStream(featureXml));
+		}
+		catch (FileNotFoundException e) {e.printStackTrace();}
 	}
 	
-	public void init(String featureXml)
+	public AbstractFtrXml(InputStream fin)
+	{
+		init(fin);
+	}
+	
+	public void init(InputStream fin)
 	{
 		DocumentBuilderFactory dFactory = DocumentBuilderFactory.newInstance();
 		
 		try
 		{
 			DocumentBuilder builder = dFactory.newDocumentBuilder();
-			Document        doc     = builder.parse(new FileInputStream(featureXml));
+			Document        doc     = builder.parse(fin);
 			
 			initNgrams  (doc);
 			initFeatures(doc);

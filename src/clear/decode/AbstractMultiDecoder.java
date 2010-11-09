@@ -30,15 +30,10 @@ import com.carrotsearch.hppc.IntArrayList;
 /**
  * Abstract decoder for multi-classification.
  * @author Jinho D. Choi
- * <br><b>Last update:</b> 11/6/2010
+ * <br><b>Last update:</b> 11/8/2010
  */
 public abstract class AbstractMultiDecoder extends AbstractDecoder
 {
-	public AbstractMultiDecoder(byte kernel)
-	{
-		super(kernel);
-	}
-
 	abstract public JIntDoubleTuple[] predictAll(int[] x);
 	abstract public JIntDoubleTuple[] predictAll(IntArrayList x);
 }

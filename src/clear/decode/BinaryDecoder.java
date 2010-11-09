@@ -33,32 +33,29 @@ import com.carrotsearch.hppc.IntArrayList;
 /**
  * Binary decoder.
  * @author Jinho D. Choi
- * <br><b>Last update:</b> 10/19/2010
+ * <br><b>Last update:</b> 11/8/2010
  */
 public class BinaryDecoder extends AbstractDecoder
 {
 	protected BinaryModel m_model;
 	
-	public BinaryDecoder(String modelFile, byte kernel)
+	public BinaryDecoder(String modelFile)
 	{
-		super(kernel);
 		m_model = new BinaryModel(modelFile);
 	}
 	
-	public BinaryDecoder(BufferedReader fin, byte kernel)
+	public BinaryDecoder(BufferedReader fin)
 	{
-		super(kernel);
 		m_model = new BinaryModel(fin);
 	}
 	
 	public JIntDoubleTuple predict(int[] x)
 	{
-		return predictAux(m_model.getScore(kernelize(x)));
+		return predictAux(m_model.getScore(x));
 	}
 	
 	public JIntDoubleTuple predict(IntArrayList x)
 	{
-		kernelize(x);
 		return predictAux(m_model.getScore(x));
 	}
 	

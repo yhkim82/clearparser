@@ -23,8 +23,6 @@
 */
 package clear.decode;
 
-import clear.train.kernel.AbstractKernel;
-import clear.train.kernel.PermutationKernel;
 import clear.util.tuple.JIntDoubleTuple;
 
 import com.carrotsearch.hppc.IntArrayList;
@@ -32,28 +30,10 @@ import com.carrotsearch.hppc.IntArrayList;
 /**
  * Abstract decoder.
  * @author Jinho D. Choi
- * <br><b>Last update:</b> 11/6/2010
+ * <br><b>Last update:</b> 11/8/2010
  */
 public abstract class AbstractDecoder
 {
-	protected byte i_kernel;
-	
-	public AbstractDecoder(byte kernel)
-	{
-		i_kernel = kernel;
-	}
-	
-	protected int[] kernelize(int[] x)
-	{
-		return PermutationKernel.kernelize(x);
-	}
-	
-	protected void kernelize(IntArrayList x)
-	{
-		if (i_kernel == AbstractKernel.PERMUTATION)
-			PermutationKernel.kernelize(x);
-	}
-
 	abstract public JIntDoubleTuple predict(int[] x);
 	abstract public JIntDoubleTuple predict(IntArrayList x);
 }

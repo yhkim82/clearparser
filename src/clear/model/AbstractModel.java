@@ -52,6 +52,7 @@ abstract public class AbstractModel
 		load(modelFile);
 	}
 	
+	/** For decoding. */
 	public AbstractModel(BufferedReader fin)
 	{
 		load(fin);

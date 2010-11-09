@@ -46,6 +46,7 @@ import clear.train.OneVsAllTrainer;
 import clear.train.algorithm.IAlgorithm;
 import clear.train.algorithm.LibLinearL2;
 import clear.train.algorithm.RRM;
+import clear.train.kernel.LinearKernel;
 
 /**
  * Trains dependency parser.
@@ -54,24 +55,24 @@ import clear.train.algorithm.RRM;
  */
 public class DepTrain extends AbstractEngine
 {
-	private final String EXT_INSTANCE_FILE = ".ftr";
-	private final String TAG_ALGORITHM     = "algorithm";
-	private final String TAG_CUTOFF        = "cutoff";
-	private final String TAG_CUTOFF_NGRAM  = "ngram";
-	
+	private final String TAG_TRAIN           = "train";
+	private final String TAG_TRAIN_ALGORITHM = "algorithm";
+	private final String TAG_TRAIN_CUTOFF    = "cutoff";
+	private final String EXT_INSTANCE_FILE   = ".ftr";	
 	
 	@Option(name="-c", usage="configuration file", required=true, metaVar="REQUIRED")
 	private String s_configFile = null;
 	@Option(name="-i", usage="training file", required=true, metaVar="REQUIRED")
-	private String s_trainFile  = null; 
+	private String s_trainFile = null; 
 	@Option(name="-m", usage="model file", required=true, metaVar="REQUIRED")
-	private String s_modelFile  = null;
+	private String s_modelFile = null;
 	@Option(name="-t", usage="feature template file", required=true, metaVar="REQUIRED")
-	protected String  s_featureXml = null;
+	private String s_featureXml = null;
 	@Option(name="-f", usage=ShiftEagerParser.FLAG_PRINT_LEXICON+": train model (default), "+ShiftEagerParser.FLAG_PRINT_TRANSITION+": print transitions", metaVar="OPTIONAL")
-	private byte   i_flag       = ShiftEagerParser.FLAG_PRINT_LEXICON;
+	private byte   i_flag = ShiftEagerParser.FLAG_PRINT_LEXICON;
 	/** N-gram cutoff */
 	private int    i_ngramCutoff = 0;
+	
 	private String s_instanceFile;
 	private JarArchiveOutputStream z_out;
 	
@@ -151,17 +152,19 @@ public class DepTrain extends AbstractEngine
 		if (flag == ShiftEagerParser.FLAG_PRINT_LEXICON)
 		{
 			System.out.println("- saving");
-			System.out.println("- n-gram cutoff = "+i_ngramCutoff);
+			System.out.println("- cutoff: n-gram = "+i_ngramCutoff);
 			parser.saveTags(ENTRY_LEXICA, i_ngramCutoff);
 		}
 		else if (flag == ShiftEagerParser.FLAG_PRINT_INSTANCE)
 		{
 			parser.closeOutputStream();
-			JarArchiveEntry entry  = new JarArchiveEntry(ENTRY_LEXICA);
 			
-			z_out.putArchiveEntry(entry);
+			z_out.putArchiveEntry(new JarArchiveEntry(ENTRY_FEATURE));
+			IOUtils.copy(new FileInputStream(s_featureXml), z_out);
+			z_out.closeArchiveEntry();
+			
+			z_out.putArchiveEntry(new JarArchiveEntry(ENTRY_LEXICA));
 			IOUtils.copy(new FileInputStream(ENTRY_LEXICA), z_out);
-			
 			z_out.closeArchiveEntry();
 			new File(ENTRY_LEXICA).delete();
 		}
@@ -170,14 +173,15 @@ public class DepTrain extends AbstractEngine
 	/** Trains the LibLinear classifier. */
 	private void trainModel() throws Exception
 	{
-		IAlgorithm algorithm = null;
 		
-		Element element;
-		String name, tmp;
-		StringBuilder options = new StringBuilder();
 		
-		element = getElement(e_config, TAG_ALGORITHM);
-		name    = element.getAttribute("name").trim();
+		Element eTrain  = getElement(e_config, TAG_TRAIN);
+		Element element = getElement(eTrain, TAG_TRAIN_ALGORITHM);
+		String  name    = element.getAttribute("name").trim();
+		
+		StringBuilder options   = new StringBuilder();
+		IAlgorithm    algorithm = null;		
+		String        tmp;
 		
 		if (name.equals(IAlgorithm.LIBLINEAR_L2))
 		{
@@ -236,13 +240,12 @@ public class DepTrain extends AbstractEngine
 		
 		int numThreads = 2;
 		
-		element = getElement(e_config, "threads");
+		element = getElement(eTrain, "threads");
 		if (element != null)	numThreads = Integer.parseInt(element.getTextContent().trim());
 		
 		System.out.println("\n* Train model");
 		System.out.println("- algorithm: "+name);
 		System.out.println("- options  : "+options.toString());
-		System.out.println("- kernel   : "+i_kernel);
 		System.out.println("- threads  : "+numThreads);
 		System.out.println();
 		
@@ -250,7 +253,7 @@ public class DepTrain extends AbstractEngine
 		z_out.putArchiveEntry(entry);
 		
 		long st = System.currentTimeMillis();
-		new OneVsAllTrainer(s_instanceFile, new PrintStream(z_out), algorithm, i_kernel, numThreads);
+		new OneVsAllTrainer(new PrintStream(z_out), algorithm, new LinearKernel(s_instanceFile), numThreads);
 		long time = System.currentTimeMillis() - st;
 		System.out.printf("- duration: %d hours, %d minutes\n", time/(1000*3600), time/(1000*60));
 		
@@ -259,21 +262,25 @@ public class DepTrain extends AbstractEngine
 	
 	protected boolean initElements()
 	{
-		super.initElements();
+		if (!super.initElements())	return false;
 		
-		Element eCutoff = getElement(e_config, TAG_CUTOFF);
+		Element eTrain = getElement(e_config, TAG_TRAIN);
 		Element element;
 		
-		if ((element = getElement(eCutoff, TAG_CUTOFF_NGRAM)) != null)
-			i_ngramCutoff = Integer.parseInt(element.getTextContent().trim());
+		if ((element = getElement(eTrain, TAG_TRAIN_CUTOFF)) != null)
+		{
+			if (element.hasAttribute("ngram"))
+				i_ngramCutoff = Integer.parseInt(element.getAttribute("ngram"));
+		}
 	
 		return true;
 	}
 	
 	protected void printConfig()
 	{
-		super.printConfig();
-		
+		System.out.println("* Configurations");
+		System.out.println("- language   : "+s_language);
+		System.out.println("- format     : "+s_format);
 		System.out.println("- feature_xml: "+s_featureXml);
 		System.out.println("- train_file : "+s_trainFile);
 	}

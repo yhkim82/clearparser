@@ -30,24 +30,25 @@ import java.util.concurrent.TimeUnit;
 
 import clear.model.OneVsAllModel;
 import clear.train.algorithm.IAlgorithm;
+import clear.train.kernel.AbstractKernel;
 
 /**
  * One-vs-all trainer.
  * @author Jinho D. Choi
- * <b>Last update:</b> 11/6/2010
+ * <b>Last update:</b> 11/8/2010
  */
 public class OneVsAllTrainer extends AbstractTrainer
 {
 	volatile protected OneVsAllModel m_model;
 	
-	public OneVsAllTrainer(String instanceFile, String modelFile, IAlgorithm algorithm, byte kernel, int numThreads)
+	public OneVsAllTrainer(String modelFile, IAlgorithm algorithm, AbstractKernel kernel, int numThreads)
 	{
-		super(instanceFile, modelFile, algorithm, kernel, numThreads);
+		super(modelFile, algorithm, kernel, numThreads);
 	}
 	
-	public OneVsAllTrainer(String instanceFile, PrintStream fout, IAlgorithm algorithm, byte kernel, int numThreads)
+	public OneVsAllTrainer(PrintStream fout, IAlgorithm algorithm, AbstractKernel kernel, int numThreads)
 	{
-		super(instanceFile, fout, algorithm, kernel, numThreads);
+		super(fout, algorithm, kernel, numThreads);
 	}
 	
 	protected void initModel()
