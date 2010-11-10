@@ -1,28 +1,22 @@
 #summary Phrase-to-dependency converter: guidelines
 
-= Clear phrase-to-dependency converter =
+= Clear constituent-to-dependency converter =
 
-_Clear phrase-to-dependency converter_ takes phrase structure trees in the [http://www.cis.upenn.edu/~treebank/ Penn Treebank format] as input and generates corresponding dependency trees in the [DataFormat Clear format] as output.  The tool allows users to customize head-percolation rules.  It currently supports only English (support for Chinese is expected soon).
+_Clear constituent-to-dependency converter_ takes phrase structure trees in the [http://www.cis.upenn.edu/~treebank/ Penn Treebank format] as input and generates corresponding dependency trees in the [DataFormat Clear format] as output.  The tool allows users to customize head-percolation rules.  It currently supports only English (supports for Chinese and Hindi are expected soon).
 
 == How to run ==
 
 On the terminal, type the following command.
 
 {{{
-Usage: java clear.engine.PhraseToDep -i <input-file> -o <output-file> -h <headrule-file> [-m <dictionary-directory> -l <language=ch|en>]
+java clear.engine.PhraseToDep -i <input-file> -o <output-file> -h <headrule-file> -m <dictionary-file> -n <minimum sentence length>
+java clear.engine.PhraseToDep -i dat/sample.phrase -o dat/sample.dep -h config/en_choi.headrules -m lib/en_dict-1.0.jar -n 2
 }}}
 
- * input file: name of a file containing phrase structure trees.
- * output file: name of a file containing dependency trees converted from the input file.
- * headrule file: name of a file containing head-percolation rules.
- * dictionary directory: path of a directory containing dictionaries for [MorphAnalyzerGuidelines Clear morphological analyzer].  If the directory is not specified, it uses word-forms as lemmas.
- * language: `ch` - Chinese (not supported yet), `en` - English (default)
-
-'`dat`' directory includes a sample input file (`dat/sample.phrase`),  '`headrules`' directory includes a default headrule file (`headrules/choi.headrules`), and '`en_dict`' directory includes default dictionary files for English.  The following command converts phrase structure trees in '`dat/sample.phrase`' to dependency trees in '`dat/sample.dep`' by using head-percolation rules in '`headrules/choi.headrules`' and dictionaries in '`en_dict`'.
-
-{{{
-java clear.engine.PhraseToDep -i dat/sample.phrase -o dat/sample.dep -h headrules/choi.headrules -m en_dict/
-}}}
+ * input file: name of a file containing phrase structure trees ([http://code.google.com/p/clearparser/source/browse/trunk/dat/sample.phrase dat/sample.phrase]).
+ * output file: name of a file containing dependency trees converted from the input file ([http://code.google.com/p/clearparser/source/browse/trunk/dat/sample.dep dat/sample.dep]).
+ * headrule file: name of a file containing head-percolation rules ([http://code.google.com/p/clearparser/source/browse/trunk/config/en_choi.headrules config/en_choi.headrules]).
+ * dictionary file: path of a dictionary file for [MorphAnalyzerGuidelines Clear morphological analyzer] ([http://code.google.com/p/clearparser/source/browse/#svn/trunk/lib/en_dict-1.0.jar lib/en_dict-1.0.jar]).
 
 == Input file ==
 
