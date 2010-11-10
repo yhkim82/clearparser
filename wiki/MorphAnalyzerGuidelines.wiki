@@ -1,6 +1,6 @@
 #summary Morphological analyzer: guidelines
 
-Clear morphological analyzer takes a pair of word-form and its part-of-speech tag, and generates the lemma of the word-form.  It is a dictionary-based analyzer developed on top of the [http://wordnet.princeton.edu/man/morphy.7WN.html WordNet] morphy.  Besides the WordNet rules, it finds lemmas for some abbreviations (& -> and, 're -> be), generalizes ordinals (21st -> $#ORD#$), and shortens all numbers (1900s -> 0s, 3.14 -> 0.0).  These generalized lemmas found to be useful for some NLP tasks (e.g., dependency parsing).  Currently, Clear morphological analyzer supports only English, but more language supports are expected soon.
+_Clear morphological analyzer_ takes a pair of word-form and its part-of-speech tag, and generates the lemma of the word-form.  It is a dictionary-based analyzer developed on top of the [http://wordnet.princeton.edu/man/morphy.7WN.html WordNet] morphy.  Besides the WordNet rules, it finds lemmas for some abbreviations (& -> and, 're -> be), generalizes ordinals (21st -> $#ORD#$), and shortens all numbers (1900s -> 0s, 3.14 -> 0.0).  These generalized lemmas found to be useful for some NLP tasks (e.g., dependency parsing).  Currently, Clear morphological analyzer supports only English, but more language supports are expected soon.
 <br>
 
 == How to run Clear morphological analyzer ==
