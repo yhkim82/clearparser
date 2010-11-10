@@ -1,9 +1,18 @@
 #summary Dependency parser: guidelines
 
-= Introduction =
+_Clear dependency parser_ uses Choi-Nicolov's approach of Nivre's list-based dependency parsing algorithm. The parser gives options of customizing feature templates and choosing different learning algorithms. Clear dependency parser has been imported to several organizations such as CLEAR, J.D. Power & Association, Mayo Clinic. 
 
-training
-java -Xms8g clear.engine.DepTrain -c config/en_dep_config.xml -i wsj/wsj-2-21.gold -m tmp.mod -t config/en_dep_feature.xml
+== Training ==
+
+{{{
+java clear.engine.DepTrain -c <configuration file> -i <input file> -m <model file> -t <feature template file>
+java -Xms8g clear.engine.DepTrain -c config/en_dep_config.xml -i dat/sample.dep -m sample.mod -t config/en_dep_feature.xml
+}}}
+
+ * configuration file: name of a file specifying [ConfigGuidelines configurations] ([http://code.google.com/p/clearparser/source/browse/trunk/config/en_dep_config.xml config/en_dep_config.xml])
+ * input file: name of a file containing dependency trees in either [DataFormat dep or conll format] ([http://code.google.com/p/clearparser/source/browse/trunk/dat/sample.dep dat/sample.dep]).
+ * model file: name of a file to contain trained models.
+ * feature template file file: name of a file containing [FeatureGuidelines feature templates] ([http://code.google.com/p/clearparser/source/browse/trunk/config/en_dep_feature.xml config/en_dep_feature.xml]).
 
 predicting
 java -Xms8g clear.engine.DepPredict -c config/en_dep_config.xml -i wsj/wsj-23.gold -m tmp.mod -o tmp.out
