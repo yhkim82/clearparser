@@ -5,23 +5,33 @@ _Clear dependency parser_ uses Choi-Nicolov's approach of Nivre's list-based dep
 == Training ==
 
 {{{
-java clear.engine.DepTrain -c <configuration file> -i <input file> -m <model file> -t <feature template file>
+java clear.engine.DepTrain -c <configuration file> -i <train file> -m <model file> -t <feature template file>
 java -Xms8g clear.engine.DepTrain -c config/en_dep_config.xml -i dat/sample.dep -m sample.mod -t config/en_dep_feature.xml
 }}}
 
- * configuration file: name of a file specifying [ConfigGuidelines configurations] ([http://code.google.com/p/clearparser/source/browse/trunk/config/en_dep_config.xml config/en_dep_config.xml])
- * input file: name of a file containing dependency trees in either [DataFormat dep or conll format] ([http://code.google.com/p/clearparser/source/browse/trunk/dat/sample.dep dat/sample.dep]).
- * model file: name of a file to contain trained models.
- * feature template file file: name of a file containing [FeatureGuidelines feature templates] ([http://code.google.com/p/clearparser/source/browse/trunk/config/en_dep_feature.xml config/en_dep_feature.xml]).
+ * <*configuration file*>: name of a file specifying [ConfigGuidelines configurations] ([http://code.google.com/p/clearparser/source/browse/trunk/config/en_dep_config.xml config/en_dep_config.xml])
+ * <*train file*>: name of a file containing dependency trees for training in either [DataFormat dep or conll format] ([http://code.google.com/p/clearparser/source/browse/trunk/dat/sample.dep dat/sample.dep]).
+ * <*model file*>: name of a file to contain trained models.
+ * <*feature template file*>: name of a file containing [FeatureGuidelines feature templates] ([http://code.google.com/p/clearparser/source/browse/trunk/config/en_dep_feature.xml config/en_dep_feature.xml]).
 
-predicting
-java -Xms8g clear.engine.DepPredict -c config/en_dep_config.xml -i wsj/wsj-23.gold -m tmp.mod -o tmp.out
+== Decoding ==
 
-evaluating
-java clear.engine.DepEvaluate -g ../dat/wsj/wsj-23.gold -s tmp.txt 
-= Details =
+{{{
+java clear.engine.DepPredict -c <configuration file> -m <model file> -i <input file> -o <output file>
+java -Xms8g clear.engine.DepPredict -c config/en_dep_config.xml -m wsj-onto.mod -i dat/sample.dep -o dat/sample.out
+}}}
 
-Add your content here.  Format your content with:
-  * Text in *bold* or _italic_
-  * Headings, paragraphs, and lists
-  * Automatic links to other wiki pages
+ * <*configuration file*>: name of a file specifying [ConfigGuidelines configurations] ([http://code.google.com/p/clearparser/source/browse/trunk/config/en_dep_config.xml config/en_dep_config.xml])
+ * <*model file*>: name of a file containing trained models.  A pre-trained model can be downloaded from [http://verbs.colorado.edu/~choijd/models/wsj-onto.mod wsj-onto.mod].  It is trained on the Wall Street Journal sections 2 - 21 in the OntoNotes Treeank, which is a subset of the entire Penn Treebank.
+ * <*input file*>: name of a file containing dependency trees for decoding in either [DataFormat pos, dep or conll format].  The HEAD and DEPREL columns do not need to have values or can be filled with any values.
+ * <*output file*>: name of a file containing generated dependency trees in [DataFormat dep format] ([http://code.google.com/p/clearparser/source/browse/trunk/dat/sample.dep dat/sample.dep]).
+
+== Evaluating ==
+
+{{{
+java clear.engine.DepEvaluate -g <gold-standard file> -s <system file>
+java clear.engine.DepEvaluate -g dat/sample.dep -s dat/sample.out
+}}}
+
+ * <*gold-standard file*>: name of a file containing gold-standard dependency trees in [DataFormat dep conll format].
+ * <*system file*>: name of a file containing system dependency trees in [DataFormat dep conll format].
