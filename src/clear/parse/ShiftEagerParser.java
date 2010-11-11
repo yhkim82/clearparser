@@ -51,13 +51,15 @@ import com.carrotsearch.hppc.ObjectIntOpenHashMap;
 public class ShiftEagerParser
 {
 	/** Flag to print lexicons */
-	static public final byte FLAG_PRINT_LEXICON    = 0;
+	static public final byte FLAG_PRINT_LEXICON     = 0;
 	/** Flag to print training instances */
-	static public final byte FLAG_PRINT_INSTANCE   = 1;
+	static public final byte FLAG_PRINT_INSTANCE    = 1;
 	/** Flag to print transitions */
-	static public final byte FLAG_PRINT_TRANSITION = 2;
+	static public final byte FLAG_PRINT_TRANSITION  = 2;
 	/** Flag to predict dependencies */
-	static public final byte FLAG_PREDICT          = 3;
+	static public final byte FLAG_PREDICT           = 3;
+	/** Flag to train automatic dependencies */
+	static public final byte FLAG_TRAIN_CONDITIONAL = 4;
 	
 	/** Label of Shift transition */
 	static public final String LB_SHIFT     = "SH";
@@ -88,6 +90,10 @@ public class ShiftEagerParser
 	/** Index of beta */
 	private int     i_beta;
 	
+	/** For train-conditional only */
+	private DepTree d_copy;
+	private int i_correct = 0, i_total = 0;
+	
 	/**
 	 * Initializes this parser for {@link ShiftEagerParser#FLAG_PRINT_LEXICON} or {@link ShiftEagerParser#FLAG_PRINT_TRANSITION}.
 	 * @param flag        {@link ShiftEagerParser#i_flag}
@@ -102,7 +108,7 @@ public class ShiftEagerParser
 			t_xml = new DepFtrXml(filename);
 			t_map = new DepFtrMap(t_xml);
 		}
-		else	// if (flag == FLAG_PRINT_TRANSITION)
+		else if (flag == FLAG_PRINT_TRANSITION)
 		{
 			f_out = IOUtil.createPrintFileStream(filename);
 		}
@@ -122,7 +128,7 @@ public class ShiftEagerParser
 		t_map  = new DepFtrMap(t_xml, lexiconFile);
 		f_out  = IOUtil.createPrintFileStream(instanceFile);
 	}
-
+	
 	/**
 	 * {@link ShiftEagerParser#FLAG_PREDICT}
 	 * @param flag  {@link ShiftEagerParser#i_flag}
@@ -135,6 +141,16 @@ public class ShiftEagerParser
 		c_dec  = decoder;
 	}
 	
+	/** {@link ShiftEagerParser#FLAG_TRAIN_CONDITIONAL} */
+	public ShiftEagerParser(byte flag, DepFtrXml xml, DepFtrMap map, AbstractMultiDecoder decoder, String instanceFile)
+	{
+		i_flag = flag;
+		t_xml  = xml;
+		t_map  = map;
+		c_dec  = decoder;
+		f_out  = IOUtil.createPrintFileStream(instanceFile);
+	}
+	
 	/** Initializes lambda1, lambda2, and beta using <code>tree</code>. */
 	private void init(DepTree tree)
 	{
@@ -143,6 +159,7 @@ public class ShiftEagerParser
 		i_beta   = 1;
 		
 		if (i_flag == FLAG_PRINT_TRANSITION)	printTransition("", "");
+		if (i_flag == FLAG_TRAIN_CONDITIONAL)			d_copy = tree.clone();
 	}
 	
 	/** Parses <code>tree</code>. */
@@ -158,6 +175,8 @@ public class ShiftEagerParser
 				shift(true);	
 			else if (i_flag == FLAG_PREDICT)
 				predict();
+			else if (i_flag == FLAG_TRAIN_CONDITIONAL)
+				trainConditional();
 			else
 				train();
 		}
@@ -174,7 +193,7 @@ public class ShiftEagerParser
 		
 		if      (lambda.headId == beta.id)	leftArc (lambda, beta, lambda.deprel, 1d);
 		else if (lambda.id == beta.headId)	rightArc(lambda, beta, beta  .deprel, 1d);
-		else if (isShift())					shift(false);
+		else if (isShift(d_tree))			shift(false);
 		else								noArc();
 	}
 	
@@ -182,13 +201,13 @@ public class ShiftEagerParser
 	 * This method is called from {@link ShiftEagerParser#train()}.
 	 * @return true if non-deterministic shift needs to be performed 
 	 */
-	private boolean isShift()
+	private boolean isShift(DepTree tree)
 	{
-		DepNode beta = d_tree.get(i_beta);
+		DepNode beta = tree.get(i_beta);
 		
 		for (int i=i_lambda; i>=0; i--)
 		{
-			DepNode lambda = d_tree.get(i);
+			DepNode lambda = tree.get(i);
 			
 			if (lambda.headId == beta.id || lambda.id == beta.headId)
 				return false;
@@ -217,6 +236,58 @@ public class ShiftEagerParser
 			shift(false);
 		else
 			noArc();
+	}
+	
+	private void trainConditional()
+	{
+		IntArrayList ftr = getFeatureArray();
+		
+		DepNode lambda = d_copy.get(i_lambda);
+		DepNode beta   = d_copy.get(i_beta);
+		String  gLabel = null;
+		
+		if      (lambda.headId == beta.id)	gLabel = LB_LEFT_ARC  + LB_DELIM + lambda.deprel;
+		else if (lambda.id == beta.headId)	gLabel = LB_RIGHT_ARC + LB_DELIM + beta  .deprel;
+		else if (isShift(d_copy))			gLabel = LB_SHIFT;
+		else								gLabel = LB_NO_ARC;
+		
+		f_out.println(t_map.labelToIndex(gLabel) + AbstractKernel.COL_DELIM + DSUtil.toString(ftr," "));
+
+		JIntDoubleTuple res = c_dec.predict(ftr);
+		
+		String sLabel = (res.i < 0) ? LB_NO_ARC : t_map.indexToLabel(res.i);
+		int    index  = sLabel.indexOf(LB_DELIM);
+		String trans  = (index > 0) ? sLabel.substring(0,index) : sLabel;
+		String deprel = (index > 0) ? sLabel.substring(index+1) : "";
+		lambda = d_tree.get(i_lambda);
+		beta   = d_tree.get(i_beta);
+		
+		if      (trans.equals( LB_LEFT_ARC) && !d_tree.isAncestor(lambda, beta) && lambda.id != DepLib.ROOT_ID)
+			leftArc (lambda, beta, deprel, res.d);
+		else if (trans.equals(LB_RIGHT_ARC) && !d_tree.isAncestor(beta, lambda))
+			rightArc(lambda, beta, deprel, res.d);
+		else if (trans.equals(LB_SHIFT))
+			shift(false);
+		else
+			noArc();
+		
+		if (gLabel.equals(sLabel))	i_correct++;
+		i_total++;
+	}
+	
+	public double getAccuracy()
+	{
+		return (double)i_correct/i_total;
+	}
+	
+	public DepFtrXml getDepFtrXml()
+	{
+		return t_xml;
+	}
+	
+	public DepFtrMap getDepFtrMap()
+	{
+		return t_map;
 	}
 	
 	/** Predicts dependencies for tokens that have not found their heads during parsing. */

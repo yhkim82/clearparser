@@ -36,8 +36,12 @@ import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
 import org.w3c.dom.Element;
 
+import clear.decode.OneVsAllDecoder;
 import clear.dep.DepNode;
 import clear.dep.DepTree;
+import clear.ftr.map.DepFtrMap;
+import clear.ftr.xml.DepFtrXml;
+import clear.model.OneVsAllModel;
 import clear.parse.ShiftEagerParser;
 import clear.reader.AbstractReader;
 import clear.reader.CoNLLReader;
@@ -47,14 +51,17 @@ import clear.train.algorithm.IAlgorithm;
 import clear.train.algorithm.LibLinearL2;
 import clear.train.algorithm.RRM;
 import clear.train.kernel.BinaryKernel;
+import clear.util.IOUtil;
 
 /**
- * Trains dependency parser.
+ * Trains conditional dependency parser.
  * <b>Last update:</b> 6/29/2010
  * @author Jinho D. Choi
  */
-public class DepTrain extends AbstractEngine
+public class DepTrainDev extends AbstractEngine
 {
+	private final int MAX_ITER = 10;
+	
 	private final String TAG_TRAIN           = "train";
 	private final String TAG_TRAIN_ALGORITHM = "algorithm";
 	private final String TAG_TRAIN_CUTOFF    = "cutoff";
@@ -64,19 +71,21 @@ public class DepTrain extends AbstractEngine
 	private String s_configFile = null;
 	@Option(name="-i", usage="training file", required=true, metaVar="REQUIRED")
 	private String s_trainFile = null; 
+	@Option(name="-d", usage="development file", required=true, metaVar="REQUIRED")
+	private String s_devFile = null; 
 	@Option(name="-m", usage="model file", required=true, metaVar="REQUIRED")
 	private String s_modelFile = null;
 	@Option(name="-t", usage="feature template file", required=true, metaVar="REQUIRED")
 	private String s_featureXml = null;
-	@Option(name="-f", usage=ShiftEagerParser.FLAG_PRINT_LEXICON+": train model (default), "+ShiftEagerParser.FLAG_PRINT_TRANSITION+": print transitions", metaVar="OPTIONAL")
-	private byte   i_flag = ShiftEagerParser.FLAG_PRINT_LEXICON;
 	/** N-gram cutoff */
 	private int    i_ngramCutoff = 0;
 	
-	private String s_instanceFile;
-	private JarArchiveOutputStream z_out;
+	private StringBuilder s_build = null;
+	private DepFtrXml     t_xml   = null;
+	private DepFtrMap     t_map   = null;
+	private OneVsAllModel m_model = null;
 	
-	public DepTrain(String[] args)
+	public DepTrainDev(String[] args)
 	{
 		CmdLineParser cmd  = new CmdLineParser(this);
 		
@@ -84,25 +93,59 @@ public class DepTrain extends AbstractEngine
 		{
 			cmd.parseArgument(args);
 			if (!initConfigElements(s_configFile))	return;
+			printConfig();
 			
-			if (i_flag == ShiftEagerParser.FLAG_PRINT_LEXICON)
+			int    i = 0;
+			String modelFile    = s_modelFile + "." + i;
+			String instanceFile = modelFile + EXT_INSTANCE_FILE;
+			String log          = "\n== Interation: "+i+" ==\n";
+			
+			s_build = new StringBuilder();
+			s_build.append(log);
+			System.out.print(log);
+			
+			JarArchiveOutputStream zout = new JarArchiveOutputStream(new FileOutputStream(modelFile));
+			
+			trainDepParser(ShiftEagerParser.FLAG_PRINT_LEXICON , null, null);
+			trainDepParser(ShiftEagerParser.FLAG_PRINT_INSTANCE, instanceFile, zout);
+			m_model = trainModel(instanceFile, zout);
+			zout.flush();	zout.close();
+			
+			double prevAcc = 0, currAcc;
+			
+			do
 			{
-				printConfig();
+				currAcc = trainDepParser(ShiftEagerParser.FLAG_PREDICT, s_devFile+".parse."+i, null);
 				
-				z_out = new JarArchiveOutputStream(new FileOutputStream(s_modelFile));
-				s_instanceFile = s_modelFile + EXT_INSTANCE_FILE;
+				modelFile    = s_modelFile + "." + (++i);
+				instanceFile = modelFile + EXT_INSTANCE_FILE;
 				
-				trainDepParser(ShiftEagerParser.FLAG_PRINT_LEXICON, null);
-				trainDepParser(ShiftEagerParser.FLAG_PRINT_INSTANCE, s_instanceFile);
-				trainModel();
+				trainDepParser(ShiftEagerParser.FLAG_TRAIN_CONDITIONAL, instanceFile, null);
 				
-				z_out.flush();
-				z_out.close();
+				if (currAcc < prevAcc)	break;
+				prevAcc = currAcc;
+				
+				log = "\n== Interation: "+i+" ==\n";
+				s_build.append(log);
+				System.out.print(log);
+
+				zout = new JarArchiveOutputStream(new FileOutputStream(modelFile));
+				zout.putArchiveEntry(new JarArchiveEntry(ENTRY_FEATURE));
+				IOUtils.copy(new FileInputStream(s_featureXml), zout);
+				zout.closeArchiveEntry();
+				
+				zout.putArchiveEntry(new JarArchiveEntry(ENTRY_LEXICA));
+				IOUtils.copy(new FileInputStream(ENTRY_LEXICA), zout);
+				zout.closeArchiveEntry();
+				
+				m_model = null;
+				m_model = trainModel(instanceFile, zout);
+				zout.flush();	zout.close();
 			}
-			else if (i_flag == ShiftEagerParser.FLAG_PRINT_TRANSITION)
-			{
-				trainDepParser(ShiftEagerParser.FLAG_PRINT_TRANSITION, s_modelFile);
-			}
+			while (i < MAX_ITER);
+			
+			new File(ENTRY_LEXICA).delete();
+			System.out.println(s_build.toString());
 		}
 		catch (CmdLineException e)
 		{
@@ -113,9 +156,11 @@ public class DepTrain extends AbstractEngine
 	}
 	
 	/** Trains the dependency parser. */
-	private void trainDepParser(byte flag, String outputFile) throws Exception
+	private double trainDepParser(byte flag, String outputFile, JarArchiveOutputStream zout) throws Exception
 	{
-		ShiftEagerParser parser = null;
+		ShiftEagerParser parser  = null;
+		OneVsAllDecoder  decoder = null;
+		PrintStream      fout    = null;
 		
 		if (flag == ShiftEagerParser.FLAG_PRINT_LEXICON)
 		{
@@ -124,29 +169,55 @@ public class DepTrain extends AbstractEngine
 		}
 		else if (flag == ShiftEagerParser.FLAG_PRINT_INSTANCE)
 		{
-			System.out.println("\n* Print training instances: "+s_instanceFile);
+			System.out.println("\n* Print training instances");
 			System.out.println("- loading lexica");
 			parser = new ShiftEagerParser(flag, s_featureXml, ENTRY_LEXICA, outputFile);
 		}
-		else if (flag == ShiftEagerParser.FLAG_PRINT_TRANSITION)
+		else if (flag == ShiftEagerParser.FLAG_PREDICT)
 		{
-			System.out.println("\n* Print transitions");
-			System.out.println("- from   : "+s_trainFile);
-			System.out.println("- to     : "+s_modelFile);
-			parser = new ShiftEagerParser(flag, outputFile);
+			System.out.println("\n* Predict");
+			decoder = new OneVsAllDecoder(m_model);
+			parser  = new ShiftEagerParser(flag, t_xml, t_map, decoder); 
+			fout    = IOUtil.createPrintFileStream(outputFile);
+		}
+		else if (flag == ShiftEagerParser.FLAG_TRAIN_CONDITIONAL)
+		{
+			System.out.println("\n* Train conditional");
+			decoder = new OneVsAllDecoder(m_model);
+			parser  = new ShiftEagerParser(flag, t_xml, t_map, decoder, outputFile);
 		}
 		
 		AbstractReader<DepNode, DepTree> reader = null;
 		DepTree tree;	int n;
 		
-		if (s_format.equals(AbstractReader.FORMAT_DEP))	reader = new DepReader  (s_trainFile, true);
-		else 											reader = new CoNLLReader(s_trainFile, true);
+		String  inputFile;
+		boolean isTrain;
+		
+		if (flag == ShiftEagerParser.FLAG_PREDICT)
+		{
+			inputFile = s_devFile;
+			isTrain   = false;
+		}
+		else
+		{
+			inputFile = s_trainFile;
+			isTrain   = true;
+		}
+		
+		if (s_format.equals(AbstractReader.FORMAT_DEP))	reader = new DepReader  (inputFile, isTrain);
+		else 											reader = new CoNLLReader(inputFile, isTrain);
 		
 		for (n=0; (tree = reader.nextTree()) != null; n++)
 		{
 			parser.parse(tree);
-			if (n % 1000 == 0)	System.out.printf("\r- parsing: %dK", n/1000);
-		}	System.out.println("\r- parsing: "+n);
+			
+			if (flag == ShiftEagerParser.FLAG_PREDICT)
+				fout.println(tree+"\n");
+			if (n % 1000 == 0)
+				System.out.printf("\r- parsing: %dK", n/1000);
+		}
+		
+		System.out.println("\r- parsing: "+n);
 		
 		if (flag == ShiftEagerParser.FLAG_PRINT_LEXICON)
 		{
@@ -158,19 +229,53 @@ public class DepTrain extends AbstractEngine
 		{
 			parser.closeOutputStream();
 			
-			z_out.putArchiveEntry(new JarArchiveEntry(ENTRY_FEATURE));
-			IOUtils.copy(new FileInputStream(s_featureXml), z_out);
-			z_out.closeArchiveEntry();
+			zout.putArchiveEntry(new JarArchiveEntry(ENTRY_FEATURE));
+			IOUtils.copy(new FileInputStream(s_featureXml), zout);
+			zout.closeArchiveEntry();
 			
-			z_out.putArchiveEntry(new JarArchiveEntry(ENTRY_LEXICA));
-			IOUtils.copy(new FileInputStream(ENTRY_LEXICA), z_out);
-			z_out.closeArchiveEntry();
-			new File(ENTRY_LEXICA).delete();
+			zout.putArchiveEntry(new JarArchiveEntry(ENTRY_LEXICA));
+			IOUtils.copy(new FileInputStream(ENTRY_LEXICA), zout);
+			zout.closeArchiveEntry();
+			
+			t_xml = parser.getDepFtrXml();
+			t_map = parser.getDepFtrMap();
 		}
+		else if (flag == ShiftEagerParser.FLAG_PREDICT)
+		{
+			fout.close();
+			
+			String[] args = {"-g", s_devFile, "-s", outputFile};
+			String   log  = "\n* Development accuracy\n";
+			
+			System.out.print(log);
+			DepEvaluate eval = new DepEvaluate(args);
+			
+			s_build.append(log);
+			s_build.append("- LAS: "+eval.getLas()+"\n");
+			s_build.append("- UAS: "+eval.getUas()+"\n");
+			s_build.append("- LS : "+eval.getLs()+"\n");
+			
+			return eval.getLas();
+		}
+		else if (flag == ShiftEagerParser.FLAG_TRAIN_CONDITIONAL)
+		{
+			parser.closeOutputStream();
+			
+			String log = "\n* Training accuracy\n";
+			double acc = parser.getAccuracy();
+			
+			System.out.println(log+": "+acc);
+			System.out.println("- "+acc);
+			
+			s_build.append(log);
+			s_build.append("- "+parser.getAccuracy()+"\n");
+		}
+		
+		return 0;
 	}
 	
 	/** Trains the LibLinear classifier. */
-	private void trainModel() throws Exception
+	private OneVsAllModel trainModel(String instanceFile, JarArchiveOutputStream zout) throws Exception
 	{
 		Element eTrain  = getElement(e_config, TAG_TRAIN);
 		Element element = getElement(eTrain, TAG_TRAIN_ALGORITHM);
@@ -232,7 +337,7 @@ public class DepTrain extends AbstractEngine
 		if (algorithm == null)
 		{
 			System.err.println("Learning algorithm is not specified in '"+s_featureXml+"'");
-			return;
+			return null;
 		}
 		
 		int numThreads = 2;
@@ -247,14 +352,15 @@ public class DepTrain extends AbstractEngine
 		System.out.println();
 		
 		JarArchiveEntry entry = new JarArchiveEntry(ENTRY_MODEL);
-		z_out.putArchiveEntry(entry);
+		zout.putArchiveEntry(entry);
 		
 		long st = System.currentTimeMillis();
-		new OneVsAllTrainer(new PrintStream(z_out), algorithm, new BinaryKernel(s_instanceFile), numThreads);
+		OneVsAllTrainer trainer = new OneVsAllTrainer(new PrintStream(zout), algorithm, new BinaryKernel(instanceFile), numThreads);
 		long time = System.currentTimeMillis() - st;
 		System.out.printf("- duration: %d hours, %d minutes\n", time/(1000*3600), time/(1000*60));
+		zout.closeArchiveEntry();
 		
-		z_out.closeArchiveEntry();
+		return trainer.getModel();
 	}
 	
 	protected boolean initElements()
@@ -284,6 +390,6 @@ public class DepTrain extends AbstractEngine
 	
 	static public void main(String[] args)
 	{
-		new DepTrain(args);
+		new DepTrainDev(args);
 	}
 }

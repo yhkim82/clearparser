@@ -15,6 +15,8 @@ public class DepEvaluate
 	@Option(name="-s", usage="system file", required=true, metaVar="REQUIRED")
 	private String s_sysFile;
 	
+	private DepEval d_eval;
+	
 	public DepEvaluate(String args[])
 	{
 		CmdLineParser cmd  = new CmdLineParser(this);
@@ -25,8 +27,8 @@ public class DepEvaluate
 			
 			DepReader gReader = new DepReader(s_goldFile, true);
 			DepReader sReader = new DepReader(s_sysFile , true);
-			DepEval   eval = new DepEval();
 			DepTree   gTree, sTree;
+			d_eval = new DepEval();
 			
 			while ((gTree = gReader.nextTree()) != null)
 			{
@@ -37,16 +39,31 @@ public class DepEvaluate
 					System.exit(1);
 				}
 				
-				eval.evaluate(gTree, sTree);
+				d_eval.evaluate(gTree, sTree);
 			}
 			
-			eval.print();
+			d_eval.print();
 		}
 		catch (CmdLineException e)
 		{
 			System.err.println(e.getMessage());
 			cmd.printUsage(System.err);
 		}
+	}
+	
+	public double getLas()
+	{
+		return d_eval.getLas();
+	}
+	
+	public double getUas()
+	{
+		return d_eval.getUas();
+	}
+	
+	public double getLs()
+	{
+		return d_eval.getLs();
 	}
 
 	static public void main(String[] args)

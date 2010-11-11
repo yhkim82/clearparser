@@ -50,6 +50,11 @@ public class OneVsAllDecoder extends AbstractMultiDecoder
 		m_model = new OneVsAllModel(fin);
 	}
 	
+	public OneVsAllDecoder(OneVsAllModel model)
+	{
+		m_model = model;
+	}
+	
 	public JIntDoubleTuple predict(int[] x)
 	{
 		return predictAux(m_model.getScores(x));

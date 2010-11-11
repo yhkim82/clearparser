@@ -33,7 +33,7 @@ import clear.train.OneVsAllTrainer;
 import clear.train.algorithm.IAlgorithm;
 import clear.train.algorithm.LibLinearL2;
 import clear.train.algorithm.RRM;
-import clear.train.kernel.LinearKernel;
+import clear.train.kernel.BinaryKernel;
 
 /**
  * Trains a classifier.
@@ -55,13 +55,13 @@ public class MLTrain
 	
 	@Option(name="-L", usage="LIB: loss type ::= 1 (L1-loss; default) | 2 (L2-loss)", metaVar="OPTIONAL")
 	byte   i_lossType = 1;
-	@Option(name="-E", usage="LIB: termination criterion (default = 0.1)\nRRM: learning rate (default == 0.001)", metaVar="OPTIONAL")
+	@Option(name="-E", usage="LIB: termination criterion (default = 0.1)\nRRM: learning rate (default = 0.001)", metaVar="OPTIONAL")
 	double d_e = 0.1;
 	@Option(name="-B", usage="LIB: bias (default = -1)", metaVar="OPTIONAL")
 	double d_bias = -1;
-	@Option(name="-C", usage="LIB: penality (default = 0.1)\nRRM: regularization (default = 0.1)", metaVar="OPTIONAL")
+	@Option(name="-C", usage="LIB: penalty (default = 0.1)\nRRM: regularization (default = 0.1)", metaVar="OPTIONAL")
 	double d_c = 0.1;
-	@Option(name="-K", usage="RRM: # of iterations (default = 40)", metaVar="OPTIONAL")
+	@Option(name="-K", usage="RRM: max # of iterations (default = 40)", metaVar="OPTIONAL")
 	int    i_K = 40;
 	@Option(name="-M", usage="RRM: initial weights (default = 1.0)", metaVar="OPTIONAL")
 	double d_mu = 1.0;
@@ -88,9 +88,9 @@ public class MLTrain
 			}
 			
 			if (i_strategy == AbstractTrainer.ST_BINARY)
-				new BinaryTrainer(s_modelFile, algorithm, new LinearKernel(s_instanceFile));
+				new BinaryTrainer(s_modelFile, algorithm, new BinaryKernel(s_instanceFile));
 			else	// One-vs-all
-				new OneVsAllTrainer(s_modelFile, algorithm, new LinearKernel(s_instanceFile), i_numThreads);
+				new OneVsAllTrainer(s_modelFile, algorithm, new BinaryKernel(s_instanceFile), i_numThreads);
 			
 			long time = System.currentTimeMillis() - st;
 			System.out.printf("\n* Training time: %d hours, %d minutes\n", time/(1000*3600), time/(1000*60));
