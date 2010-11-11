@@ -23,20 +23,77 @@
 */
 package clear.train.kernel;
 
+import java.io.BufferedReader;
+import java.util.ArrayList;
+import java.util.Arrays;
+
+import clear.util.DSUtil;
+import clear.util.IOUtil;
+
+import com.carrotsearch.hppc.IntArrayList;
+import com.carrotsearch.hppc.IntOpenHashSet;
+
 /**
  * Linear kernel.
  * @author Jinho D. Choi
  * <b>Last update:</b> 11/5/2010
  */
-public class LinearKernel extends AbstractKernel
+public class BinaryKernel extends AbstractKernel
 {
-	public LinearKernel(String instanceFile)
+	public BinaryKernel(String instanceFile)
 	{
 		super(instanceFile);
 	}
 	
-	protected void kernelize()
+	/**
+	 * Reads training instances from <code>instanceFile</code> and stores to 
+	 * {@link AbstractKernel#a_ys} and {@link AbstractKernel#a_xs}. 
+	 * @param instanceFile name of a file containing training instances
+	 */
+	protected void init(String instanceFile) throws Exception
 	{
-		// nothing to be added
+		final int NUM = 1000000;
+		
+		BufferedReader fin = IOUtil.createBufferedFileReader(instanceFile);
+		
+		a_ys = new IntArrayList    (NUM);
+		a_xs = new ArrayList<int[]>(NUM);
+
+		IntOpenHashSet sLabels = new IntOpenHashSet();
+		String line;
+		String[] tok;	int y;	int[] x;
+		
+		for (N=0; (line = fin.readLine()) != null; N++)
+		{
+			tok = line.split(COL_DELIM);
+			y   = Integer.parseInt (tok[0]);
+			x   = DSUtil.toIntArray(tok, 1);
+			
+			// add label and feature
+			a_ys.add(y);
+			a_xs.add(x);
+
+			// indices in feature are in ascending order
+			D = Math.max(D, x[x.length-1]);
+			sLabels.add(y);
+			
+			if (N%100000 == 0)	System.out.print("\r* Initializing  : "+(N/1000)+"K");
+		}	System.out.println("\r* Initializing  : " + instanceFile);
+		
+		fin.close();
+		a_ys.trimToSize();
+		a_xs.trimToSize();
+		
+		// feature dimension = last feature-index + 1
+		D++;
+		
+		// sort labels;
+		a_labels = sLabels.toArray();
+		Arrays.sort(a_labels);
+		L = a_labels.length;
+
+		System.out.println("- # of instances: " + N);
+		System.out.println("- # of labels   : " + L);
+		System.out.println("- # of features : " + D);
 	}
 }

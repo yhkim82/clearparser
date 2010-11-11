@@ -202,6 +202,23 @@ public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
 		return score;
 	}
 	
+	public void copy(DepTree tree)
+	{
+		for (int i=1; i<size(); i++)
+			get(i).copy(tree.get(i));
+	}
+	
+	public DepTree clone()
+	{
+		DepTree tree = new DepTree();
+		
+		for (int i=1; i<size(); i++)
+			tree.add(get(i).clone());
+			
+		tree.trimToSize();
+		return tree;
+	}
+	
 	/**
 	 * Prints errors if not unique-root, single-headed, connected, acyclic.
 	 * @return true if there is no error.

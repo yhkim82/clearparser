@@ -49,6 +49,11 @@ public class BinaryDecoder extends AbstractDecoder
 		m_model = new BinaryModel(fin);
 	}
 	
+	public BinaryDecoder(BinaryModel model)
+	{
+		m_model = model;
+	}
+	
 	public JIntDoubleTuple predict(int[] x)
 	{
 		return predictAux(m_model.getScore(x));

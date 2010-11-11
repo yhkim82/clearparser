@@ -51,6 +51,11 @@ public class OneVsAllTrainer extends AbstractTrainer
 		super(fout, algorithm, kernel, numThreads);
 	}
 	
+	public OneVsAllModel getModel()
+	{
+		return m_model;
+	}
+	
 	protected void initModel()
 	{
 		m_model = new OneVsAllModel(k_kernel);

@@ -94,6 +94,21 @@ public class DepNode
 		this.nonProj    = 0;
 	}
 	
+	public void init(int id, String form, String lemma, String pos, int headId, String deprel, double score, boolean hasHead, int leftDepId, int rightDepId, byte nonProj)
+	{
+		this.id         = id;
+		this.form       = form;
+		this.lemma      = lemma;
+		this.pos        = pos;
+		this.headId     = headId;
+		this.deprel     = deprel;
+		this.score      = score;
+		this.hasHead    = hasHead;
+		this.leftDepId  = leftDepId;
+		this.rightDepId = rightDepId;
+		this.nonProj    = nonProj;
+	}
+	
 	/**
 	 * Sets the <code>headId</code>'th node as the head of the node.
 	 * @param headId index of the head node
@@ -160,6 +175,19 @@ public class DepNode
 	public boolean isDeprel(String deprel)
 	{
 		return this.deprel.equals(deprel);
+	}
+	
+	public void copy(DepNode node)
+	{
+		init(node.id, node.form, node.lemma, node.pos, node.headId, node.deprel, node.score, node.hasHead, node.leftDepId, node.rightDepId, node.nonProj);
+	}
+	
+	public DepNode clone()
+	{
+		DepNode node = new DepNode();
+		
+		node.copy(this);
+		return node;
 	}
 	
 	/**

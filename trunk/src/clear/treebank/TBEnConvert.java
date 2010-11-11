@@ -440,6 +440,8 @@ public class TBEnConvert
 			return DepLib.DEPREL_INTJ;
 		if (child.isPos(TBEnLib.POS_EDITED))
 			return DepLib.DEPREL_EDIT;
+		if (child.isPos(TBEnLib.POS_CIT))
+			return DepLib.DEPREL_CIT;
 		if (child.isPos(TBEnLib.POS_ADVP) || c.isPos(TBEnLib.POS_RB))
 			return DepLib.DEPREL_ADV;
 		if (TBEnLib.isNounLike(parent.pos))
