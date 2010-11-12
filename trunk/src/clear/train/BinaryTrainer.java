@@ -62,7 +62,7 @@ public class BinaryTrainer extends AbstractTrainer
 		
 		System.out.println("\n* Saving");
 		
-		if (f_out == null)	m_model.save(s_modelFile);
-		else				m_model.save(f_out);
+		if      (s_modelFile != null)	m_model.save(s_modelFile);
+		else if	(f_out       != null)	m_model.save(f_out);
 	}
 }

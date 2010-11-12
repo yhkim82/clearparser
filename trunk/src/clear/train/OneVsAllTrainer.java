@@ -76,8 +76,8 @@ public class OneVsAllTrainer extends AbstractTrainer
 			executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
 			System.out.println("\n* Saving");
 			
-			if (f_out == null)	m_model.save(s_modelFile);
-			else				m_model.save(f_out);
+			if      (s_modelFile != null)	m_model.save(s_modelFile);
+			else if	(f_out       != null)	m_model.save(f_out);
 		}
 		catch (InterruptedException e) {e.printStackTrace();}
 	}
