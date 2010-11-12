@@ -191,7 +191,7 @@ public class LibLinearL2 implements IAlgorithm
 		StringBuilder build = new StringBuilder();
 		
 		build.append("- label = ");
-		build.append(kernel.a_labels[currLabel]);
+		build.append(currLabel);
 		build.append(": iter = ");
 		build.append(iter);
 		build.append(", nSV = ");
