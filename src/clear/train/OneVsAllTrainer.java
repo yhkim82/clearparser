@@ -98,7 +98,7 @@ public class OneVsAllTrainer extends AbstractTrainer
 		
 		public void run()
 		{
-			m_model.copyWeight(curr_label, a_algorithm.getWeight(k_kernel, curr_label));
+			m_model.copyWeight(curr_label, a_algorithm.getWeight(k_kernel, k_kernel.a_labels[curr_label]));
 		}
 	}
 }
