@@ -112,7 +112,7 @@ public class RRM implements IAlgorithm
 		StringBuilder build = new StringBuilder();
 		
 		build.append("- label = ");
-		build.append(kernel.a_labels[currLabel]);
+		build.append(currLabel);
 		build.append(": k = ");
 		build.append(bestK);
 		build.append(", acc = ");
