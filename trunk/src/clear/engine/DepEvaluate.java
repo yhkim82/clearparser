@@ -14,7 +14,8 @@ public class DepEvaluate
 	private String s_goldFile;
 	@Option(name="-s", usage="system file", required=true, metaVar="REQUIRED")
 	private String s_sysFile;
-	
+	@Option(name="-b", usage="1: skip unclassified dependencies (default = 0)", metaVar="OPTIONAL")
+	private byte   b_skip = 0;
 	private DepEval d_eval;
 	
 	public DepEvaluate(String args[])
@@ -28,7 +29,7 @@ public class DepEvaluate
 			DepReader gReader = new DepReader(s_goldFile, true);
 			DepReader sReader = new DepReader(s_sysFile , true);
 			DepTree   gTree, sTree;
-			d_eval = new DepEval();
+			d_eval = new DepEval(b_skip);
 			
 			while ((gTree = gReader.nextTree()) != null)
 			{

@@ -308,4 +308,20 @@ public class TBTree
 		
 		return null;
 	}
+	
+	public void checkNumChildren()
+	{
+		checkNumChildrenAux(nd_root);
+	}
+	
+	private void checkNumChildrenAux(TBNode curr)
+	{
+		if (!curr.isPhrase())	return;
+		
+		if (curr.isPos("CAPTION") && curr.getChildren().size() > 1)
+			System.out.println(curr.toWords());
+		
+		for (TBNode child : curr.getChildren())
+			checkNumChildrenAux(child);
+	}
 }

@@ -1,5 +1,5 @@
 /**
-* Copyright (c) 2010, Regents of the University of Colorado
+* Copyright (c) 2009, Regents of the University of Colorado
 * All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -21,53 +21,66 @@
 * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 * POSSIBILITY OF SUCH DAMAGE.
 */
-package clear.train;
+package clear.reader;
 
-import java.io.PrintStream;
+import java.io.IOException;
 
-import clear.model.BinaryModel;
-import clear.train.algorithm.IAlgorithm;
-import clear.train.kernel.AbstractKernel;
+import clear.dep.DepNode;
+import clear.dep.DepTree;
 
 /**
- * Binary trainer.
+ * Dependency reader.
  * @author Jinho D. Choi
- * <b>Last update:</b> 11/8/2010
+ * <b>Last update:</b> 6/26/2010
  */
-public class BinaryTrainer extends AbstractTrainer
+public class RichReader extends AbstractReader<DepNode,DepTree>
 {
-	protected BinaryModel m_model;
+	private boolean b_train;
 	
-	public BinaryTrainer(String modelFile, IAlgorithm algorithm, AbstractKernel kernel)
+	/**
+	 * Initializes the dependency reader for <code>filename</code>.
+	 * @param filename name of the file containing dependency trees
+	 * @param isTrain  true if the reader is for training
+	 */
+	public RichReader(String filename, boolean isTrain)
 	{
-		super(modelFile, algorithm, kernel, 1);
+		super(filename);
+		b_train = isTrain;
 	}
 	
-	public BinaryTrainer(PrintStream fout, IAlgorithm algorithm, AbstractKernel kernel, int numThreads)
+	/** 
+	 * Returns the next dependency tree.
+	 * If there is no more tree, returns null.
+	 */
+	public DepTree nextTree()
 	{
-		super(fout, algorithm, kernel, numThreads);
-	}
-	
-	public BinaryModel getModel()
-	{
-		return m_model;
-	}
-	
-	protected void initModel()
-	{
-		m_model = new BinaryModel(k_kernel);
-	}
-	
-	protected void train()
-	{
-		int curr_label = k_kernel.a_labels[0];
+		DepTree tree   = new DepTree();
+		boolean isNext = false;
+		
+		try
+		{
+			isNext = appendNextTree(tree);
+		}
+		catch (IOException e) {e.printStackTrace();}
 
-		System.out.println("\n* Training");
-		m_model.copyWeight(a_algorithm.getWeight(k_kernel, curr_label));
+		return isNext ? tree : null;
+	}
+	
+	protected DepNode toNode(String line, int id)
+	{
+		DepNode node = new DepNode();
+		String[] str = line.split(FIELD_DELIM);
+		node.id      = id;
+		node.form    = str[1];
+		node.lemma   = str[2];
+		node.pos     = str[3];
+
+		if (b_train)
+		{
+			node.headId = Integer.parseInt(str[4]);
+			node.deprel = str[5];
+		}
 		
-		System.out.println("\n* Saving");
-		
-		if      (s_modelFile != null)	m_model.save(s_modelFile);
-		else if	(f_out       != null)	m_model.save(f_out);
+		return node;
 	}
 }

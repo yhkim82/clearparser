@@ -36,19 +36,18 @@ import org.w3c.dom.NodeList;
  */
 public class DepFtrXml extends AbstractFtrXml
 {
-	static public final String RULE		= "rule";
-	static public final char   LAMBDA	= 'l';
-	static public final char   BETA		= 'b';
-	static public final String R_HD		= "hd";
-	static public final String R_LM		= "lm";
-	static public final String R_RM		= "rm";
-	static public final String F_FORM	= "f";
-	static public final String F_LEMMA	= "m";
-	static public final String F_POS	= "p";
-	static public final String F_DEPREL	= "d";
+	static public final char   LAMBDA		= 'l';
+	static public final char   BETA			= 'b';
+	static public final String R_HD			= "hd";
+	static public final String R_LM			= "lm";
+	static public final String R_RM			= "rm";
+	static public final String F_FORM		= "f";
+	static public final String F_LEMMA		= "m";
+	static public final String F_POS		= "p";
+	static public final String F_DEPREL		= "d";
+	static public final String PUNCTUATION	= "punctuation";
 	
-	/** Rule feature templates */
-	public FtrTemplate[] a_rule_templates;
+	public int n_cutoff_punctuation;
 	
 	public DepFtrXml(String featureXml)
 	{
@@ -60,22 +59,18 @@ public class DepFtrXml extends AbstractFtrXml
 		super(fin);
 	}
 	
-	protected void initFeatures(Document doc) throws Exception
+	protected void initCutoffs(Document doc) throws Exception
 	{
-		NodeList eList = doc.getElementsByTagName(RULE);
-		int i, n = eList.getLength();
-		Element eFeature;
-
-		a_rule_templates = new FtrTemplate[n];
+		NodeList eList = doc.getElementsByTagName(CUTOFF);
+		if (eList.getLength() <= 0)	return;
 		
-		for (i=0; i<n; i++)
-		{
-			eFeature = (Element)eList.item(i);
-			if (eFeature.getAttribute(VISIBLE).trim().equals("false"))	continue;
-			
-			a_rule_templates[i] = getFtrTemplate(eFeature);
-		}
+		Element eCutoff = (Element)eList.item(0);
+		n_cutoff_label  = (eCutoff.hasAttribute(LABEL)) ? Integer.parseInt(eCutoff.getAttribute(LABEL)) : 0;
+		n_cutoff_ngram  = (eCutoff.hasAttribute(NGRAM)) ? Integer.parseInt(eCutoff.getAttribute(NGRAM)) : 0;
+		n_cutoff_punctuation = (eCutoff.hasAttribute(PUNCTUATION)) ? Integer.parseInt(eCutoff.getAttribute(PUNCTUATION)) : 0;
 	}
+	
+	protected void initFeatures(Document doc) throws Exception {}
 	
 	protected boolean validSource(char token)
 	{
@@ -102,9 +97,6 @@ public class DepFtrXml extends AbstractFtrXml
 		for (i=0; i<a_ngram_templates.length; i++)
 			for (j=0; j<a_ngram_templates[i].length; j++)
 				toStringAux(build, NGRAM, a_ngram_templates[i][j]);
-		
-		for (i=0; i<a_rule_templates.length; i++)
-			toStringAux(build, RULE, a_rule_templates[i]);
 		
 		build.append("</"+TEMPLATE+">");
 		

@@ -49,9 +49,9 @@ public class PhraseToDep
 	String headruleFile;
 	@Option(name="-m", usage="path of a directory containing dictionaries for morphological analyzer", metaVar="OPTIONAL")
 	String dictDir = null;
-	@Option(name="-l", usage="language ::= "+AbstractReader.LANG_CH+"|"+AbstractReader.LANG_EN, metaVar="OPTIONAL")
+	@Option(name="-l", usage="language ::= "+AbstractReader.LANG_CH+" | "+AbstractReader.LANG_EN+" (default)", metaVar="OPTIONAL")
 	String language = AbstractReader.LANG_EN;
-	@Option(name="-n", usage="minimum sentence length (inclusive)")
+	@Option(name="-n", usage="minimum sentence length (inclusive; default = 0)", metaVar="OPTIONAL")
 	int length = 0;
 	
 	static public void main(String[] args)

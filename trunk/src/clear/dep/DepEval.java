@@ -30,17 +30,19 @@ package clear.dep;
  */
 public class DepEval
 {
-	private int n_las;
-	private int n_uas;
-	private int n_ls;
-	private int n_total;
+	private int  n_las;
+	private int  n_uas;
+	private int  n_ls;
+	private int  n_total;
+	private byte b_skip;
 	
-	public DepEval()
+	public DepEval(byte skip)
 	{
 		n_las   = 0;
 		n_uas   = 0;
 		n_ls    = 0;
 		n_total = 0;
+		b_skip  = skip;
 	}
 
 	public void evaluate(DepTree gold, DepTree sys)
@@ -49,6 +51,9 @@ public class DepEval
 		{
 			DepNode gNode = gold.get(i);
 			DepNode sNode = sys .get(i);
+			
+			if (b_skip == 1 && sNode.headId == DepLib.NULL_HEAD_ID)
+				continue;
 			
 			if (gNode.isDeprel(sNode.deprel))
 			{

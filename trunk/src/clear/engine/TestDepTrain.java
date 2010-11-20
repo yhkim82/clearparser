@@ -24,73 +24,65 @@
 package clear.engine;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
+import java.io.PrintStream;
 
-import org.apache.commons.compress.archivers.jar.JarArchiveEntry;
-import org.apache.commons.compress.archivers.jar.JarArchiveOutputStream;
-import org.apache.commons.compress.utils.IOUtils;
 import org.kohsuke.args4j.Option;
 
+import clear.decode.OneVsAllDecoder;
 import clear.dep.DepNode;
 import clear.dep.DepTree;
+import clear.ftr.map.DepFtrMap;
 import clear.ftr.xml.DepFtrXml;
+import clear.model.OneVsAllModel;
 import clear.parse.ShiftEagerParser;
 import clear.reader.AbstractReader;
 import clear.reader.CoNLLReader;
 import clear.reader.DepReader;
+import clear.util.IOUtil;
 
 /**
  * Trains dependency parser.
- * <b>Last update:</b> 6/29/2010
+ * <b>Last update:</b> 11/17/2010
  * @author Jinho D. Choi
  */
-public class DepTrain extends AbstractTrain
+public class TestDepTrain extends AbstractTrain
 {
-	private final String EXT_INSTANCE_FILE = ".ftr";	
+	@Option(name="-e", usage="evaluation file", required=true, metaVar="REQUIRED")
+	private String s_evalFile = null; 
+	@Option(name="-p", usage="parse file", required=true, metaVar="REQUIRED")
+	private String s_parseFile = null;
 	
-	@Option(name="-m", usage="model file", required=true, metaVar="REQUIRED")
-	private String s_modelFile = null;
-	@Option(name="-f", usage=ShiftEagerParser.FLAG_PRINT_LEXICON+": train model (default), "+ShiftEagerParser.FLAG_PRINT_TRANSITION+": print transitions", metaVar="OPTIONAL")
-	private byte   i_flag = ShiftEagerParser.FLAG_PRINT_LEXICON;
+	private DepFtrXml     t_xml;
+	private DepFtrMap     t_map;
+	private OneVsAllModel m_model;
 	
-	private String                 s_instanceFile;
-	private DepFtrXml              t_xml;
-	private JarArchiveOutputStream z_out;
-	
-	public DepTrain(String[] args)
+	public TestDepTrain(String[] args)
 	{
 		super(args);
 	}
 	
 	protected void train() throws Exception
 	{
-		if (i_flag == ShiftEagerParser.FLAG_PRINT_LEXICON)
-		{
-			printConfig();
-			
-			z_out = new JarArchiveOutputStream(new FileOutputStream(s_modelFile));
-			s_instanceFile = s_modelFile + EXT_INSTANCE_FILE;
-			
-			trainDepParser(ShiftEagerParser.FLAG_PRINT_LEXICON , null);
-			trainDepParser(ShiftEagerParser.FLAG_PRINT_INSTANCE, s_instanceFile);
-			
-			trainModel(s_instanceFile, z_out);
-			new File(s_instanceFile).delete();
-			
-			z_out.flush();
-			z_out.close();
-		}
-		else if (i_flag == ShiftEagerParser.FLAG_PRINT_TRANSITION)
-		{
-			trainDepParser(ShiftEagerParser.FLAG_PRINT_TRANSITION, s_modelFile);
-		}
+		printConfig();
+		String instanceFile = "instances.ftr";
+		
+		trainDepParser(ShiftEagerParser.FLAG_PRINT_LEXICON , null);
+		trainDepParser(ShiftEagerParser.FLAG_PRINT_INSTANCE, instanceFile);
+		
+		m_model = trainModel(instanceFile, null);
+		new File(instanceFile).delete();
+		trainDepParser(ShiftEagerParser.FLAG_PREDICT, s_parseFile);
+		
+		String[] eArgs = {"-g", s_evalFile, "-s", s_parseFile};
+		System.out.println();
+		new DepEvaluate(eArgs);
 	}
 	
 	/** Trains the dependency parser. */
 	private void trainDepParser(byte flag, String outputFile) throws Exception
 	{
 		ShiftEagerParser parser = null;
+		PrintStream      fout   = null;
 		
 		if (flag == ShiftEagerParser.FLAG_PRINT_LEXICON)
 		{
@@ -99,27 +91,39 @@ public class DepTrain extends AbstractTrain
 		}
 		else if (flag == ShiftEagerParser.FLAG_PRINT_INSTANCE)
 		{
-			System.out.println("\n* Print training instances: "+s_instanceFile);
+			System.out.println("\n* Print training instances");
 			System.out.println("- loading lexica");
 			parser = new ShiftEagerParser(flag, t_xml, ENTRY_LEXICA, outputFile);
 		}
-		else if (flag == ShiftEagerParser.FLAG_PRINT_TRANSITION)
+		else if (flag == ShiftEagerParser.FLAG_PREDICT)
 		{
-			System.out.println("\n* Print transitions");
-			System.out.println("- from   : "+s_trainFile);
-			System.out.println("- to     : "+s_modelFile);
-			parser = new ShiftEagerParser(flag, outputFile);
+			System.out.println("\n* Predict");
+			parser = new ShiftEagerParser(flag, t_xml, t_map, new OneVsAllDecoder(m_model)); 
+			fout   = IOUtil.createPrintFileStream(outputFile);
 		}
 		
 		AbstractReader<DepNode, DepTree> reader = null;
-		DepTree tree;	int n;
+		DepTree tree;		int n;
+		String  filename;	boolean isTrain;
 		
-		if (s_format.equals(AbstractReader.FORMAT_DEP))	reader = new DepReader  (s_trainFile, true);
-		else 											reader = new CoNLLReader(s_trainFile, true);
+		if (flag == ShiftEagerParser.FLAG_PREDICT)
+		{
+			filename = s_evalFile;
+			isTrain  = false;
+		}
+		else
+		{
+			filename = s_trainFile;
+			isTrain  = true;
+		}
+		
+		if (s_format.equals(AbstractReader.FORMAT_DEP))	reader = new DepReader  (filename, isTrain);
+		else 											reader = new CoNLLReader(filename, isTrain);
 		
 		for (n=0; (tree = reader.nextTree()) != null; n++)
 		{
 			parser.parse(tree);
+			if (flag == ShiftEagerParser.FLAG_PREDICT)	fout.println(tree+"\n");
 			if (n % 1000 == 0)	System.out.printf("\r- parsing: %dK", n/1000);
 		}	System.out.println("\r- parsing: "+n);
 		
@@ -132,27 +136,24 @@ public class DepTrain extends AbstractTrain
 		else if (flag == ShiftEagerParser.FLAG_PRINT_INSTANCE)
 		{
 			parser.closeOutputStream();
-			
-			z_out.putArchiveEntry(new JarArchiveEntry(ENTRY_FEATURE));
-			IOUtils.copy(new FileInputStream(s_featureXml), z_out);
-			z_out.closeArchiveEntry();
-			
-			z_out.putArchiveEntry(new JarArchiveEntry(ENTRY_LEXICA));
-			IOUtils.copy(new FileInputStream(ENTRY_LEXICA), z_out);
-			z_out.closeArchiveEntry();
+			t_map = parser.getDepFtrMap();
 			new File(ENTRY_LEXICA).delete();
+		}
+		else if (flag == ShiftEagerParser.FLAG_PREDICT)
+		{
+			fout.close();
 		}
 	}
 	
 	protected void printConfig()
 	{
 		super.printConfig();
-		System.out.println("- model_file : "+s_modelFile);		
-		System.out.println("- feature_xml: "+s_featureXml);
+		System.out.println("- eval_file  : "+s_evalFile);
+		System.out.println("- parse_file : "+s_parseFile);
 	}
 	
 	static public void main(String[] args)
 	{
-		new DepTrain(args);
+		new TestDepTrain(args);
 	}
 }
