@@ -28,6 +28,7 @@ import java.io.File;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
+import org.kohsuke.args4j.Option;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -38,7 +39,7 @@ import clear.reader.AbstractReader;
  * <b>Last update:</b> 11/8/2010
  * @author Jinho D. Choi
  */
-public class AbstractEngine
+abstract public class AbstractCommon
 {
 	protected final String TAG_COMMON          = "common";
 	protected final String TAG_COMMON_LANGUAGE = "language";
@@ -48,35 +49,41 @@ public class AbstractEngine
 	protected final String ENTRY_MODEL   = "model";
 	protected final String ENTRY_FEATURE = "feature";
 	
+	@Option(name="-c", usage="configuration file", required=true, metaVar="REQUIRED")
+	protected String  s_configFile = null;
 	/** Language */
-	protected String  s_language = AbstractReader.LANG_EN;
+	protected String  s_language   = AbstractReader.LANG_EN;
 	/** Format */
-	protected String  s_format   = AbstractReader.FORMAT_DEP;
+	protected String  s_format     = AbstractReader.FORMAT_DEP;
 	/** Configuration element */
 	protected Element e_config;
 	
 	/** Initializes <configuration> element. */
-	public boolean initConfigElements(String configXml)
+	public boolean initConfigElements()
 	{
 		DocumentBuilderFactory dFactory = DocumentBuilderFactory.newInstance();
 		
 		try
 		{
 			DocumentBuilder builder = dFactory.newDocumentBuilder();
-			Document        doc     = builder.parse(new File(configXml));
+			Document        doc     = builder.parse(new File(s_configFile));
 			
 			e_config = doc.getDocumentElement();
-			return initElements();
+			initElements();
 		}
 		catch (Exception e)
 		{
 			e.printStackTrace();
 			return false;
 		}
+		
+		return true;
 	}
 	
+	abstract protected void initElements();
+	
 	/** Initializes <common> elements. */	
-	protected boolean initElements()
+	protected void initCommonElements()
 	{
 		Element eCommon = getElement(e_config, TAG_COMMON);
 		Element element;
@@ -86,8 +93,6 @@ public class AbstractEngine
 		
 		if ((element = getElement(eCommon, TAG_COMMON_FORMAT)) != null)
 			s_format = element.getTextContent().trim();
-		
-		return true;
 	}
 	
 	protected Element getElement(Element parent, String name)

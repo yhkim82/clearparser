@@ -119,22 +119,22 @@ abstract public class AbstractFtrMap<FtrXmlType>
 	}
 
 	/** This method must be included at the top of {@link AbstractFtrMap#save(String)}. */
-	public void saveDefault(AbstractFtrXml xml, PrintStream fout, int ngramCutoff)
+	public void saveDefault(AbstractFtrXml xml, PrintStream fout)
 	{
 		int j, m;
 		
 		// labels
-		fout.println(m_label.size());
-		
-		for (ObjectCursor<String> str : m_label.keySet())
-			fout.println(str.value);
+		saveHashMap(fout, m_label, xml.n_cutoff_label);
+	//	fout.println(m_label.size());
+	//	for (ObjectCursor<String> str : m_label.keySet())
+	//		fout.println(str.value);
 
 		// n-grams
 		m = m_ngram.size();
 		fout.println(m);
 
 		for (j=0; j<m; j++)
-			saveHashMap(fout, m_ngram.get(j), ngramCutoff);
+			saveHashMap(fout, m_ngram.get(j), xml.n_cutoff_ngram);
 	}
 	
 	protected void saveHashMap(PrintStream fout, ObjectIntOpenHashMap<String> map, int cutoff)
@@ -158,7 +158,7 @@ abstract public class AbstractFtrMap<FtrXmlType>
 		for (ObjectCursor<String> key : map.keySet())
 		{
 			value = map.get(key.value);
-			if (Math.abs(value) > cutoff)	count++;
+			if (value > cutoff)	count++;
 		}
 		
 		return count;
@@ -167,7 +167,7 @@ abstract public class AbstractFtrMap<FtrXmlType>
 	/** Adds the class label. */
 	public void addLabel(String label)
 	{
-		m_label.put(label, 1);
+		m_label.put(label, m_label.get(label)+1);
 	}
 	
 	/** @return the class label corresponding to the index. */
@@ -204,6 +204,6 @@ abstract public class AbstractFtrMap<FtrXmlType>
 	abstract protected void init(FtrXmlType xml);
 	abstract protected void load(String lexiconFile);
 	abstract protected void load(BufferedReader fin);
-	abstract public    void save(FtrXmlType xml, String lexiconFile, int ngramCutoff);
-	abstract public    void save(FtrXmlType xml, PrintStream fout  , int ngramCutoff);
+	abstract public    void save(FtrXmlType xml, String lexiconFile);
+	abstract public    void save(FtrXmlType xml, PrintStream fout);
 }

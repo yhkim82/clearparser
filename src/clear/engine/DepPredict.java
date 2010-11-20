@@ -55,13 +55,11 @@ import clear.util.IOUtil;
  * @author Jinho D. Choi
  * <b>Last update:</b> 6/29/2010
  */
-public class DepPredict extends AbstractEngine
+public class DepPredict extends AbstractCommon
 {
 	private final String TAG_PREDICT            = "predict";
 	private final String TAG_PREDICT_MORPH_DICT = "morph_dict";
 	
-	@Option(name="-c", usage="configuration file", required=true, metaVar="REQUIRED")
-	private String s_configFile = null;
 	@Option(name="-i", usage="input file", required=true, metaVar="REQUIRED")
 	private String s_inputFile  = null;
 	@Option(name="-o", usage="output file", required=true, metaVar="REQUIRED")
@@ -84,7 +82,7 @@ public class DepPredict extends AbstractEngine
 		try
 		{
 			cmd.parseArgument(args);
-			if (!initConfigElements(s_configFile))	return;
+			initConfigElements();
 			
 			ZipInputStream zin = new ZipInputStream(new FileInputStream(s_modelFile));
 			ZipEntry zEntry;
@@ -171,9 +169,9 @@ public class DepPredict extends AbstractEngine
 		catch (Exception e) {e.printStackTrace();}
 	}
 	
-	protected boolean initElements()
+	protected void initElements()
 	{
-		if (!super.initElements())	return false;
+		initCommonElements();
 		
 		if (s_format.equals(AbstractReader.FORMAT_POS))
 		{
@@ -182,14 +180,7 @@ public class DepPredict extends AbstractEngine
 			
 			if ((element = getElement(ePredict, TAG_PREDICT_MORPH_DICT)) != null)
 				s_morphDict = element.getTextContent().trim();
-			else
-			{
-				System.err.println("Dictionary file is not specified in '"+s_configFile+"'");
-				return false;
-			}
 		}
-		
-		return true;
 	}
 	
 	protected void printConfig()

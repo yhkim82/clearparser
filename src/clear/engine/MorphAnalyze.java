@@ -65,6 +65,12 @@ public class MorphAnalyze
 			
 			while ((line = fin.readLine()) != null)
 			{
+				if (line.trim().equals(""))
+				{
+					fout.println();
+					continue;
+				}
+				
 				tmp   = line.split(AbstractReader.FIELD_DELIM);
 				form  = tmp[0];
 				pos   = tmp[1];

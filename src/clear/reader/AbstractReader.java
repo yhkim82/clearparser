@@ -52,6 +52,8 @@ abstract public class AbstractReader<NodeType, TreeType>
 	static public final String FORMAT_DEP   = "dep";
 	/** Flag for semantic-role labeling format */
 	static public final String FORMAT_SRL   = "srl";
+	/** Flag for rich format */
+	static public final String FORMAT_RICH  = "rich";
 	/** Flag for CoNLL-X format */
 	static public final String FORMAT_CONLL = "conll";
 	
