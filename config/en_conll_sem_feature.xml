@@ -1,0 +1,67 @@
+<!--Default English feature set -->
+<feature_template>
+	<cutoff ngram="1"/>
+	
+	<ngram n="1" f0="b:f"/>
+	<ngram n="1" f0="l:f"/>
+	<ngram n="1" f0="b:m"/>
+	<ngram n="1" f0="l:m"/>
+	<ngram n="1" f0="b:p"/>
+	<ngram n="1" f0="l:p"/>
+
+	<ngram n="2" t="upm" f0="b:p" f1="b:m"/>
+	<ngram n="2" t="upm" f0="l:p" f1="l:m"/>
+		
+	<ngram n="2" f0="b:p" f1="l:p"/>
+	<ngram n="2" f0="b:p" f1="l:m"/>
+	<ngram n="2" f0="b:m" f1="l:p"/>
+	<ngram n="2" f0="b:m" f1="l:m"/>
+
+	<ngram n="1" f0="b-1:f" note="94.55 -> 94.85 (+0.30)"/>
+	<ngram n="1" f0="l-1:f" note="94.85 -> 94.89 (+0.04)"/>
+	<ngram n="1" f0="l+1:f" note="93.92 -> 94.55 (+0.63)"/>	
+	<ngram n="1" f0="l+2:f" note="94.30 -> 94.55 (+0.25)"/>
+	<ngram n="1" f0="b-2:f" note="94.89 -> 94.89 ( 0.00)" visible="false"/>
+	<ngram n="1" f0="b+1:f" note="94.85 -> 94.79 (-0.06)" visible="false"/>
+	
+	<ngram n="2" f0="b:p"   f1="l-1:p" note="94.43 -> 94.55 (+0.12)"/>
+	<ngram n="2" f0="b:p"   f1="l-2:p" note="94.89 -> 94.80 (-0.09)" visible="false"/>
+	<ngram n="2" f0="b-1:p" f1="b:p"   note="94.55 -> 94.49 (-0.06)" visible="false"/>
+	<ngram n="2" f0="b:p"   f1="b+1:p" note="94.55 -> 94.53 (-0.02)" visible="false"/>
+	<ngram n="2" f0="b:p"   f1="l+1:p" note="94.55 -> 94.50 (-0.05)" visible="false"/>
+	
+	<ngram n="2" f0="b-1:p" f1="l:p"   note="94.55 -> 94.46 (-0.09)" visible="false"/>
+	<ngram n="2" f0="b+1:p" f1="l:p"   note="94.55 -> 94.49 (-0.06)" visible="false"/>
+	<ngram n="2" f0="l-1:p" f1="l:p"   note="94.55 -> 94.48 (-0.07)" visible="fales"/>
+	<ngram n="2" f0="l:p"   f1="l+1:p" note="94.55 -> 94.45 (-0.10)" visible="false"/>
+	
+	<ngram n="2" f0="b:m"   f1="l-1:p" note="94.47 -> 94.56 (+0.09)"/>
+	<ngram n="2" f0="b:m"   f1="l+1:p" note="94.07 -> 94.56 (+0.49)"/>
+	<ngram n="2" f0="b:m"   f1="l+2:p" note="94.89 -> 95.06 (+0.17)"/>
+	<ngram n="2" f0="b:m"   f1="l-2:p" note="94.89 -> 94.90 (+0.01)" visible="false"/>
+	<ngram n="2" f0="b-1:p" f1="b:m"   note="94.56 -> 94.55 (-0.01)" visible="false"/>
+	<ngram n="2" f0="b:m"   f1="b+1:p" note="94.56 -> 94.51 (-0.04)" visible="false"/>
+	
+	<ngram n="2" f0="b+1:p" f1="l:m"   visible="false"/>
+	<ngram n="2" f0="l-1:p" f1="l:m"   visible="false"/>
+	<ngram n="2" f0="l:m"   f1="l+1:m" visible="false"/>
+	<ngram n="2" f0="l:m"   f1="l+2:m"/>
+	<ngram n="2" f0="b-1:p" f1="l:m"   visible="false"/>
+	
+	<ngram n="3" f0="b-2:p" f1="b-1:p" f2="b:p"   visible="false"/>
+	<ngram n="3" f0="b-1:p" f1="b:p"   f2="b+1:p" visible="false"/>
+	<ngram n="3" f0="b:p"   f1="b+1:p" f2="b+2:p" visible="false"/>
+	<ngram n="3" f0="b-2:p" f1="b:p"   f2="l:p"   visible="false"/>
+	<ngram n="3" f0="b-1:p" f1="b:p"   f2="l:p"   visible="false"/>
+	<ngram n="3" f0="b:p"   f1="b+1:p" f2="l:p"   visible="false"/>
+	<ngram n="3" f0="b:p"   f1="l-1:p" f2="l:p"   visible="false"/>	
+	<ngram n="3" f0="b:p"   f1="l:p"   f2="l+1:p" visible="false"/>
+	<ngram n="3" f0="b:p"   f1="l:p"   f2="l+3:p" visible="false"/>
+	<ngram n="3" f0="l-2:p" f1="l-1:p" f2="l:p"   visible="false"/>
+	<ngram n="3" f0="l:p"   f1="l+1:p" f2="l+2:p" visible="false"/>
+	<ngram n="3" f0="b-3:p" f1="b:p"   f2="l:p"   visible="false"/>
+	<ngram n="3" f0="l-1:p" f1="l:p"   f2="l+1:p" visible="false"/>
+	<ngram n="3" f0="b:p"   f1="b+2:p" f2="l:p"   visible="false"/>
+	<ngram n="3" f0="b:p"   f1="l-2:p" f2="l:p"   visible="false"/>
+	<ngram n="3" f0="b:p"   f1="l:p"   f2="l+2:p" visible="false"/>
+</feature_template>

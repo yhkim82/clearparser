@@ -122,6 +122,11 @@ abstract public class AbstractModel
 		}
 	}
 	
+	static public double logistic(double score)
+	{
+		return 1 / (1 + Math.exp(-score));
+	}
+	
 	abstract public void init(AbstractKernel kernel);
 	abstract public void load(String modelFile);
 	abstract public void load(BufferedReader fin);

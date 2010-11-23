@@ -35,17 +35,19 @@ import org.kohsuke.args4j.Option;
 import clear.dep.DepNode;
 import clear.dep.DepTree;
 import clear.ftr.xml.DepFtrXml;
+import clear.parse.DepPrepParser;
 import clear.parse.ShiftEagerParser;
 import clear.reader.AbstractReader;
 import clear.reader.CoNLLReader;
 import clear.reader.DepReader;
+import clear.train.AbstractTrainer;
 
 /**
  * Trains dependency parser.
  * <b>Last update:</b> 6/29/2010
  * @author Jinho D. Choi
  */
-public class DepTrain extends AbstractTrain
+public class DepPrepTrain extends AbstractTrain
 {
 	private final String EXT_INSTANCE_FILE = ".ftr";	
 	
@@ -58,22 +60,23 @@ public class DepTrain extends AbstractTrain
 	private DepFtrXml              t_xml;
 	private JarArchiveOutputStream z_out;
 	
-	public DepTrain(String[] args)
+	public DepPrepTrain(String[] args)
 	{
 		super(args);
 	}
 	
 	protected void train() throws Exception
 	{
-		if (i_flag == ShiftEagerParser.FLAG_PRINT_LEXICON)
+		if (i_flag == DepPrepParser.FLAG_PRINT_LEXICON)
 		{
 			printConfig();
+			trainer_type = AbstractTrainer.ST_BINARY;
 			
 			z_out = new JarArchiveOutputStream(new FileOutputStream(s_modelFile));
 			s_instanceFile = s_modelFile + EXT_INSTANCE_FILE;
 			
-			trainDepParser(ShiftEagerParser.FLAG_PRINT_LEXICON , null);
-			trainDepParser(ShiftEagerParser.FLAG_PRINT_INSTANCE, s_instanceFile);
+			trainDepParser(DepPrepParser.FLAG_PRINT_LEXICON , null);
+			trainDepParser(DepPrepParser.FLAG_PRINT_INSTANCE, s_instanceFile);
 			
 			trainModel(s_instanceFile, z_out);
 			new File(s_instanceFile).delete();
@@ -81,34 +84,34 @@ public class DepTrain extends AbstractTrain
 			z_out.flush();
 			z_out.close();
 		}
-		else if (i_flag == ShiftEagerParser.FLAG_PRINT_TRANSITION)
+		else if (i_flag == DepPrepParser.FLAG_PRINT_TRANSITION)
 		{
-			trainDepParser(ShiftEagerParser.FLAG_PRINT_TRANSITION, s_modelFile);
+			trainDepParser(DepPrepParser.FLAG_PRINT_TRANSITION, s_modelFile);
 		}
 	}
 	
 	/** Trains the dependency parser. */
 	private void trainDepParser(byte flag, String outputFile) throws Exception
 	{
-		ShiftEagerParser parser = null;
+		DepPrepParser parser = null;
 		
-		if (flag == ShiftEagerParser.FLAG_PRINT_LEXICON)
+		if (flag == DepPrepParser.FLAG_PRINT_LEXICON)
 		{
 			System.out.println("\n* Save lexica");
-			parser = new ShiftEagerParser(flag, s_featureXml);
+			parser = new DepPrepParser(flag, s_featureXml);
 		}
-		else if (flag == ShiftEagerParser.FLAG_PRINT_INSTANCE)
+		else if (flag == DepPrepParser.FLAG_PRINT_INSTANCE)
 		{
 			System.out.println("\n* Print training instances: "+s_instanceFile);
 			System.out.println("- loading lexica");
-			parser = new ShiftEagerParser(flag, t_xml, ENTRY_LEXICA, outputFile);
+			parser = new DepPrepParser(flag, t_xml, ENTRY_LEXICA, outputFile);
 		}
-		else if (flag == ShiftEagerParser.FLAG_PRINT_TRANSITION)
+		else if (flag == DepPrepParser.FLAG_PRINT_TRANSITION)
 		{
 			System.out.println("\n* Print transitions");
 			System.out.println("- from   : "+s_trainFile);
 			System.out.println("- to     : "+s_modelFile);
-			parser = new ShiftEagerParser(flag, outputFile);
+			parser = new DepPrepParser(flag, outputFile);
 		}
 		
 		AbstractReader<DepNode, DepTree> reader = null;
@@ -123,13 +126,13 @@ public class DepTrain extends AbstractTrain
 			if (n % 1000 == 0)	System.out.printf("\r- parsing: %dK", n/1000);
 		}	System.out.println("\r- parsing: "+n);
 		
-		if (flag == ShiftEagerParser.FLAG_PRINT_LEXICON)
+		if (flag == DepPrepParser.FLAG_PRINT_LEXICON)
 		{
 			System.out.println("- saving");
 			parser.saveTags(ENTRY_LEXICA);
 			t_xml = parser.getDepFtrXml();
 		}
-		else if (flag == ShiftEagerParser.FLAG_PRINT_INSTANCE)
+		else if (flag == DepPrepParser.FLAG_PRINT_INSTANCE)
 		{
 			parser.closeOutputStream();
 			
@@ -152,6 +155,6 @@ public class DepTrain extends AbstractTrain
 	
 	static public void main(String[] args)
 	{
-		new DepTrain(args);
+		new DepPrepTrain(args);
 	}
 }

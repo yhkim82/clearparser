@@ -32,12 +32,16 @@ import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
 import org.w3c.dom.Element;
 
-import clear.model.OneVsAllModel;
+import clear.model.AbstractModel;
+import clear.train.AbstractTrainer;
+import clear.train.BinaryTrainer;
 import clear.train.OneVsAllTrainer;
 import clear.train.algorithm.IAlgorithm;
 import clear.train.algorithm.LibLinearL2;
 import clear.train.algorithm.RRM;
+import clear.train.kernel.AbstractKernel;
 import clear.train.kernel.BinaryKernel;
+import clear.train.kernel.ValueKernel;
 
 /**
  * Trains dependency parser.
@@ -53,6 +57,9 @@ abstract public class AbstractTrain extends AbstractCommon
 	protected String s_trainFile  = null; 
 	@Option(name="-t", usage="feature template file", required=true, metaVar="REQUIRED")
 	protected String s_featureXml = null;
+	
+	protected byte kernel_type  = AbstractKernel.KERNEL_BINARY;
+	protected byte trainer_type = AbstractTrainer.ST_ONE_VS_ALL;
 	
 	public AbstractTrain(String[] args)
 	{
@@ -76,7 +83,7 @@ abstract public class AbstractTrain extends AbstractCommon
 	abstract protected void train() throws Exception;
 	
 	/** Trains the LibLinear classifier. */
-	protected OneVsAllModel trainModel(String instanceFile, JarArchiveOutputStream zout) throws Exception
+	protected AbstractModel trainModel(String instanceFile, JarArchiveOutputStream zout) throws Exception
 	{
 		Element eTrain  = getElement(e_config, TAG_TRAIN);
 		Element element = getElement(eTrain, TAG_TRAIN_ALGORITHM);
@@ -160,7 +167,8 @@ abstract public class AbstractTrain extends AbstractCommon
 		}
 		
 		long st = System.currentTimeMillis();
-		OneVsAllTrainer trainer = new OneVsAllTrainer(fout, algorithm, new BinaryKernel(instanceFile), numThreads);
+		AbstractKernel kernel = (kernel_type == AbstractKernel.KERNEL_BINARY) ? new BinaryKernel(instanceFile) : new ValueKernel(instanceFile);
+		AbstractTrainer trainer = (trainer_type == AbstractTrainer.ST_BINARY) ? new BinaryTrainer(fout, algorithm, kernel, numThreads) : new OneVsAllTrainer(fout, algorithm, kernel, numThreads);
 		long time = System.currentTimeMillis() - st;
 		System.out.printf("- duration: %d hours, %d minutes\n", time/(1000*3600), time/(1000*60));
 		

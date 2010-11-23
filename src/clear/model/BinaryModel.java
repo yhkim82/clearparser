@@ -25,9 +25,11 @@ package clear.model;
 
 import java.io.BufferedReader;
 import java.io.PrintStream;
+import java.util.ArrayList;
 
 import clear.train.kernel.AbstractKernel;
 import clear.util.IOUtil;
+import clear.util.tuple.JIntDoubleTuple;
 
 import com.carrotsearch.hppc.IntArrayList;
 
@@ -147,5 +149,15 @@ public class BinaryModel extends AbstractModel
 			score += d_weights[x.get(i)];
 		
 		return score;
+	}
+	
+	public double getScore(ArrayList<JIntDoubleTuple> x)
+	{
+		double score = d_weights[0];
+		
+		for (JIntDoubleTuple tup : x)
+			score += (d_weights[tup.i] * tup.d);
+		
+		return logistic(score);
 	}
 }

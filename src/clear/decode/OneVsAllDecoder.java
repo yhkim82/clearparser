@@ -24,6 +24,7 @@
 package clear.decode;
 
 import java.io.BufferedReader;
+import java.util.ArrayList;
 import java.util.Arrays;
 
 import clear.model.OneVsAllModel;
@@ -65,6 +66,11 @@ public class OneVsAllDecoder extends AbstractMultiDecoder
 		return predictAux(m_model.getScores(x));
 	}
 	
+	public JIntDoubleTuple predict(ArrayList<JIntDoubleTuple> x)
+	{
+		return predictAux(m_model.getScores(x));
+	}
+	
 	private JIntDoubleTuple predictAux(double[] scores)
 	{
 		int[] aLabels = m_model.a_labels;
@@ -85,6 +91,11 @@ public class OneVsAllDecoder extends AbstractMultiDecoder
 	}
 	
 	public JIntDoubleTuple[] predictAll(IntArrayList x)
+	{
+		return predictAllAux(m_model.getScores(x));
+	}
+	
+	public JIntDoubleTuple[] predictAll(ArrayList<JIntDoubleTuple> x)
 	{
 		return predictAllAux(m_model.getScores(x));
 	}

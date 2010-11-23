@@ -24,6 +24,7 @@
 package clear.dep;
 
 import clear.ftr.FtrLib;
+import clear.reader.AbstractReader;
 import clear.reader.CoNLLReader;
 
 /**
@@ -55,7 +56,9 @@ public class DepNode
 	public int     rightDepId;
 	/** 1 if the node is non-projective (experimental) */
 	public byte    nonProj = 0;
-
+	
+	public String  semDeprel;
+	
 	/** Initializes the node as a null node. */
 	public DepNode()
 	{
@@ -92,6 +95,7 @@ public class DepNode
 		this.leftDepId  = Integer.MAX_VALUE;
 		this.rightDepId = -1;
 		this.nonProj    = 0;
+		this.semDeprel  = AbstractReader.EMPTY_FIELD;
 	}
 	
 	public void init(int id, String form, String lemma, String pos, int headId, String deprel, double score, boolean hasHead, int leftDepId, int rightDepId, byte nonProj)
@@ -107,6 +111,7 @@ public class DepNode
 		this.leftDepId  = leftDepId;
 		this.rightDepId = rightDepId;
 		this.nonProj    = nonProj;
+		this.semDeprel  = AbstractReader.EMPTY_FIELD;
 	}
 	
 	/**
@@ -166,9 +171,9 @@ public class DepNode
 	}
 	
 	/** @return true if the part-of-speech tag of the node starts with <code>posx</code>. */
-	public boolean isPosx(String posx)
+	public boolean isPosx(String regex)
 	{
-		return this.pos.startsWith(posx);
+		return this.pos.matches(regex);
 	}
 	
 	/** @return true if the dependency label of the node is <code>deprel</code>. */
@@ -198,11 +203,11 @@ public class DepNode
 	{
 		StringBuilder buff = new StringBuilder();
 		
-		buff.append(id);		buff.append(CoNLLReader.FIELD_DELIM);
-		buff.append(form);		buff.append(CoNLLReader.FIELD_DELIM);
-		buff.append(lemma);		buff.append(CoNLLReader.FIELD_DELIM);
-		buff.append(pos);		buff.append(CoNLLReader.FIELD_DELIM);
-		buff.append(headId);	buff.append(CoNLLReader.FIELD_DELIM);
+		buff.append(id);		buff.append(AbstractReader.FIELD_DELIM);
+		buff.append(form);		buff.append(AbstractReader.FIELD_DELIM);
+		buff.append(lemma);		buff.append(AbstractReader.FIELD_DELIM);
+		buff.append(pos);		buff.append(AbstractReader.FIELD_DELIM);
+		buff.append(headId);	buff.append(AbstractReader.FIELD_DELIM);
 		buff.append(deprel);
 		
 		return buff.toString();
@@ -212,13 +217,34 @@ public class DepNode
 	{
 		StringBuilder buff = new StringBuilder();
 		
-		buff.append(id);		buff.append(CoNLLReader.FIELD_DELIM);
-		buff.append(form);		buff.append(CoNLLReader.FIELD_DELIM);
-		buff.append(lemma);		buff.append(CoNLLReader.FIELD_DELIM);
-		buff.append(pos);		buff.append(CoNLLReader.FIELD_DELIM);
-		buff.append(headId);	buff.append(CoNLLReader.FIELD_DELIM);
-		buff.append(deprel);	buff.append(CoNLLReader.FIELD_DELIM);
+		buff.append(id);		buff.append(AbstractReader.FIELD_DELIM);
+		buff.append(form);		buff.append(AbstractReader.FIELD_DELIM);
+		buff.append(lemma);		buff.append(AbstractReader.FIELD_DELIM);
+		buff.append(pos);		buff.append(AbstractReader.FIELD_DELIM);
+		buff.append(headId);	buff.append(AbstractReader.FIELD_DELIM);
+		buff.append(deprel);	buff.append(AbstractReader.FIELD_DELIM);
 		buff.append(nonProj);
+		
+		return buff.toString();
+	}
+	
+	public String toStringRich()
+	{
+		StringBuilder buff = new StringBuilder();
+		
+		buff.append(id);		buff.append(AbstractReader.FIELD_DELIM);
+		buff.append(form);		buff.append(AbstractReader.FIELD_DELIM);
+		buff.append(lemma);		buff.append(AbstractReader.FIELD_DELIM);
+		buff.append(pos);		buff.append(AbstractReader.FIELD_DELIM);
+		
+		if (rightDepId != DepLib.NULL_ID)	buff.append(rightDepId);
+		else								buff.append(AbstractReader.EMPTY_FIELD);
+		buff.append(CoNLLReader.FIELD_DELIM);
+		
+		buff.append(semDeprel);	buff.append(AbstractReader.FIELD_DELIM);
+		
+		buff.append(headId);	buff.append(AbstractReader.FIELD_DELIM);
+		buff.append(deprel);
 		
 		return buff.toString();
 	}

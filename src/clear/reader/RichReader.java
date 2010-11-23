@@ -74,11 +74,16 @@ public class RichReader extends AbstractReader<DepNode,DepTree>
 		node.form    = str[1];
 		node.lemma   = str[2];
 		node.pos     = str[3];
-
+		
+		if (!str[4].equals(EMPTY_FIELD))
+			node.rightDepId = Integer.parseInt(str[4]);
+		
+		node.semDeprel = str[5];
+		
 		if (b_train)
 		{
-			node.headId = Integer.parseInt(str[4]);
-			node.deprel = str[5];
+			node.headId = Integer.parseInt(str[6]);
+			node.deprel = str[7];
 		}
 		
 		return node;

@@ -27,7 +27,6 @@ import java.io.BufferedReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import clear.util.DSUtil;
 import clear.util.IOUtil;
 
 import com.carrotsearch.hppc.IntArrayList;
@@ -38,11 +37,11 @@ import com.carrotsearch.hppc.IntOpenHashSet;
  * @author Jinho D. Choi
  * <b>Last update:</b> 11/5/2010
  */
-public class BinaryKernel extends AbstractKernel
+public class ValueKernel extends AbstractKernel
 {
-	public BinaryKernel(String instanceFile)
+	public ValueKernel(String instanceFile)
 	{
-		super(KERNEL_BINARY, instanceFile);
+		super(KERNEL_VALUE, instanceFile);
 	}
 	
 	/**
@@ -56,23 +55,32 @@ public class BinaryKernel extends AbstractKernel
 		
 		BufferedReader fin = IOUtil.createBufferedFileReader(instanceFile);
 		
-		a_ys = new IntArrayList    (NUM);
-		a_xs = new ArrayList<int[]>(NUM);
-		a_vs = null;
-		
+		a_ys = new IntArrayList       (NUM);
+		a_xs = new ArrayList<int[]>   (NUM);
+		a_vs = new ArrayList<double[]>(NUM);
+
 		IntOpenHashSet sLabels = new IntOpenHashSet();
-		String line;
-		String[] tok;	int y;	int[] x;
+		String line;	String[] tok, tmp;
+		int y, i;	int[] x;	double[] v;
 		
 		for (N=0; (line = fin.readLine()) != null; N++)
 		{
 			tok = line.split(COL_DELIM);
 			y   = Integer.parseInt (tok[0]);
-			x   = DSUtil.toIntArray(tok, 1);
+			x   = new int   [tok.length-1];
+			v   = new double[tok.length-1];
+			
+			for (i=1; i<tok.length; i++)
+			{
+				tmp = tok[i].split(FTR_DELIM);
+				x[i-1] = Integer.parseInt  (tmp[0]);
+				v[i-1] = Double.parseDouble(tmp[1]);
+			}
 			
 			// add label and feature
 			a_ys.add(y);
 			a_xs.add(x);
+			a_vs.add(v);
 
 			// indices in feature are in ascending order
 			D = Math.max(D, x[x.length-1]);

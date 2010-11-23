@@ -4,7 +4,7 @@
 		<format>dep</format>
 	</common>
 	<train>
-		<algorithm name="lib" l="1" c="0.1" e="0.1" b="-1"/>
+		<algorithm name="lib" l="1" c="0.1" e="0.1" b="0.2"/>
 	<!--<algorithm name="rrm" k="40" m="1.0" e="0.001" c="0.1"/>-->
 		<threads>2</threads>
 	</train>

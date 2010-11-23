@@ -28,16 +28,17 @@ import java.io.PrintStream;
 
 import org.kohsuke.args4j.Option;
 
-import clear.decode.OneVsAllDecoder;
+import clear.decode.BinaryDecoder;
 import clear.dep.DepNode;
 import clear.dep.DepTree;
 import clear.ftr.map.DepFtrMap;
 import clear.ftr.xml.DepFtrXml;
-import clear.model.OneVsAllModel;
-import clear.parse.RLShallowParser;
+import clear.model.BinaryModel;
+import clear.parse.DepPrepParser;
 import clear.reader.AbstractReader;
 import clear.reader.CoNLLReader;
 import clear.reader.DepReader;
+import clear.train.AbstractTrainer;
 import clear.util.IOUtil;
 
 /**
@@ -45,18 +46,18 @@ import clear.util.IOUtil;
  * <b>Last update:</b> 11/17/2010
  * @author Jinho D. Choi
  */
-public class TestDepTrainShallow extends AbstractTrain
+public class TestDepPrep extends AbstractTrain
 {
-	@Option(name="-e", usage="evaluation file", required=true, metaVar="REQUIRED")
+	@Option(name="-d", usage="development file", required=true, metaVar="REQUIRED")
 	private String s_evalFile = null; 
 	@Option(name="-p", usage="parse file", required=true, metaVar="REQUIRED")
 	private String s_parseFile = null;
 	
-	private DepFtrXml     t_xml;
-	private DepFtrMap     t_map;
-	private OneVsAllModel m_model;
+	private DepFtrXml   t_xml;
+	private DepFtrMap   t_map;
+	private BinaryModel m_model;
 	
-	public TestDepTrainShallow(String[] args)
+	public TestDepPrep(String[] args)
 	{
 		super(args);
 	}
@@ -64,41 +65,43 @@ public class TestDepTrainShallow extends AbstractTrain
 	protected void train() throws Exception
 	{
 		printConfig();
+		trainer_type = AbstractTrainer.ST_BINARY;
 		String instanceFile = "instances.ftr";
 		
-		trainDepParser(RLShallowParser.FLAG_PRINT_LEXICON , null);
-		trainDepParser(RLShallowParser.FLAG_PRINT_INSTANCE, instanceFile);
+		trainDepParser(DepPrepParser.FLAG_PRINT_LEXICON , null);
+		trainDepParser(DepPrepParser.FLAG_PRINT_INSTANCE, instanceFile);
 		
-		m_model = trainModel(instanceFile, null);
+		m_model = (BinaryModel)trainModel(instanceFile, null);
 		new File(instanceFile).delete();
-		trainDepParser(RLShallowParser.FLAG_PREDICT, s_parseFile);
+		trainDepParser(DepPrepParser.FLAG_PREDICT, s_parseFile);
 		
 		String[] eArgs = {"-g", s_evalFile, "-s", s_parseFile, "-b", "1"};
 		System.out.println();
-		new DepEvaluate(eArgs);
+		DepEvaluate eval = new DepEvaluate(eArgs);
+		eval.printRootScore();
 	}
 	
 	/** Trains the dependency parser. */
 	private void trainDepParser(byte flag, String outputFile) throws Exception
 	{
-		RLShallowParser parser = null;
+		DepPrepParser parser = null;
 		PrintStream      fout   = null;
 		
-		if (flag == RLShallowParser.FLAG_PRINT_LEXICON)
+		if (flag == DepPrepParser.FLAG_PRINT_LEXICON)
 		{
 			System.out.println("\n* Save lexica");
-			parser = new RLShallowParser(flag, s_featureXml);
+			parser = new DepPrepParser(flag, s_featureXml);
 		}
-		else if (flag == RLShallowParser.FLAG_PRINT_INSTANCE)
+		else if (flag == DepPrepParser.FLAG_PRINT_INSTANCE)
 		{
 			System.out.println("\n* Print training instances");
 			System.out.println("- loading lexica");
-			parser = new RLShallowParser(flag, t_xml, ENTRY_LEXICA, outputFile);
+			parser = new DepPrepParser(flag, t_xml, ENTRY_LEXICA, outputFile);
 		}
-		else if (flag == RLShallowParser.FLAG_PREDICT)
+		else if (flag == DepPrepParser.FLAG_PREDICT)
 		{
 			System.out.println("\n* Predict");
-			parser = new RLShallowParser(flag, t_xml, t_map, new OneVsAllDecoder(m_model)); 
+			parser = new DepPrepParser(flag, t_xml, t_map, new BinaryDecoder(m_model)); 
 			fout   = IOUtil.createPrintFileStream(outputFile);
 		}
 		
@@ -106,7 +109,7 @@ public class TestDepTrainShallow extends AbstractTrain
 		DepTree tree;		int n;
 		String  filename;	boolean isTrain;
 		
-		if (flag == RLShallowParser.FLAG_PREDICT)
+		if (flag == DepPrepParser.FLAG_PREDICT)
 		{
 			filename = s_evalFile;
 			isTrain  = false;
@@ -123,23 +126,23 @@ public class TestDepTrainShallow extends AbstractTrain
 		for (n=0; (tree = reader.nextTree()) != null; n++)
 		{
 			parser.parse(tree);
-			if (flag == RLShallowParser.FLAG_PREDICT)	fout.println(tree+"\n");
+			if (flag == DepPrepParser.FLAG_PREDICT)	fout.println(tree+"\n");
 			if (n % 1000 == 0)	System.out.printf("\r- parsing: %dK", n/1000);
 		}	System.out.println("\r- parsing: "+n);
 		
-		if (flag == RLShallowParser.FLAG_PRINT_LEXICON)
+		if (flag == DepPrepParser.FLAG_PRINT_LEXICON)
 		{
 			System.out.println("- saving");
 			parser.saveTags(ENTRY_LEXICA);
 			t_xml = parser.getDepFtrXml();
 		}
-		else if (flag == RLShallowParser.FLAG_PRINT_INSTANCE)
+		else if (flag == DepPrepParser.FLAG_PRINT_INSTANCE)
 		{
 			parser.closeOutputStream();
 			t_map = parser.getDepFtrMap();
 			new File(ENTRY_LEXICA).delete();
 		}
-		else if (flag == RLShallowParser.FLAG_PREDICT)
+		else if (flag == DepPrepParser.FLAG_PREDICT)
 		{
 			fout.close();
 		}
@@ -154,6 +157,6 @@ public class TestDepTrainShallow extends AbstractTrain
 	
 	static public void main(String[] args)
 	{
-		new TestDepTrainShallow(args);
+		new TestDepPrep(args);
 	}
 }

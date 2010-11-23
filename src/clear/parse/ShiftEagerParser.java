@@ -24,6 +24,7 @@
 package clear.parse;
 
 import clear.decode.AbstractMultiDecoder;
+import clear.decode.OneVsAllDecoder;
 import clear.dep.DepLib;
 import clear.dep.DepNode;
 import clear.dep.DepTree;
@@ -41,6 +42,20 @@ import com.carrotsearch.hppc.IntArrayList;
  */
 public class ShiftEagerParser extends AbstractDepParser
 {
+	/** Label of Shift transition */
+	static public final String LB_SHIFT     = "SH";
+	/** Label of No-Arc transition */
+	static public final String LB_NO_ARC    = "NA";
+	/** Label of Left-Arc transition */
+	static public final String LB_LEFT_ARC  = "LA";
+	/** Label of Right-Arc transition */
+	static public final String LB_RIGHT_ARC = "RA";
+	/** Delimiter between transition and dependency label */
+	static public final String LB_DELIM     = "-";
+	
+	/** For {@link AbstractDepParser#FLAG_TRAIN_CONDITIONAL} only. */
+	protected DepTree d_copy = null;
+	
 	/** Initializes this parser for {@link ShiftEagerParser#FLAG_PRINT_LEXICON} or {@link ShiftEagerParser#FLAG_PRINT_TRANSITION}. */
 	public ShiftEagerParser(byte flag, String filename)
 	{
@@ -227,7 +242,7 @@ public class ShiftEagerParser extends AbstractDepParser
 			i_beta   = curr.id;
 		}
 		
-		JIntDoubleTuple[] aRes = c_dec.predictAll(getFeatureArray());
+		JIntDoubleTuple[] aRes = ((OneVsAllDecoder)c_dec).predictAll(getFeatureArray());
 		JIntDoubleTuple   res;
 		String label, trans;
 		int    index;
@@ -409,16 +424,8 @@ public class ShiftEagerParser extends AbstractDepParser
 	
 	// ---------------------------- getFtr*() ----------------------------
 	
-	protected IntArrayList getFeatureArray()
+	private IntArrayList getFeatureArray()
 	{
-		if (i_flag == FLAG_PRINT_LEXICON)	// store features for configuration files
-		{
-			addNgramLexica();
-			addPunctuationLexicon();
-			
-			return null;
-		}
-		
 		// add features
 		IntArrayList arr = new IntArrayList();
 		int idx[] = {1};
@@ -429,10 +436,11 @@ public class ShiftEagerParser extends AbstractDepParser
 		return arr;
 	}
 	
-	private void addPunctuationLexicon()
+	protected void addLexica()
 	{
-		DepNode b0 = d_tree.get(i_beta);
+		addNgramLexica();
 		
+		DepNode b0 = d_tree.get(i_beta);
 		if (b0.isDeprel(DepLib.DEPREL_P))	t_map.addPunctuation(b0.form);
 	}
 	

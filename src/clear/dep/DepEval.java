@@ -36,6 +36,8 @@ public class DepEval
 	private int  n_total;
 	private byte b_skip;
 	
+	private int[] n_root;
+	
 	public DepEval(byte skip)
 	{
 		n_las   = 0;
@@ -43,6 +45,7 @@ public class DepEval
 		n_ls    = 0;
 		n_total = 0;
 		b_skip  = skip;
+		n_root  = new int[3];
 	}
 
 	public void evaluate(DepTree gold, DepTree sys)
@@ -55,17 +58,32 @@ public class DepEval
 			if (b_skip == 1 && sNode.headId == DepLib.NULL_HEAD_ID)
 				continue;
 			
-			if (gNode.isDeprel(sNode.deprel))
-			{
-				n_ls++;
-				if (gNode.headId == sNode.headId)
-					n_las++;
-			}
-			
+			total(gNode, sNode);
+			root (gNode, sNode);
+		}
+	}
+	
+	private void total(DepNode gNode, DepNode sNode)
+	{
+		if (gNode.isDeprel(sNode.deprel))
+		{
+			n_ls++;
 			if (gNode.headId == sNode.headId)
-				n_uas++;
-			
-			n_total++;
+				n_las++;
+		}
+		
+		if (gNode.headId == sNode.headId)
+			n_uas++;
+		
+		n_total++;
+	}
+	
+	private void root(DepNode gNode, DepNode sNode)
+	{
+		if (sNode.headId != DepLib.NULL_HEAD_ID)
+		{
+			if (gNode.deprel.equals(sNode.deprel))	n_root[0]++;
+			n_root[1]++;
 		}
 	}
 	
@@ -84,10 +102,21 @@ public class DepEval
 		return (double)n_ls / n_total;
 	}
 	
-	public void print()
+	public void printTotal()
 	{
 		System.out.printf("LAS: %4.2f%% (%d/%d)\n", getLas()*100, n_las, n_total);
 		System.out.printf("UAS: %4.2f%% (%d/%d)\n", getUas()*100, n_uas, n_total);
 		System.out.printf("LS : %4.2f%% (%d/%d)\n", getLs() *100, n_ls , n_total);
+	}
+	
+	public void printRoot()
+	{
+		double precision = (double)n_root[0] * 100 / n_root[1];
+		double recall    = (double)n_root[0] * 100 / n_root[2];
+		double f1        = 2 * (precision*recall) / (precision+recall);
+		
+		System.out.printf("Precision: %4.2f%% (%d/%d)\n", precision, n_root[0], n_root[1]);
+		System.out.printf("Recall   : %4.2f%% (%d/%d)\n", recall   , n_root[0], n_root[2]);
+		System.out.printf("F1-score : %4.2f%%\n", f1);
 	}
 }

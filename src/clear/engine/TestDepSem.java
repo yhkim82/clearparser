@@ -34,10 +34,9 @@ import clear.dep.DepTree;
 import clear.ftr.map.DepFtrMap;
 import clear.ftr.xml.DepFtrXml;
 import clear.model.OneVsAllModel;
-import clear.parse.ShiftEagerParser;
+import clear.parse.DepSemParser;
 import clear.reader.AbstractReader;
-import clear.reader.CoNLLReader;
-import clear.reader.DepReader;
+import clear.reader.RichReader;
 import clear.util.IOUtil;
 
 /**
@@ -45,9 +44,9 @@ import clear.util.IOUtil;
  * <b>Last update:</b> 11/17/2010
  * @author Jinho D. Choi
  */
-public class TestDepTrain extends AbstractTrain
+public class TestDepSem extends AbstractTrain
 {
-	@Option(name="-e", usage="evaluation file", required=true, metaVar="REQUIRED")
+	@Option(name="-d", usage="development file", required=true, metaVar="REQUIRED")
 	private String s_evalFile = null; 
 	@Option(name="-p", usage="parse file", required=true, metaVar="REQUIRED")
 	private String s_parseFile = null;
@@ -56,7 +55,7 @@ public class TestDepTrain extends AbstractTrain
 	private DepFtrMap     t_map;
 	private OneVsAllModel m_model;
 	
-	public TestDepTrain(String[] args)
+	public TestDepSem(String[] args)
 	{
 		super(args);
 	}
@@ -66,39 +65,40 @@ public class TestDepTrain extends AbstractTrain
 		printConfig();
 		String instanceFile = "instances.ftr";
 		
-		trainDepParser(ShiftEagerParser.FLAG_PRINT_LEXICON , null);
-		trainDepParser(ShiftEagerParser.FLAG_PRINT_INSTANCE, instanceFile);
+		trainDepParser(DepSemParser.FLAG_PRINT_LEXICON , null);
+		trainDepParser(DepSemParser.FLAG_PRINT_INSTANCE, instanceFile);
 		
-		m_model = trainModel(instanceFile, null);
+		m_model = (OneVsAllModel)trainModel(instanceFile, null);
 		new File(instanceFile).delete();
-		trainDepParser(ShiftEagerParser.FLAG_PREDICT, s_parseFile);
+		trainDepParser(DepSemParser.FLAG_PREDICT, s_parseFile);
 		
-		String[] eArgs = {"-g", s_evalFile, "-s", s_parseFile};
+		String[] eArgs = {"-g", "tmp.txt", "-s", s_parseFile, "-b", "1"};
 		System.out.println();
-		new DepEvaluate(eArgs);
+		DepEvaluate eval = new DepEvaluate(eArgs);
+		eval.printRootScore();
 	}
 	
 	/** Trains the dependency parser. */
 	private void trainDepParser(byte flag, String outputFile) throws Exception
 	{
-		ShiftEagerParser parser = null;
+		DepSemParser parser = null;
 		PrintStream      fout   = null;
 		
-		if (flag == ShiftEagerParser.FLAG_PRINT_LEXICON)
+		if (flag == DepSemParser.FLAG_PRINT_LEXICON)
 		{
 			System.out.println("\n* Save lexica");
-			parser = new ShiftEagerParser(flag, s_featureXml);
+			parser = new DepSemParser(flag, s_featureXml);
 		}
-		else if (flag == ShiftEagerParser.FLAG_PRINT_INSTANCE)
+		else if (flag == DepSemParser.FLAG_PRINT_INSTANCE)
 		{
 			System.out.println("\n* Print training instances");
 			System.out.println("- loading lexica");
-			parser = new ShiftEagerParser(flag, t_xml, ENTRY_LEXICA, outputFile);
+			parser = new DepSemParser(flag, t_xml, ENTRY_LEXICA, outputFile);
 		}
-		else if (flag == ShiftEagerParser.FLAG_PREDICT)
+		else if (flag == DepSemParser.FLAG_PREDICT)
 		{
 			System.out.println("\n* Predict");
-			parser = new ShiftEagerParser(flag, t_xml, t_map, new OneVsAllDecoder(m_model)); 
+			parser = new DepSemParser(flag, t_xml, t_map, new OneVsAllDecoder(m_model)); 
 			fout   = IOUtil.createPrintFileStream(outputFile);
 		}
 		
@@ -106,7 +106,7 @@ public class TestDepTrain extends AbstractTrain
 		DepTree tree;		int n;
 		String  filename;	boolean isTrain;
 		
-		if (flag == ShiftEagerParser.FLAG_PREDICT)
+		if (flag == DepSemParser.FLAG_PREDICT)
 		{
 			filename = s_evalFile;
 			isTrain  = false;
@@ -117,29 +117,28 @@ public class TestDepTrain extends AbstractTrain
 			isTrain  = true;
 		}
 		
-		if (s_format.equals(AbstractReader.FORMAT_DEP))	reader = new DepReader  (filename, isTrain);
-		else 											reader = new CoNLLReader(filename, isTrain);
+		reader = new RichReader(filename, isTrain);
 		
 		for (n=0; (tree = reader.nextTree()) != null; n++)
 		{
 			parser.parse(tree);
-			if (flag == ShiftEagerParser.FLAG_PREDICT)	fout.println(tree+"\n");
+			if (flag == DepSemParser.FLAG_PREDICT)	fout.println(tree+"\n");
 			if (n % 1000 == 0)	System.out.printf("\r- parsing: %dK", n/1000);
 		}	System.out.println("\r- parsing: "+n);
 		
-		if (flag == ShiftEagerParser.FLAG_PRINT_LEXICON)
+		if (flag == DepSemParser.FLAG_PRINT_LEXICON)
 		{
 			System.out.println("- saving");
 			parser.saveTags(ENTRY_LEXICA);
 			t_xml = parser.getDepFtrXml();
 		}
-		else if (flag == ShiftEagerParser.FLAG_PRINT_INSTANCE)
+		else if (flag == DepSemParser.FLAG_PRINT_INSTANCE)
 		{
 			parser.closeOutputStream();
 			t_map = parser.getDepFtrMap();
 			new File(ENTRY_LEXICA).delete();
 		}
-		else if (flag == ShiftEagerParser.FLAG_PREDICT)
+		else if (flag == DepSemParser.FLAG_PREDICT)
 		{
 			fout.close();
 		}
@@ -154,6 +153,6 @@ public class TestDepTrain extends AbstractTrain
 	
 	static public void main(String[] args)
 	{
-		new TestDepTrain(args);
+		new TestDepSem(args);
 	}
 }
