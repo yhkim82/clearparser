@@ -25,10 +25,12 @@ package clear.model;
 
 import java.io.BufferedReader;
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 
 import clear.train.kernel.AbstractKernel;
 import clear.util.IOUtil;
+import clear.util.tuple.JIntDoubleTuple;
 
 import com.carrotsearch.hppc.IntArrayList;
 
@@ -161,6 +163,23 @@ public class OneVsAllModel extends AbstractMultiModel
 			for (label=0; label<n_labels; label++)
 				scores[label] += d_weights[getBeginIndex(label, x.get(i))];
 		}
+		
+		return scores;
+	}
+	
+	public double[] getScores(ArrayList<JIntDoubleTuple> x)
+	{
+		double[] scores = Arrays.copyOf(d_weights, n_labels);
+		int      label;
+		
+		for (JIntDoubleTuple tup : x)
+		{
+			for (label=0; label<n_labels; label++)
+				scores[label] += (d_weights[getBeginIndex(label, tup.i)] * tup.d);
+		}
+		
+		for (label=0; label<n_labels; label++)
+			scores[label] = logistic(scores[label]);
 		
 		return scores;
 	}

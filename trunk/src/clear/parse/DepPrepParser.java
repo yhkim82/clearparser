@@ -23,10 +23,10 @@
 */
 package clear.parse;
 
-import clear.decode.AbstractMultiDecoder;
+import clear.decode.AbstractDecoder;
+import clear.dep.DepLib;
 import clear.dep.DepNode;
 import clear.dep.DepTree;
-import clear.ftr.FtrLib;
 import clear.ftr.map.DepFtrMap;
 import clear.ftr.xml.DepFtrXml;
 import clear.util.tuple.JIntDoubleTuple;
@@ -38,30 +38,29 @@ import com.carrotsearch.hppc.IntArrayList;
  * @author Jinho D. Choi
  * <b>Last update:</b> 11/6/2010
  */
-public class RLShallowParser extends AbstractDepParser
+public class DepPrepParser extends AbstractDepParser
 {
-	/** Initializes this parser for {@link RLShallowParser#FLAG_PRINT_LEXICON} or {@link RLShallowParser#FLAG_PRINT_TRANSITION}. */
-	public RLShallowParser(byte flag, String filename)
+	/** Label of No-Arc transition */
+	static public final String LB_NO_ARC    = "NA";
+	/** Label of Right-Arc transition */
+	static public final String LB_RIGHT_ARC = "RA";
+	
+	/** Initializes this parser for {@link DepPrepParser#FLAG_PRINT_LEXICON} or {@link DepPrepParser#FLAG_PRINT_TRANSITION}. */
+	public DepPrepParser(byte flag, String filename)
 	{
 		super(flag, filename);
 	}
 
-	/** Initializes this parser for {@link RLShallowParser#FLAG_PRINT_INSTANCE}. */
-	public RLShallowParser(byte flag, DepFtrXml xml, String lexiconFile, String instanceFile)
+	/** Initializes this parser for {@link DepPrepParser#FLAG_PRINT_INSTANCE}. */
+	public DepPrepParser(byte flag, DepFtrXml xml, String lexiconFile, String instanceFile)
 	{
 		super(flag, xml, lexiconFile, instanceFile);
 	}
 	
-	/** Initializes this parser for {@link RLShallowParser#FLAG_PREDICT}. */
-	public RLShallowParser(byte flag, DepFtrXml xml, DepFtrMap map, AbstractMultiDecoder decoder)
+	/** Initializes this parser for {@link DepPrepParser#FLAG_PREDICT}. */
+	public DepPrepParser(byte flag, DepFtrXml xml, DepFtrMap map, AbstractDecoder decoder)
 	{
 		super(flag, xml, map, decoder);
-	}
-	
-	/** Initializes this parser for {@link RLShallowParser#FLAG_TRAIN_CONDITIONAL}. */
-	public RLShallowParser(byte flag, DepFtrXml xml, DepFtrMap map, AbstractMultiDecoder decoder, String instanceFile)
-	{
-		super(flag, xml, map, decoder, instanceFile);
 	}
 	
 	/** Initializes lambda_4 and beta using <code>tree</code>. */
@@ -70,8 +69,6 @@ public class RLShallowParser extends AbstractDepParser
 		d_tree   = tree;
 		i_lambda = tree.size() - 1;
 		i_beta   = tree.size() - 2;
-		
-		if (i_flag == FLAG_TRAIN_CONDITIONAL)	d_copy = tree.clone();
 	}
 	
 	/** Parses <code>tree</code>. */
@@ -83,103 +80,45 @@ public class RLShallowParser extends AbstractDepParser
 		{
 			d_tree.n_trans++;
 			
-			if (i_lambda == d_tree.size())			// lambda_1 is empty: deterministic shift
-				shift(true);	
+			DepNode beta = d_tree.get(i_beta);
+			
+			if (!beta.isPosx("IN|TO") || i_lambda == d_tree.size())
+				shift();	
 			else if (i_flag == FLAG_PREDICT)
-				predict();
-			else if (i_flag == FLAG_TRAIN_CONDITIONAL)
-				trainConditional();
+				predict(beta);
 			else
-				train();
+				train(beta);
 		}
 	}
 	
-	/** Trains the dependency tree ({@link RLShallowParser#d_tree}). */
-	private void train()
+	/** Trains the dependency tree ({@link DepPrepParser#d_tree}). */
+	private void train(DepNode beta)
 	{
 		DepNode lambda = d_tree.get(i_lambda);
-		DepNode beta   = d_tree.get(i_beta);
 		
-		if      (lambda.headId == beta.id)	rightArc(lambda, beta, 1d);
-		else if (isShift(d_tree))			shift(false);
-		else								noArc();
-	}
-	
-	/**
-	 * This method is called from {@link RLShallowParser#train()}.
-	 * @return true if non-deterministic shift needs to be performed 
-	 */
-	private boolean isShift(DepTree tree)
-	{
-		DepNode beta = tree.get(i_beta);
-		int i, n = d_tree.size();
-		
-		for (i=i_lambda; i<n; i++)
-		{
-			DepNode lambda = tree.get(i);
-			
-			if (lambda.headId == beta.id)
-				return false;
-		}
-
-		return true;
+		if (lambda.headId == beta.id)	rightArc(lambda, beta, 1d);
+		else							noArc();
 	}
 	
 	/** Predicts dependencies. */
-	private void predict()
+	private void predict(DepNode beta)
 	{
-		predictAux(getFeatureArray());
-	}
-	
-	private void trainConditional()
-	{
-		IntArrayList ftr = getFeatureArray();
-		String gLabel = getGoldLabel(d_copy);
+		JIntDoubleTuple res = c_dec.predict(getFeatureArray());
 		
-		printInstance(gLabel, ftr);
-		predictAux(ftr);
-	}
-	
-	private String predictAux(IntArrayList ftr)
-	{
-		JIntDoubleTuple res = c_dec.predict(ftr);
-		
-		String  label  = (res.i < 0) ? LB_NO_ARC : t_map.indexToLabel(res.i);
+		String  label  = t_map.indexToLabel(res.i);
 		DepNode lambda = d_tree.get(i_lambda);
-		DepNode beta   = d_tree.get(i_beta);
 		
-		if      (label.equals(LB_RIGHT_ARC) && !d_tree.isAncestor(lambda, beta))
+		if  (label.equals(LB_RIGHT_ARC))
 			rightArc(lambda, beta, res.d);
-		else if (label.equals(LB_SHIFT))
-			shift(false);
 		else
 			noArc();
-		
-		return label;
-	}
-	
-	private String getGoldLabel(DepTree tree)
-	{
-		DepNode lambda = tree.get(i_lambda);
-		DepNode beta   = tree.get(i_beta);
-		
-		if      (lambda.headId == beta.id)	return LB_RIGHT_ARC;
-		else if (isShift(tree))				return LB_SHIFT;
-		else								return LB_NO_ARC;
 	}
 		
 	/**
 	 * Performs a shift transition.
-	 * @param isDeterministic true if this is called for a deterministic-shift.
 	 */
-	private void shift(boolean isDeterministic)
+	private void shift()
 	{
-		if (!isDeterministic)
-		{
-			if      (i_flag == FLAG_PRINT_LEXICON )	addTags      (LB_SHIFT);
-			else if (i_flag == FLAG_PRINT_INSTANCE)	printInstance(LB_SHIFT, getFeatureArray());
-		}
-			
 		i_lambda = i_beta--;
 	}
 	
@@ -206,9 +145,20 @@ public class RLShallowParser extends AbstractDepParser
 	    if      (i_flag == FLAG_PRINT_LEXICON)  addTags      (label);
 		else if (i_flag == FLAG_PRINT_INSTANCE)	printInstance(label, getFeatureArray());
 
-		lambda.setHead(beta.id, FtrLib.TAG_NULL, score);
-		if (lambda.id > beta.rightDepId)	beta.rightDepId = lambda.id;
-		
+	    int i;    DepNode tmp;
+	    
+	    for (i=i_beta+1; i<i_lambda; i++)
+	    {
+	    	tmp = d_tree.get(i);
+	    	
+	    	if (tmp.rightDepId == i_lambda)
+	    	{
+	    		tmp.rightDepId = DepLib.NULL_ID;
+	    		break;
+	    	}
+	    }
+	    
+		beta.rightDepId = i_lambda;
 		i_lambda = i_beta--;
 	}
 	
@@ -226,7 +176,13 @@ public class RLShallowParser extends AbstractDepParser
 		IntArrayList arr = new IntArrayList();
 		int idx[] = {1};
 		
-		addNgramFeatures      (arr, idx);
+		addNgramFeatures(arr, idx);
 		return arr;
+	}
+
+	@Override
+	protected void addLexica()
+	{
+		addNgramLexica();
 	}
 }

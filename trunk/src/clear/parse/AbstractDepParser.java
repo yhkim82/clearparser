@@ -24,8 +24,9 @@
 package clear.parse;
 
 import java.io.PrintStream;
+import java.util.ArrayList;
 
-import clear.decode.AbstractMultiDecoder;
+import clear.decode.AbstractDecoder;
 import clear.dep.DepNode;
 import clear.dep.DepTree;
 import clear.ftr.FtrLib;
@@ -36,6 +37,8 @@ import clear.ftr.xml.FtrToken;
 import clear.train.kernel.AbstractKernel;
 import clear.util.DSUtil;
 import clear.util.IOUtil;
+import clear.util.tuple.JIntDoubleTuple;
+import clear.util.tuple.JObjectDoubleTuple;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.ObjectIntOpenHashMap;
@@ -58,27 +61,16 @@ abstract public class AbstractDepParser
 	/** Flag to train automatic dependencies */
 	static public final byte FLAG_TRAIN_CONDITIONAL = 4;
 	
-	/** Label of Shift transition */
-	static public final String LB_SHIFT     = "SH";
-	/** Label of No-Arc transition */
-	static public final String LB_NO_ARC    = "NA";
-	/** Label of Left-Arc transition */
-	static public final String LB_LEFT_ARC  = "LA";
-	/** Label of Right-Arc transition */
-	static public final String LB_RIGHT_ARC = "RA";
-	/** Delimiter between transition and dependency label */
-	static public final String LB_DELIM     = "-";
-	
 	/** {@link ShiftEagerParser#FLAG_*} */
-	protected byte                 i_flag;
+	protected byte            i_flag;
 	/** Feature templates */
-	protected DepFtrXml            t_xml;
+	protected DepFtrXml       t_xml;
 	/** Feature mappings */
-	protected DepFtrMap            t_map;
+	protected DepFtrMap       t_map;
 	/** Machine learning decoder */
-	protected AbstractMultiDecoder c_dec;
+	protected AbstractDecoder c_dec;
 	/** Prints training instances */
-	protected PrintStream          f_out;
+	protected PrintStream     f_out;
 	
 	/** Current dependency tree */
 	protected DepTree d_tree;
@@ -86,9 +78,6 @@ abstract public class AbstractDepParser
 	protected int     i_lambda;
 	/** Index of beta */
 	protected int     i_beta;
-	
-	/** For {@link AbstractDepParser#FLAG_TRAIN_CONDITIONAL} only. */
-	protected DepTree d_copy = null;
 	
 	/** Initializes this parser for {@link AbstractDepParser#FLAG_PRINT_LEXICON} or {@link AbstractDepParser#FLAG_PRINT_TRANSITION}. */
 	public AbstractDepParser(byte flag, String filename)
@@ -116,7 +105,7 @@ abstract public class AbstractDepParser
 	}
 	
 	/** Initializes this parser for {@link AbstractDepParser#FLAG_PREDICT}. */
-	public AbstractDepParser(byte flag, DepFtrXml xml, DepFtrMap map, AbstractMultiDecoder decoder)
+	public AbstractDepParser(byte flag, DepFtrXml xml, DepFtrMap map, AbstractDecoder decoder)
 	{
 		i_flag = flag;
 		t_xml  = xml;
@@ -125,7 +114,7 @@ abstract public class AbstractDepParser
 	}
 	
 	/** Initializes this parser for {@link AbstractDepParser#FLAG_TRAIN_CONDITIONAL}. */
-	public AbstractDepParser(byte flag, DepFtrXml xml, DepFtrMap map, AbstractMultiDecoder decoder, String instanceFile)
+	public AbstractDepParser(byte flag, DepFtrXml xml, DepFtrMap map, AbstractDecoder decoder, String instanceFile)
 	{
 		i_flag    = flag;
 		t_xml     = xml;
@@ -135,8 +124,8 @@ abstract public class AbstractDepParser
 	}
 	
 	/** Parses <code>tree</code>. */
-	abstract public void parse(DepTree tree);
-	abstract protected IntArrayList getFeatureArray();
+	abstract public    void parse(DepTree tree);
+	abstract protected void addLexica();
 	
 	public DepFtrXml getDepFtrXml()
 	{
@@ -155,7 +144,7 @@ abstract public class AbstractDepParser
 	protected void addTags(String label)
 	{
 		t_map.addLabel(label);
-		getFeatureArray();
+		addLexica();
 	}
 	
 	/** Saves tags from {@link AbstractDepParser#t_map} to <code>lexiconFile</code>. */
@@ -179,7 +168,28 @@ abstract public class AbstractDepParser
 		int index = t_map.labelToIndex(label);
 		
 		if (index >= 0)
-			f_out.println(index + AbstractKernel.COL_DELIM + DSUtil.toString(getFeatureArray(), AbstractKernel.COL_DELIM));
+			f_out.println(index + AbstractKernel.COL_DELIM + DSUtil.toString(ftr, AbstractKernel.COL_DELIM));
+	}
+	
+	protected void printInstance(String label, ArrayList<JIntDoubleTuple> ftr)
+	{
+		int index = t_map.labelToIndex(label);
+		
+		if (index >= 0)
+		{
+			StringBuilder build = new StringBuilder();
+			build.append(index);
+			
+			for (JIntDoubleTuple tup : ftr)
+			{
+				build.append(AbstractKernel.COL_DELIM);
+				build.append(tup.i);
+				build.append(AbstractKernel.FTR_DELIM);
+				build.append(tup.d);
+			}
+			
+			f_out.println(build.toString());
+		}
 	}
 	
 	// ---------------------------- getFtr*() ----------------------------
@@ -236,6 +246,36 @@ abstract public class AbstractDepParser
 		}
 	}
 	
+	protected void addNgramFeatures(ArrayList<JIntDoubleTuple> arr, int[] beginIndex)
+	{
+		FtrTemplate[][] templates = t_xml.a_ngram_templates;
+		FtrTemplate[]   template;
+		int i, j, n, m = templates.length, size, value;
+		JObjectDoubleTuple  <String> ftr;
+		ObjectIntOpenHashMap<String> map;
+		
+		for (j=0; j<m; j++)
+		{
+			map  = t_map.getNgramHashMap(j);
+			size = t_map.n_ngram[j];
+			
+			template = templates[j];
+			n        = template.length;
+			
+			for (i=0; i<n; i++)
+			{
+				ftr = getFeatureValue(template[i]);
+				if (ftr != null)
+				{
+					value = map.get(ftr.object);
+					if (value > 0)	arr.add(new JIntDoubleTuple(beginIndex[0]+value-1, ftr.value));
+				}
+				
+				beginIndex[0] += size;
+			}
+		}
+	}
+	
 	/** @return feature retrieved from <code>ftr</code>. */
 	protected String getFeature(FtrTemplate ftr)
 	{
@@ -253,6 +293,27 @@ abstract public class AbstractDepParser
 		}
 		
 		return build.toString();
+	}
+	
+	/** @return ("feature", probability) retrieved from <code>ftr</code>. */
+	protected JObjectDoubleTuple<String> getFeatureValue(FtrTemplate ftr)
+	{
+		StringBuilder build = new StringBuilder();
+		int i, n = ftr.tokens.length;
+		JObjectDoubleTuple<String> field;
+		double value = 1;
+		
+		for (i=0; i<n; i++)
+		{
+			field = getFieldValue(ftr.tokens[i]);
+			if (field == null)	return null;
+			
+			if (i > 0)	build.append(FtrLib.TAG_DELIM);
+			build.append(field.object);
+			value *= field.value;
+		}
+		
+		return new JObjectDoubleTuple<String>(build.toString(), value);
 	}
 		
 	/** @return field retrieved from <code>token</code> */
@@ -277,6 +338,49 @@ abstract public class AbstractDepParser
 		else if (token.field.equals(DepFtrXml.F_LEMMA))		return node.lemma;
 		else if (token.field.equals(DepFtrXml.F_POS))		return node.pos;
 		else if (token.field.equals(DepFtrXml.F_DEPREL))	return node.getDeprel();
+		
+		System.err.println("Error: unspecified feature '"+token.field+"'");
+		return null;
+	}
+	
+	/** @return ("field", probability) retrieved from <code>token</code> */
+	protected JObjectDoubleTuple<String> getFieldValue(FtrToken token)
+	{
+		int index = (token.source == DepFtrXml.LAMBDA) ? i_lambda : i_beta;
+		index    += token.offset;
+		
+		if (!d_tree.isRange(index) || (token.source == DepFtrXml.LAMBDA && index == i_beta) || (token.source == DepFtrXml.BETA && index == i_lambda))
+			return null;
+	
+		DepNode node  = null;
+		double  value = 1f;
+		
+		if (token.relation == null)
+		{
+			node = d_tree.get(index);
+		}
+		else if (token.relation.equals(DepFtrXml.R_HD))
+		{
+			node = d_tree.getHead(index);
+			if (node != null)	value = d_tree.get(index).score;
+		}
+		else if (token.relation.equals(DepFtrXml.R_LM))
+		{
+			node = d_tree.getLeftMostDependent(index);
+			if (node != null)	value = node.score;
+		}
+		else if (token.relation.equals(DepFtrXml.R_RM))
+		{
+			node = d_tree.getRightMostDependent(index);
+			if (node != null)	value = node.score;
+		}
+		
+		if (node == null)	return null;
+		
+		if      (token.field.equals(DepFtrXml.F_FORM))		return new JObjectDoubleTuple<String>(node.form       , value);
+		else if (token.field.equals(DepFtrXml.F_LEMMA))		return new JObjectDoubleTuple<String>(node.lemma      , value);
+		else if (token.field.equals(DepFtrXml.F_POS))		return new JObjectDoubleTuple<String>(node.pos        , value);
+		else if (token.field.equals(DepFtrXml.F_DEPREL))	return new JObjectDoubleTuple<String>(node.getDeprel(), value);
 		
 		System.err.println("Error: unspecified feature '"+token.field+"'");
 		return null;

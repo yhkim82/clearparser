@@ -60,8 +60,9 @@ public class LibLinearL2 implements IAlgorithm
 		
 		int active_size = kernel.N;
 		int i, j, s, iter;
-		byte  yi;
-		int[] xi;
+		byte     yi;
+		int[]    xi;
+		double[] vi = null;
 		
 		// PG: projected gradient, for shrinking and stopping
 		double PG;
@@ -83,9 +84,17 @@ public class LibLinearL2 implements IAlgorithm
 		
 		for (i=0; i<kernel.N; i++)
 		{
-			aY   [i] = (kernel.a_ys.get(i) == currLabel) ? (byte)1 : (byte)-1;
-			QD   [i] = diag[GETI(aY, i)] + kernel.a_xs.get(i).length;
 			index[i] = i;
+			aY   [i] = (kernel.a_ys.get(i) == currLabel) ? (byte)1 : (byte)-1;
+			QD   [i] = diag[GETI(aY, i)];
+			
+			if (kernel.type == AbstractKernel.KERNEL_BINARY)
+				QD[i] += kernel.a_xs.get(i).length;
+			else
+			{
+				for (double value : kernel.a_vs.get(i))
+					QD[i] += (value * value);
+			}
 			
 			if (d_bias > 0)	QD[i] += (d_bias * d_bias);
 		}
@@ -106,10 +115,17 @@ public class LibLinearL2 implements IAlgorithm
 				i  = index[s];
 				yi = aY[i];
 				xi = kernel.a_xs.get(i);
+				if (kernel.type == AbstractKernel.KERNEL_VALUE)
+					vi = kernel.a_vs.get(i);
 
 				G = (d_bias > 0) ? weight[0] * d_bias : 0;
 				for (j=0; j<xi.length; j++)
-					G += weight[xi[j]];
+				{
+					if (kernel.type == AbstractKernel.KERNEL_BINARY)
+						G += weight[xi[j]];
+					else
+						G += (weight[xi[j]] * vi[j]);
+				}
 				
 				G = G * yi - 1;
 				G += alpha[i] * diag[GETI(aY, i)];
@@ -155,7 +171,13 @@ public class LibLinearL2 implements IAlgorithm
 					
 					if (d_bias > 0)	weight[0] += d * d_bias;
 					
-					for (j=0; j<xi.length; j++)	weight[xi[j]] += d;
+					for (j=0; j<xi.length; j++)
+					{
+						if (kernel.type == AbstractKernel.KERNEL_BINARY)
+							weight[xi[j]] += d;
+						else
+							weight[xi[j]] += (d * vi[j]);
+					}
 				}
 			}
 			

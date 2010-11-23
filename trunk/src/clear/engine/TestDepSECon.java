@@ -37,8 +37,8 @@ import clear.ftr.xml.DepFtrXml;
 import clear.model.OneVsAllModel;
 import clear.parse.ShiftEagerParser;
 import clear.reader.AbstractReader;
-import clear.reader.CoNLLReader;
 import clear.reader.DepReader;
+import clear.reader.RichReader;
 import clear.util.IOUtil;
 
 /**
@@ -46,7 +46,7 @@ import clear.util.IOUtil;
  * <b>Last update:</b> 11/19/2010
  * @author Jinho D. Choi
  */
-public class TestDepTrainCon extends AbstractTrain
+public class TestDepSECon extends AbstractTrain
 {
 	private final int MAX_ITER = 10;
 	
@@ -58,7 +58,7 @@ public class TestDepTrainCon extends AbstractTrain
 	private DepFtrMap     t_map   = null;
 	private OneVsAllModel m_model = null;
 	
-	public TestDepTrainCon(String[] args)
+	public TestDepSECon(String[] args)
 	{
 		super(args);
 	}
@@ -77,7 +77,7 @@ public class TestDepTrainCon extends AbstractTrain
 		
 		trainDepParser(ShiftEagerParser.FLAG_PRINT_LEXICON , null,         null);
 		trainDepParser(ShiftEagerParser.FLAG_PRINT_INSTANCE, instanceFile, null);
-		m_model = trainModel(instanceFile, null);
+		m_model = (OneVsAllModel)trainModel(instanceFile, null);
 		
 		double prevAcc = 0, currAcc;
 		
@@ -94,7 +94,7 @@ public class TestDepTrainCon extends AbstractTrain
 			System.out.print(log);
 
 			m_model = null;
-			m_model = trainModel(instanceFile, null);
+			m_model = (OneVsAllModel)trainModel(instanceFile, null);
 		}
 		while (i < MAX_ITER);
 		
@@ -152,8 +152,8 @@ public class TestDepTrainCon extends AbstractTrain
 			isTrain   = true;
 		}
 		
-		if (s_format.equals(AbstractReader.FORMAT_DEP))	reader = new DepReader  (inputFile, isTrain);
-		else 											reader = new CoNLLReader(inputFile, isTrain);
+		if      (s_format.equals(AbstractReader.FORMAT_DEP))	reader = new DepReader (inputFile, isTrain);
+		else if (s_format.equals(AbstractReader.FORMAT_RICH))	reader = new RichReader(inputFile, isTrain);
 		
 		for (n=0; (tree = reader.nextTree()) != null; n++)
 		{
@@ -182,7 +182,7 @@ public class TestDepTrainCon extends AbstractTrain
 		{
 			fout.close();
 			
-			String[] args = {"-g", s_devFile, "-s", outputFile};
+			String[] args = {"-g", "/data/choijd/opt/clearparser/wsj/conll-tst.auto", "-s", outputFile};
 			String   log  = "\n* Development accuracy\n";
 			
 			System.out.print(log);
@@ -212,6 +212,6 @@ public class TestDepTrainCon extends AbstractTrain
 	
 	static public void main(String[] args)
 	{
-		new TestDepTrainCon(args);
+		new TestDepSECon(args);
 	}
 }

@@ -23,6 +23,8 @@
 */
 package clear.decode;
 
+import java.util.ArrayList;
+
 import clear.util.tuple.JIntDoubleTuple;
 
 import com.carrotsearch.hppc.IntArrayList;
@@ -36,4 +38,5 @@ public abstract class AbstractMultiDecoder extends AbstractDecoder
 {
 	abstract public JIntDoubleTuple[] predictAll(int[] x);
 	abstract public JIntDoubleTuple[] predictAll(IntArrayList x);
+	abstract public JIntDoubleTuple[] predictAll(ArrayList<JIntDoubleTuple> x);
 }

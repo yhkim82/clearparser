@@ -43,7 +43,7 @@ public class DepEvaluate
 				d_eval.evaluate(gTree, sTree);
 			}
 			
-			d_eval.print();
+			d_eval.printTotal();
 		}
 		catch (CmdLineException e)
 		{
@@ -65,6 +65,11 @@ public class DepEvaluate
 	public double getLs()
 	{
 		return d_eval.getLs();
+	}
+	
+	public void printRootScore()
+	{
+		d_eval.printRoot();
 	}
 
 	static public void main(String[] args)

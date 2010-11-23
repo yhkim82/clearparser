@@ -24,6 +24,7 @@
 package clear.decode;
 
 import java.io.BufferedReader;
+import java.util.ArrayList;
 
 import clear.model.BinaryModel;
 import clear.util.tuple.JIntDoubleTuple;
@@ -60,6 +61,11 @@ public class BinaryDecoder extends AbstractDecoder
 	}
 	
 	public JIntDoubleTuple predict(IntArrayList x)
+	{
+		return predictAux(m_model.getScore(x));
+	}
+	
+	public JIntDoubleTuple predict(ArrayList<JIntDoubleTuple> x)
 	{
 		return predictAux(m_model.getScore(x));
 	}

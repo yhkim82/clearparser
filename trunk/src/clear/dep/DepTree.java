@@ -316,4 +316,17 @@ public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
 		
 		return buff.toString().trim();
 	}
+	
+	public String toStringRich()
+	{
+		StringBuilder buff = new StringBuilder();
+		
+		for (int i=1; i<size(); i++)
+		{
+			buff.append(get(i).toStringRich());
+			buff.append("\n");
+		}
+		
+		return buff.toString().trim();
+	}
 }

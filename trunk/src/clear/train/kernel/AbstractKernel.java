@@ -34,6 +34,9 @@ import com.carrotsearch.hppc.IntArrayList;
  */
 abstract public class AbstractKernel
 {
+	static public final byte KERNEL_BINARY = 0;
+	static public final byte KERNEL_VALUE  = 1;
+	
 	/** Delimiter between index and value (e.g. 3:0.12) */
 	static public final String FTR_DELIM = ":";
 	/** Delimiter between columns (e.g. 0:0.12 3:0.45) */
@@ -46,20 +49,25 @@ abstract public class AbstractKernel
 	/** Total number of labels */
 	public int L;
 	/** List of labels */
-	public int[]            a_labels;    
+	public int[] a_labels;    
 	/** Training labels */
-	public IntArrayList     a_ys;
-	/** Training feature-vectors */
-	public ArrayList<int[]> a_xs;
+	public IntArrayList        a_ys;
+	/** Training feature indices */
+	public ArrayList<int[]>    a_xs;
+	/** Training feature values */
+	public ArrayList<double[]> a_vs;
+	/** Kernel type */
+	public byte type;
 		
 	/**
 	 * Calls {@link AbstractKernel#init(String)}
 	 * @param instanceFile name of a file containing training instances
 	 */
-	public AbstractKernel(String instanceFile)
+	public AbstractKernel(byte kernelType, String instanceFile)
 	{
 		try
 		{
+			type = kernelType;
 			init(instanceFile);
 		}
 		catch (Exception e) {e.printStackTrace();}

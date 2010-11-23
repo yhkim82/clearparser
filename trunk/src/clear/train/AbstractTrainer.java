@@ -25,6 +25,7 @@ package clear.train;
 
 import java.io.PrintStream;
 
+import clear.model.AbstractModel;
 import clear.train.algorithm.IAlgorithm;
 import clear.train.kernel.AbstractKernel;
 
@@ -68,4 +69,5 @@ abstract public class AbstractTrainer
 	
 	abstract protected void initModel();
 	abstract protected void train();
+	abstract public AbstractModel getModel();
 }

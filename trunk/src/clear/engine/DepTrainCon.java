@@ -82,7 +82,7 @@ public class DepTrainCon extends AbstractTrain
 		
 		trainDepParser(ShiftEagerParser.FLAG_PRINT_LEXICON , null,         null);
 		trainDepParser(ShiftEagerParser.FLAG_PRINT_INSTANCE, instanceFile, zout);
-		m_model = trainModel(instanceFile, zout);
+		m_model = (OneVsAllModel)trainModel(instanceFile, zout);
 		zout.flush();	zout.close();
 		
 		for (i=1; i<n_iter; i++)
@@ -95,7 +95,7 @@ public class DepTrainCon extends AbstractTrain
 			zout = new JarArchiveOutputStream(new FileOutputStream(modelFile));
 			trainDepParser(ShiftEagerParser.FLAG_TRAIN_CONDITIONAL, instanceFile, null);
 			m_model = null;
-			m_model = trainModel(instanceFile, zout);
+			m_model = (OneVsAllModel)trainModel(instanceFile, zout);
 			zout.flush();	zout.close();
 		}
 		
@@ -131,8 +131,8 @@ public class DepTrainCon extends AbstractTrain
 		AbstractReader<DepNode, DepTree> reader = null;
 		DepTree tree;	int n;
 		
-		if (s_format.equals(AbstractReader.FORMAT_DEP))	reader = new DepReader  (s_trainFile, true);
-		else 											reader = new CoNLLReader(s_trainFile, true);
+		if (s_format.equals(AbstractReader.FORMAT_DEP))			reader = new DepReader  (s_trainFile, true);
+		else if (s_format.equals(AbstractReader.FORMAT_RICH))	reader = new CoNLLReader(s_trainFile, true);
 		
 		for (n=0; (tree = reader.nextTree()) != null; n++)
 		{
