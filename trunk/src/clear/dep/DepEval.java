@@ -59,8 +59,23 @@ public class DepEval
 				continue;
 			
 			total(gNode, sNode);
-			root (gNode, sNode);
 		}
+	}
+	
+	static public double getLas(DepTree gold, DepTree sys)
+	{
+		int correct = 0, size = gold.size();
+		
+		for (int i=1; i<size; i++)
+		{
+			DepNode gNode = gold.get(i);
+			DepNode sNode = sys .get(i);
+			
+			if (gNode.isDeprel(sNode.deprel) && gNode.headId == sNode.headId)
+				correct++;
+		}
+		
+		return (double)correct/(size-1);
 	}
 	
 	private void total(DepNode gNode, DepNode sNode)
@@ -76,15 +91,6 @@ public class DepEval
 			n_uas++;
 		
 		n_total++;
-	}
-	
-	private void root(DepNode gNode, DepNode sNode)
-	{
-		if (sNode.headId != DepLib.NULL_HEAD_ID)
-		{
-			if (gNode.deprel.equals(sNode.deprel))	n_root[0]++;
-			n_root[1]++;
-		}
 	}
 	
 	public double getLas()

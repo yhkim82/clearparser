@@ -23,21 +23,25 @@
 */
 package clear.train.algorithm;
 
+import java.util.Arrays;
+
 import clear.train.kernel.AbstractKernel;
+import clear.util.DSUtil;
+import clear.util.tuple.JDoubleDoubleTuple;
 
 /**
  * LibLinear L2-SVM algorithm.
  * @author Jinho D. Choi
  * <b>Last update:</b> 11/4/2010
  */
-public class LibLinearL2 implements IAlgorithm
+public class LibLinearL2Ada implements IAlgorithm
 {
 	private byte   i_lossType;
 	private double d_c;
 	private double d_eps;
 	private double d_bias;
 	
-	public LibLinearL2(byte lossType, double c, double eps, double bias)
+	public LibLinearL2Ada(byte lossType, double c, double eps, double bias)
 	{
 		i_lossType = lossType;
 		d_c        = c;
@@ -47,12 +51,44 @@ public class LibLinearL2 implements IAlgorithm
 	
 	public double[] getWeight(AbstractKernel kernel, int currLabel)
 	{
+		double[] gWeight = new double[kernel.D];
+		double[] ada     = new double[kernel.N];
+		Arrays.fill(ada, (double)1/kernel.N);
+		
+		double[] weight = new double[kernel.D];
+		JDoubleDoubleTuple tup;
+		double threshold = 0.5;
+		
+		for (int i=1; ; i++)
+		{
+			if (i%100 == 0)	threshold -= 0.01;
+			
+			Arrays.fill(weight, 0);
+			tup = getWeightAux(kernel, currLabel, weight, ada, i-1);
+			
+			if (tup.d1 >= threshold)
+				break;
+			if (tup.d1 == 0.0)
+			{
+				DSUtil.copy(gWeight, weight);
+				break;
+			}
+			
+			udpateWeights(gWeight, weight, tup.d2);
+			updateAda(kernel, currLabel, tup.d2, weight, ada);
+		}
+		
+		AbstractKernel.normalize(gWeight);
+		return gWeight;
+	}
+	
+	public JDoubleDoubleTuple getWeightAux(AbstractKernel kernel, int currLabel, double[] weight, double[] ada, int adaIter)
+	{
 		final int MAX_ITER = 1000;
 		
 	//	Random   rand   = new Random(0);
 		double[] QD     = new double[kernel.N];
 		double[] alpha  = new double[kernel.N];
-		double[] weight = new double[kernel.D];
 		double U, G, d, alpha_old;
 		
 		int [] index = new int [kernel.N];
@@ -167,7 +203,7 @@ public class LibLinearL2 implements IAlgorithm
 				{
 					alpha_old = alpha[i];
 					alpha[i] = Math.min(Math.max(alpha[i] - G / QD[i], 0.0), U);
-					d = (alpha[i] - alpha_old) * yi;
+					d = (alpha[i] - alpha_old) * yi * ada[i];
 					
 					if (d_bias > 0)	weight[0] += d * d_bias;
 					
@@ -200,28 +236,34 @@ public class LibLinearL2 implements IAlgorithm
 			if (PGmin_old >= 0) PGmin_old = Double.NEGATIVE_INFINITY;
 		}
 		
-		double v = 0;
-		int  nSV = 0;
+		double error = 0;
 		
-		for (double w : weight)	v += w * w;
-		for (i = 0; i < kernel.N; i++)
+		for (i=0; i<kernel.N; i++)
 		{
-			v += alpha[i] * (alpha[i] * diag[GETI(aY, i)] - 2);
-			if (alpha[i] > 0) ++nSV;
+			yi = aY[i];
+			xi = kernel.a_xs.get(i);
+			
+			G = getScore(weight, xi);
+			if (G * yi <= 0)	error += ada[i];
 		}
 		
 		StringBuilder build = new StringBuilder();
+		double a = getAlpha(error);
 		
 		build.append("- label = ");
 		build.append(currLabel);
+		build.append(": ada = ");
+		build.append(adaIter);
 		build.append(": iter = ");
 		build.append(iter);
-		build.append(", nSV = ");
-		build.append(nSV);
+		build.append(", error = ");
+		build.append(error);
+		build.append(", alpha = ");
+		build.append(a);
 
 		System.out.println(build.toString());
 		
-		return weight;
+		return new JDoubleDoubleTuple(error, a);
 	}
 	
 	private int GETI(byte[] y, int i)
@@ -235,5 +277,49 @@ public class LibLinearL2 implements IAlgorithm
 		array[idxA] = array[idxB];
 		array[idxB] = temp;
 	}
-}
 	
+	private double getScore(double[] weight, int[] x)
+	{
+		double score = (d_bias > 0) ? weight[0] * d_bias : 0;
+		
+		for (int idx : x)
+			score += weight[idx];
+		
+		return score;
+	}
+	
+	private void udpateWeights(double[] gWeight, double[] weight, double alpha)
+	{
+		int i;
+		
+		for (i=0; i<gWeight.length; i++)
+			gWeight[i] += weight[i] * alpha;
+	}
+	
+	private void updateAda(AbstractKernel kernel, int currLabel, double alpha, double[] weight, double[] ada)
+	{
+		int i, yi;
+		int[]  xi;
+		double score, norm = 0;
+		
+		for (i=0; i<kernel.N; i++)
+		{
+			yi = (kernel.a_ys.get(i) == currLabel) ? 1 : -1;
+			xi = kernel.a_xs.get(i);
+			score = getScore(weight, xi);
+			
+			if (yi*score > 0)	ada[i] *= Math.exp(-alpha);
+			else				ada[i] *= Math.exp( alpha);
+			
+			norm += ada[i];
+		}
+		
+		for (i=0; i<kernel.N; i++)
+			ada[i] /= norm; 
+	}
+	
+	private double getAlpha(double error)
+	{
+		return 0.5 * Math.log((1-error)/error);
+	}
+}

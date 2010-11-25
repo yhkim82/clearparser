@@ -56,6 +56,11 @@ public class OneVsAllModel extends AbstractMultiModel
 		super(fin);
 	}
 	
+	public OneVsAllModel(int nLabels, int nFeatures, int[] aLabels, double[] dWeights)
+	{
+		super(nLabels, nFeatures, aLabels, dWeights);
+	}
+	
 	public void init(AbstractKernel kernel)
 	{
 		n_labels   = kernel.L;

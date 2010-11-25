@@ -127,6 +127,13 @@ public class DepNode
 		this.score   = score;
 		this.hasHead = true;
 	}
+	
+	public void unhead()
+	{
+		headId  = DepLib.NULL_HEAD_ID;
+		deprel  = FtrLib.TAG_NULL;
+		hasHead = false;
+	}
 		
 	/** @return ({@link DepNode#hasHead}) ? {@link DepNode#headId} : {@link DepLib#NULL_HEAD_ID}. */
 	public int getHeadId()

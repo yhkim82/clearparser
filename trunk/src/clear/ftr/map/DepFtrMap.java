@@ -44,6 +44,8 @@ public class DepFtrMap extends AbstractFtrMap<DepFtrXml>
 	/** Number of punctuation */
 	public    int                          n_punctuation;
 	
+	protected ObjectIntOpenHashMap<String> m_dir;
+	
 	public DepFtrMap(DepFtrXml xml)
 	{
 		super(xml);
@@ -64,6 +66,7 @@ public class DepFtrMap extends AbstractFtrMap<DepFtrXml>
 		initDefault(xml);
 
 		m_punctuation = new ObjectIntOpenHashMap<String>();
+		m_dir = new ObjectIntOpenHashMap<String>();
 	}
 
 	protected void load(String lexiconFile)
@@ -89,14 +92,28 @@ public class DepFtrMap extends AbstractFtrMap<DepFtrXml>
 	private void loadAux(BufferedReader fin) throws Exception
 	{
 		loadDefault(fin);
-		int i;
 		
 		// punctuation
-		n_punctuation = Integer.parseInt(fin.readLine());
-		m_punctuation = new ObjectIntOpenHashMap<String>(n_punctuation);
+		m_punctuation = loadHashMap(fin);
+		n_punctuation = m_punctuation.size();
 		
-		for (i=1; i<=n_punctuation; i++)
-			m_punctuation.put(fin.readLine(), i);
+		// semantics
+		m_dir = loadFreqMap(fin);
+	}
+	
+	protected ObjectIntOpenHashMap<String> loadFreqMap(BufferedReader fin) throws Exception
+	{
+		int i, n = Integer.parseInt(fin.readLine());
+		ObjectIntOpenHashMap<String> map = new ObjectIntOpenHashMap<String>(n);
+		String[] tmp;
+		
+		for (i=1; i<=n; i++)
+		{
+			tmp = fin.readLine().split(" ");
+			map.put(tmp[0], Integer.parseInt(tmp[1]));
+		}
+		
+		return map;
 	}
 	
 	/** Saves all tags to <code>lexiconFile</code>. */
@@ -130,19 +147,22 @@ public class DepFtrMap extends AbstractFtrMap<DepFtrXml>
 		
 		// punctuation
 		saveHashMap(fout, m_punctuation, xml.n_cutoff_punctuation);
+		
+		// semantics
+		saveFreqMap(fout, m_dir, 0);
 	}
 	
-	protected int countRuleKeys(ObjectIntOpenHashMap<String> map, int cutoff)
+	protected void saveFreqMap(PrintStream fout, ObjectIntOpenHashMap<String> map, int cutoff)
 	{
-		int count = 0, value;
+		String key;	int value;
+		fout.println(countKeys(map, cutoff));
 		
-		for (ObjectCursor<String> key : map.keySet())
+		for (ObjectCursor<String> str : map.keySet())
 		{
-			value = map.get(key.value);
-			if (Math.abs(value) > cutoff)	count++;
+			key   = str.value;
+			value = map.get(key);
+			if (value > cutoff)	fout.println(key+" "+value);
 		}
-		
-		return count;
 	}
 	
 	/** Adds punctuation. */
@@ -158,5 +178,15 @@ public class DepFtrMap extends AbstractFtrMap<DepFtrXml>
 	public int punctuationToIndex(String ftr)
 	{
 		return m_punctuation.get(ftr) - 1;
+	}
+	
+	public void addDir(String ftr)
+	{
+		m_dir.put(ftr, m_dir.get(ftr)+1);
+	}
+	
+	public int dirToFreq(String ftr)
+	{
+		return m_dir.get(ftr);
 	}
 }

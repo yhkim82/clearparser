@@ -58,6 +58,14 @@ abstract public class AbstractModel
 		load(fin);
 	}
 	
+	public AbstractModel(int nLabels, int nFeatures, int[] aLabels, double[] dWeights)
+	{
+		n_labels   = nLabels;
+		n_features = nFeatures;
+		a_labels   = aLabels;
+		d_weights  = dWeights;
+	}
+	
 	protected void readLabels(BufferedReader fin) throws Exception
 	{
 		String[] tmp = fin.readLine().split(" ");

@@ -111,7 +111,7 @@ public class DepSemParser extends AbstractDepParser
 		if  (!label.equals("-1"))
 		{
 			beta.semDeprel = label;
-			beta.setHead(0, label, 0);
+	//		beta.setHead(0, label, 0);
 		}
 	}
 	
@@ -133,7 +133,6 @@ public class DepSemParser extends AbstractDepParser
 		return arr;
 	}
 
-	@Override
 	protected void addLexica()
 	{
 		addNgramLexica();

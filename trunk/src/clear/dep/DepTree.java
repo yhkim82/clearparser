@@ -103,6 +103,12 @@ public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
 		curr.setHead(headId, deprel, score);
 	}
 	
+	public void unhead()
+	{
+		for (int i=1; i<size(); i++)
+			get(i).unhead();
+	}
+	
 	/**
 	 * Returns the head of the <code>currId</code>'th node.
 	 * If there is no such head, returns a null node.
