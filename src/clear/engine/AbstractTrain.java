@@ -35,7 +35,7 @@ import org.w3c.dom.Element;
 import clear.model.AbstractModel;
 import clear.train.AbstractTrainer;
 import clear.train.BinaryTrainer;
-import clear.train.OneVsAllTrainer;
+import clear.train.OneVsAllKeepTrainer;
 import clear.train.algorithm.IAlgorithm;
 import clear.train.algorithm.LibLinearL2;
 import clear.train.algorithm.RRM;
@@ -168,7 +168,7 @@ abstract public class AbstractTrain extends AbstractCommon
 		
 		long st = System.currentTimeMillis();
 		AbstractKernel kernel = (kernel_type == AbstractKernel.KERNEL_BINARY) ? new BinaryKernel(instanceFile) : new ValueKernel(instanceFile);
-		AbstractTrainer trainer = (trainer_type == AbstractTrainer.ST_BINARY) ? new BinaryTrainer(fout, algorithm, kernel, numThreads) : new OneVsAllTrainer(fout, algorithm, kernel, numThreads);
+		AbstractTrainer trainer = (trainer_type == AbstractTrainer.ST_BINARY) ? new BinaryTrainer(fout, algorithm, kernel, numThreads) : new OneVsAllKeepTrainer(fout, algorithm, kernel, numThreads);
 		long time = System.currentTimeMillis() - st;
 		System.out.printf("- duration: %d hours, %d minutes\n", time/(1000*3600), time/(1000*60));
 		

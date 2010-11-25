@@ -104,18 +104,21 @@ abstract public class AbstractFtrMap<FtrXmlType>
 		
 		for (j=0; j<m; j++)
 		{
-			n = Integer.parseInt(fin.readLine());
-			map = new ObjectIntOpenHashMap<String>(n);
-			
-			for (i=1; i<=n; i++)	// 0 is reserved for unseen feature
-			{
-				key = fin.readLine();
-				map.put(key, i);
-			}
-			
+			map = loadHashMap(fin);
+			n_ngram[j] = map.size();
 			m_ngram.add(map);
-			n_ngram[j] = n;
 		}
+	}
+	
+	protected ObjectIntOpenHashMap<String> loadHashMap(BufferedReader fin) throws Exception
+	{
+		int i, n = Integer.parseInt(fin.readLine());
+		ObjectIntOpenHashMap<String> map = new ObjectIntOpenHashMap<String>(n);
+		
+		for (i=1; i<=n; i++)	// 0 is reserved for unseen feature
+			map.put(fin.readLine(), i);
+		
+		return map;
 	}
 
 	/** This method must be included at the top of {@link AbstractFtrMap#save(String)}. */

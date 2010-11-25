@@ -1,5 +1,5 @@
 /**
-* Copyright (c) 2010, Regents of the University of Colorado
+* Copyright (c) 2009, Regents of the University of Colorado
 * All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -21,42 +21,21 @@
 * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 * POSSIBILITY OF SUCH DAMAGE.
 */
-package clear.model;
+package clear.util.tuple;
 
-import java.io.BufferedReader;
-
-import clear.train.kernel.AbstractKernel;
-
-import com.carrotsearch.hppc.IntArrayList;
-
-/**
- * Abstract model for multi-classification.
- * @author Jinho D. Choi
- * <b>Last update:</b> 11/5/2010
- */
-abstract public class AbstractMultiModel extends AbstractModel
+public class JDoubleDoubleTuple
 {
-	public AbstractMultiModel(AbstractKernel kernel)
+	public double d1;
+	public double d2;
+	
+	public JDoubleDoubleTuple(double d1, double d2)
 	{
-		super(kernel);
+		set(d1, d2);
 	}
 	
-	public AbstractMultiModel(String modelFile)
+	public void set(double d1, double d2)
 	{
-		super(modelFile);
+		this.d1 = d1;
+		this.d2 = d2;
 	}
-	
-	public AbstractMultiModel(BufferedReader fin)
-	{
-		super(fin);
-	}
-	
-	public AbstractMultiModel(int nLabels, int nFeatures, int[] aLabels, double[] dWeights)
-	{
-		super(nLabels, nFeatures, aLabels, dWeights);
-	}
-	
-	abstract public void     copyWeight(int label, double[] weight);
-	abstract public double[] getScores(int[] x);
-	abstract public double[] getScores(IntArrayList x);
 }
