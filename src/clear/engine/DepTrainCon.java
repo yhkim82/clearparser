@@ -55,7 +55,6 @@ public class DepTrainCon extends AbstractTrain
 	@Option(name="-m", usage="model file", required=true, metaVar="REQUIRED")
 	private String s_modelFile = null;
 	
-	private StringBuilder s_build = null;
 	private DepFtrXml     t_xml   = null;
 	private DepFtrMap     t_map   = null;
 	private OneVsAllModel m_model = null;
@@ -74,10 +73,7 @@ public class DepTrainCon extends AbstractTrain
 		String modelFile    = s_modelFile + "." + i;
 		String log          = "\n== Iteration: "+i+" ==\n";
 		
-		s_build = new StringBuilder();
-		s_build.append(log);
 		System.out.print(log);
-		
 		JarArchiveOutputStream zout = new JarArchiveOutputStream(new FileOutputStream(modelFile));
 		
 		trainDepParser(ShiftEagerParser.FLAG_PRINT_LEXICON , null,         null);
@@ -87,13 +83,12 @@ public class DepTrainCon extends AbstractTrain
 		
 		for (i=1; i<n_iter; i++)
 		{
-			modelFile = s_modelFile + "." + (++i);
+			modelFile = s_modelFile + "." + i;
 			log = "\n== Iteration: "+i+" ==\n";
-			s_build.append(log);
 			System.out.print(log);
 
 			zout = new JarArchiveOutputStream(new FileOutputStream(modelFile));
-			trainDepParser(ShiftEagerParser.FLAG_TRAIN_CONDITIONAL, instanceFile, null);
+			trainDepParser(ShiftEagerParser.FLAG_TRAIN_CONDITIONAL, instanceFile, zout);
 			m_model = null;
 			m_model = (OneVsAllModel)trainModel(instanceFile, zout);
 			zout.flush();	zout.close();
@@ -101,7 +96,6 @@ public class DepTrainCon extends AbstractTrain
 		
 		new File(ENTRY_LEXICA).delete();
 		new File(instanceFile).delete();
-		System.out.println(s_build.toString());
 	}
 	
 	/** Trains the dependency parser. */
