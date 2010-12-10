@@ -44,8 +44,6 @@ public class DepFtrMap extends AbstractFtrMap<DepFtrXml>
 	/** Number of punctuation */
 	public    int                          n_punctuation;
 	
-	protected ObjectIntOpenHashMap<String> m_dir;
-	
 	public DepFtrMap(DepFtrXml xml)
 	{
 		super(xml);
@@ -66,7 +64,6 @@ public class DepFtrMap extends AbstractFtrMap<DepFtrXml>
 		initDefault(xml);
 
 		m_punctuation = new ObjectIntOpenHashMap<String>();
-		m_dir = new ObjectIntOpenHashMap<String>();
 	}
 
 	protected void load(String lexiconFile)
@@ -96,9 +93,6 @@ public class DepFtrMap extends AbstractFtrMap<DepFtrXml>
 		// punctuation
 		m_punctuation = loadHashMap(fin);
 		n_punctuation = m_punctuation.size();
-		
-		// semantics
-		m_dir = loadFreqMap(fin);
 	}
 	
 	protected ObjectIntOpenHashMap<String> loadFreqMap(BufferedReader fin) throws Exception
@@ -147,9 +141,6 @@ public class DepFtrMap extends AbstractFtrMap<DepFtrXml>
 		
 		// punctuation
 		saveHashMap(fout, m_punctuation, xml.n_cutoff_punctuation);
-		
-		// semantics
-		saveFreqMap(fout, m_dir, 0);
 	}
 	
 	protected void saveFreqMap(PrintStream fout, ObjectIntOpenHashMap<String> map, int cutoff)
@@ -178,15 +169,5 @@ public class DepFtrMap extends AbstractFtrMap<DepFtrXml>
 	public int punctuationToIndex(String ftr)
 	{
 		return m_punctuation.get(ftr) - 1;
-	}
-	
-	public void addDir(String ftr)
-	{
-		m_dir.put(ftr, m_dir.get(ftr)+1);
-	}
-	
-	public int dirToFreq(String ftr)
-	{
-		return m_dir.get(ftr);
 	}
 }

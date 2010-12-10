@@ -25,7 +25,6 @@ package clear.dep;
 
 import clear.ftr.FtrLib;
 import clear.reader.AbstractReader;
-import clear.reader.CoNLLReader;
 
 /**
  * Dependency node.
@@ -57,7 +56,7 @@ public class DepNode
 	/** 1 if the node is non-projective (experimental) */
 	public byte    nonProj = 0;
 	
-	public String  semDeprel;
+	public boolean isSkip;
 	
 	/** Initializes the node as a null node. */
 	public DepNode()
@@ -95,7 +94,7 @@ public class DepNode
 		this.leftDepId  = Integer.MAX_VALUE;
 		this.rightDepId = -1;
 		this.nonProj    = 0;
-		this.semDeprel  = AbstractReader.EMPTY_FIELD;
+		this.isSkip     = false;
 	}
 	
 	public void init(int id, String form, String lemma, String pos, int headId, String deprel, double score, boolean hasHead, int leftDepId, int rightDepId, byte nonProj)
@@ -111,7 +110,7 @@ public class DepNode
 		this.leftDepId  = leftDepId;
 		this.rightDepId = rightDepId;
 		this.nonProj    = nonProj;
-		this.semDeprel  = AbstractReader.EMPTY_FIELD;
+		this.isSkip     = false;
 	}
 	
 	/**
@@ -246,9 +245,7 @@ public class DepNode
 		
 		if (rightDepId != DepLib.NULL_ID)	buff.append(rightDepId);
 		else								buff.append(AbstractReader.EMPTY_FIELD);
-		buff.append(CoNLLReader.FIELD_DELIM);
-		
-		buff.append(semDeprel);	buff.append(AbstractReader.FIELD_DELIM);
+		buff.append(AbstractReader.FIELD_DELIM);
 		
 		buff.append(headId);	buff.append(AbstractReader.FIELD_DELIM);
 		buff.append(deprel);

@@ -123,6 +123,29 @@ abstract public class AbstractDepParser
 		f_out     = IOUtil.createPrintFileStream(instanceFile);
 	}
 	
+	protected void findRightDep(DepTree tree)
+	{
+		int i, j, size = tree.size();
+		DepNode head;
+		
+		for (i=1; i<size; i++)
+		{
+			head = tree.get(i);
+			
+			if (head.isPosx("IN"))
+			{
+				for (j=i+1; j<size; j++)
+				{
+					if (tree.get(j).isPosx("NN.*|CD") && !(j+1 < size && tree.get(j+1).isPosx("NN.*|CD|POS")))
+					{
+						head.rightDepId = j;
+						i = j;	break;
+					}
+				}
+			}
+		}
+	}
+	
 	/** Parses <code>tree</code>. */
 	abstract public    void parse(DepTree tree);
 	abstract protected void addLexica();
@@ -320,14 +343,31 @@ abstract public class AbstractDepParser
 	protected String getField(FtrToken token)
 	{
 		int index = (token.source == DepFtrXml.LAMBDA) ? i_lambda : i_beta;
-		index    += token.offset;
+		
+		if (token.relation != null && token.relation.equals(DepFtrXml.R_ST))
+		{
+			int i, offset = Math.abs(token.offset), dir = (token.offset < 0) ? -1 : 1;
+
+			for (i=0; i<offset;)
+			{
+				index += dir;
+				
+				if (!d_tree.isRange(index))
+					return null;
+				else if (!d_tree.get(index).isSkip)
+					i++;
+			}
+		}
+		else
+			index += token.offset;
 		
 		if (!d_tree.isRange(index) || (token.source == DepFtrXml.LAMBDA && index == i_beta) || (token.source == DepFtrXml.BETA && index == i_lambda))
 			return null;
-	
+		
 		DepNode node = null;
 		
 		if      (token.relation == null)				node = d_tree.get(index);
+		else if (token.relation.equals(DepFtrXml.R_ST))	node = d_tree.get(index);
 		else if (token.relation.equals(DepFtrXml.R_HD))	node = d_tree.getHead(index);
 		else if (token.relation.equals(DepFtrXml.R_LM))	node = d_tree.getLeftMostDependent(index);
 		else if (token.relation.equals(DepFtrXml.R_RM))	node = d_tree.getRightMostDependent(index);
@@ -347,7 +387,23 @@ abstract public class AbstractDepParser
 	protected JObjectDoubleTuple<String> getFieldValue(FtrToken token)
 	{
 		int index = (token.source == DepFtrXml.LAMBDA) ? i_lambda : i_beta;
-		index    += token.offset;
+		
+		if (token.relation != null && token.relation.equals(DepFtrXml.R_ST))
+		{
+			int i, offset = Math.abs(token.offset), dir = (token.offset < 0) ? -1 : 1;
+
+			for (i=0; i<offset;)
+			{
+				index += dir;
+				
+				if (!d_tree.isRange(index))
+					return null;
+				else if (!d_tree.get(index).isSkip)
+					i++;
+			}
+		}
+		else
+			index += token.offset;
 		
 		if (!d_tree.isRange(index) || (token.source == DepFtrXml.LAMBDA && index == i_beta) || (token.source == DepFtrXml.BETA && index == i_lambda))
 			return null;

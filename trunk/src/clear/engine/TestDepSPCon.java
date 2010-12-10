@@ -30,30 +30,25 @@ import org.apache.commons.compress.archivers.jar.JarArchiveOutputStream;
 import org.kohsuke.args4j.Option;
 
 import clear.decode.OneVsAllDecoder;
-import clear.dep.DepEval;
 import clear.dep.DepNode;
 import clear.dep.DepTree;
 import clear.ftr.map.DepFtrMap;
 import clear.ftr.xml.DepFtrXml;
 import clear.model.OneVsAllModel;
-import clear.parse.AbstractDepParser;
-import clear.parse.ShiftEagerParser;
+import clear.parse.ShiftPopParser;
 import clear.reader.AbstractReader;
 import clear.reader.DepReader;
 import clear.reader.RichReader;
 import clear.util.IOUtil;
-
-import com.carrotsearch.hppc.IntOpenHashSet;
 
 /**
  * Trains conditional dependency parser.
  * <b>Last update:</b> 11/19/2010
  * @author Jinho D. Choi
  */
-public class TestDepSEAda extends AbstractTrain
+public class TestDepSPCon extends AbstractTrain
 {
-	private final int    MAX_ITER = 20;
-	private final double TH       = 1.0;
+	private final int MAX_ITER = 5;
 	
 	@Option(name="-d", usage="development file", required=true, metaVar="REQUIRED")
 	private String s_devFile = null; 
@@ -63,9 +58,7 @@ public class TestDepSEAda extends AbstractTrain
 	private DepFtrMap     t_map   = null;
 	private OneVsAllModel m_model = null;
 	
-	private IntOpenHashSet s_skip;
-	
-	public TestDepSEAda(String[] args)
+	public TestDepSPCon(String[] args)
 	{
 		super(args);
 	}
@@ -74,41 +67,34 @@ public class TestDepSEAda extends AbstractTrain
 	{
 		printConfig();
 		
-		int    i = 0, j, dim;
+		int    i = 0;
 		String instanceFile = "instaces.ftr";
 		String log          = "\n== Iteration: "+i+" ==\n";
 		
-		s_skip  = new IntOpenHashSet();
 		s_build = new StringBuilder();
 		s_build.append(log);
 		System.out.print(log);
 		
-		trainDepParser(ShiftEagerParser.FLAG_PRINT_LEXICON , null        , null);
-		trainDepParser(ShiftEagerParser.FLAG_PRINT_INSTANCE, instanceFile, null);
-		OneVsAllModel model = (OneVsAllModel)trainModel(instanceFile, null);
-
-		dim     = model.d_weights.length;
-		m_model = new OneVsAllModel(model.n_labels, model.n_features, model.a_labels.clone(), new double[dim]);
+		trainDepParser(ShiftPopParser.FLAG_PRINT_LEXICON , null,         null);
+		trainDepParser(ShiftPopParser.FLAG_PRINT_INSTANCE, instanceFile, null);
+		m_model = (OneVsAllModel)trainModel(instanceFile, null);
 		
-		double trainAcc;
+		double prevAcc = 0, currAcc;
 		
 		do
 		{
-			trainAcc = getTrainAcc(model);
-			System.out.println("Train acc = "+trainAcc+", skip = "+s_skip.size());
-			
-			for (j=0; j<dim; j++)
-				m_model.d_weights[j] += (trainAcc * model.d_weights[j]);
-			
-			trainDepParser(ShiftEagerParser.FLAG_PREDICT, s_devFile+".parse."+i , null);
-			trainDepParser(ShiftEagerParser.FLAG_TRAIN_CONDITIONAL, instanceFile, null);
+			currAcc = trainDepParser(ShiftPopParser.FLAG_PREDICT, s_devFile+".parse."+i, null);
+		//	if (currAcc <= prevAcc)	break;
+
+			prevAcc = currAcc;
+			trainDepParser(ShiftPopParser.FLAG_TRAIN_CONDITIONAL, instanceFile, null);
 			
 			log = "\n== Iteration: "+(++i)+" ==\n";
 			s_build.append(log);
 			System.out.print(log);
 
-			model = null;
-			model = (OneVsAllModel)trainModel(instanceFile, null);
+			m_model = null;
+			m_model = (OneVsAllModel)trainModel(instanceFile, null);
 		}
 		while (i < MAX_ITER);
 		
@@ -120,33 +106,33 @@ public class TestDepSEAda extends AbstractTrain
 	/** Trains the dependency parser. */
 	private double trainDepParser(byte flag, String outputFile, JarArchiveOutputStream zout) throws Exception
 	{
-		ShiftEagerParser parser  = null;
+		ShiftPopParser parser  = null;
 		OneVsAllDecoder  decoder = null;
 		PrintStream      fout    = null;
 		
-		if (flag == ShiftEagerParser.FLAG_PRINT_LEXICON)
+		if (flag == ShiftPopParser.FLAG_PRINT_LEXICON)
 		{
 			System.out.println("\n* Save lexica");
-			parser = new ShiftEagerParser(flag, s_featureXml);
+			parser = new ShiftPopParser(flag, s_featureXml);
 		}
-		else if (flag == ShiftEagerParser.FLAG_PRINT_INSTANCE)
+		else if (flag == ShiftPopParser.FLAG_PRINT_INSTANCE)
 		{
 			System.out.println("\n* Print training instances");
 			System.out.println("- loading lexica");
-			parser = new ShiftEagerParser(flag, t_xml, ENTRY_LEXICA, outputFile);
+			parser = new ShiftPopParser(flag, t_xml, ENTRY_LEXICA, outputFile);
 		}
-		else if (flag == ShiftEagerParser.FLAG_PREDICT)
+		else if (flag == ShiftPopParser.FLAG_PREDICT)
 		{
 			System.out.println("\n* Predict");
 			decoder = new OneVsAllDecoder(m_model);
-			parser  = new ShiftEagerParser(flag, t_xml, t_map, decoder); 
+			parser  = new ShiftPopParser(flag, t_xml, t_map, decoder); 
 			fout    = IOUtil.createPrintFileStream(outputFile);
 		}
-		else if (flag == ShiftEagerParser.FLAG_TRAIN_CONDITIONAL)
+		else if (flag == ShiftPopParser.FLAG_TRAIN_CONDITIONAL)
 		{
 			System.out.println("\n* Train conditional");
 			decoder = new OneVsAllDecoder(m_model);
-			parser  = new ShiftEagerParser(flag, t_xml, t_map, decoder, outputFile);
+			parser  = new ShiftPopParser(flag, t_xml, t_map, decoder, outputFile);
 		}
 		
 		AbstractReader<DepNode, DepTree> reader = null;
@@ -155,7 +141,7 @@ public class TestDepSEAda extends AbstractTrain
 		String  inputFile;
 		boolean isTrain;
 		
-		if (flag == ShiftEagerParser.FLAG_PREDICT)
+		if (flag == ShiftPopParser.FLAG_PREDICT)
 		{
 			inputFile = s_devFile;
 			isTrain   = false;
@@ -171,12 +157,9 @@ public class TestDepSEAda extends AbstractTrain
 		
 		for (n=0; (tree = reader.nextTree()) != null; n++)
 		{
-			if (flag != AbstractDepParser.FLAG_PREDICT && s_skip.contains(n))
-				continue;
-			
 			parser.parse(tree);
 			
-			if (flag == ShiftEagerParser.FLAG_PREDICT)
+			if (flag == ShiftPopParser.FLAG_PREDICT)
 				fout.println(tree+"\n");
 			if (n % 1000 == 0)
 				System.out.printf("\r- parsing: %dK", n/1000);
@@ -184,18 +167,18 @@ public class TestDepSEAda extends AbstractTrain
 		
 		System.out.println("\r- parsing: "+n);
 		
-		if (flag == ShiftEagerParser.FLAG_PRINT_LEXICON)
+		if (flag == ShiftPopParser.FLAG_PRINT_LEXICON)
 		{
 			System.out.println("- saving");
 			parser.saveTags(ENTRY_LEXICA);
 			t_xml = parser.getDepFtrXml();
 		}
-		else if (flag == ShiftEagerParser.FLAG_PRINT_INSTANCE)
+		else if (flag == ShiftPopParser.FLAG_PRINT_INSTANCE)
 		{
 			parser.closeOutputStream();
 			t_map = parser.getDepFtrMap();
 		}
-		else if (flag == ShiftEagerParser.FLAG_PREDICT)
+		else if (flag == ShiftPopParser.FLAG_PREDICT)
 		{
 			fout.close();
 			
@@ -212,7 +195,7 @@ public class TestDepSEAda extends AbstractTrain
 			
 			return eval.getLas();
 		}
-		else if (flag == ShiftEagerParser.FLAG_TRAIN_CONDITIONAL)
+		else if (flag == ShiftPopParser.FLAG_TRAIN_CONDITIONAL)
 		{
 			parser.closeOutputStream();
 		}
@@ -224,34 +207,10 @@ public class TestDepSEAda extends AbstractTrain
 	{
 		super.printConfig();
 		System.out.println("- dev_file   : "+s_devFile);
-		System.out.println("- feature_xml: "+s_featureXml);
-	}
-	
-	private double getTrainAcc(OneVsAllModel model)
-	{
-		RichReader reader = new RichReader(s_trainFile, true);
-		DepTree    gTree, sTree;
-		int        i;
-		
-		ShiftEagerParser parser = new ShiftEagerParser(AbstractDepParser.FLAG_PREDICT, t_xml, t_map, new OneVsAllDecoder(model));
-		DepEval eval = new DepEval((byte)0);
-		s_skip   = new IntOpenHashSet();
-		
-		for (i=0; (sTree = reader.nextTree()) != null; i++)
-		{
-			gTree = sTree.clone();
-			sTree.unhead();
-			parser.parse(sTree);
-			eval.evaluate(gTree, sTree);
-			
-			if (DepEval.getLas(gTree, sTree) >= TH)	s_skip.add(i);
-		}
-		
-		return eval.getLas();
 	}
 	
 	static public void main(String[] args)
 	{
-		new TestDepSEAda(args);
+		new TestDepSPCon(args);
 	}
 }
