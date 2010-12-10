@@ -40,12 +40,14 @@ import com.carrotsearch.hppc.IntArrayList;
  * @author Jinho D. Choi
  * <b>Last update:</b> 11/6/2010
  */
-public class ShiftEagerParser extends AbstractDepParser
+public class ShiftPopParser extends AbstractDepParser
 {
 	/** Label of Shift transition */
 	static public final String LB_SHIFT     = "SH";
 	/** Label of No-Arc transition */
 	static public final String LB_NO_ARC    = "NA";
+	/** Label of Left-Pop transition */
+	static public final String LB_LEFT_POP  = "LP";
 	/** Label of Left-Arc transition */
 	static public final String LB_LEFT_ARC  = "LA";
 	/** Label of Right-Arc transition */
@@ -56,26 +58,26 @@ public class ShiftEagerParser extends AbstractDepParser
 	/** For {@link AbstractDepParser#FLAG_TRAIN_CONDITIONAL} only. */
 	protected DepTree d_copy = null;
 	
-	/** Initializes this parser for {@link ShiftEagerParser#FLAG_PRINT_LEXICON} or {@link ShiftEagerParser#FLAG_PRINT_TRANSITION}. */
-	public ShiftEagerParser(byte flag, String filename)
+	/** Initializes this parser for {@link ShiftPopParser#FLAG_PRINT_LEXICON} or {@link ShiftPopParser#FLAG_PRINT_TRANSITION}. */
+	public ShiftPopParser(byte flag, String filename)
 	{
 		super(flag, filename);
 	}
 
-	/** Initializes this parser for {@link ShiftEagerParser#FLAG_PRINT_INSTANCE}. */
-	public ShiftEagerParser(byte flag, DepFtrXml xml, String lexiconFile, String instanceFile)
+	/** Initializes this parser for {@link ShiftPopParser#FLAG_PRINT_INSTANCE}. */
+	public ShiftPopParser(byte flag, DepFtrXml xml, String lexiconFile, String instanceFile)
 	{
 		super(flag, xml, lexiconFile, instanceFile);
 	}
 	
-	/** Initializes this parser for {@link ShiftEagerParser#FLAG_PREDICT}. */
-	public ShiftEagerParser(byte flag, DepFtrXml xml, DepFtrMap map, AbstractMultiDecoder decoder)
+	/** Initializes this parser for {@link ShiftPopParser#FLAG_PREDICT}. */
+	public ShiftPopParser(byte flag, DepFtrXml xml, DepFtrMap map, AbstractMultiDecoder decoder)
 	{
 		super(flag, xml, map, decoder);
 	}
 	
-	/** Initializes this parser for {@link ShiftEagerParser#FLAG_TRAIN_CONDITIONAL}. */
-	public ShiftEagerParser(byte flag, DepFtrXml xml, DepFtrMap map, AbstractMultiDecoder decoder, String instanceFile)
+	/** Initializes this parser for {@link ShiftPopParser#FLAG_TRAIN_CONDITIONAL}. */
+	public ShiftPopParser(byte flag, DepFtrXml xml, DepFtrMap map, AbstractMultiDecoder decoder, String instanceFile)
 	{
 		super(flag, xml, map, decoder, instanceFile);
 	}
@@ -96,8 +98,6 @@ public class ShiftEagerParser extends AbstractDepParser
 	public void parse(DepTree tree)
 	{
 		init(tree);
-	//	if (i_flag == FLAG_PRINT_LEXICON)
-	//		addSemanticLexica();
 		
 		while (i_beta < tree.size())	// beta is not empty
 		{
@@ -105,6 +105,8 @@ public class ShiftEagerParser extends AbstractDepParser
 			
 			if (i_lambda == -1)			// lambda_1 is empty: deterministic shift
 				shift(true);
+			else if (tree.get(i_lambda).isSkip)
+				i_lambda--;
 			else if (i_flag == FLAG_PREDICT)
 				predict();
 			else if (i_flag == FLAG_TRAIN_CONDITIONAL)
@@ -118,34 +120,52 @@ public class ShiftEagerParser extends AbstractDepParser
 		else if (i_flag == FLAG_TRAIN_CONDITIONAL)	postProcessConditional();
 	}
 	
-	/** Trains the dependency tree ({@link ShiftEagerParser#d_tree}). */
+	/** Trains the dependency tree ({@link ShiftPopParser#d_tree}). */
 	private void train()
 	{
 		DepNode lambda = d_tree.get(i_lambda);
 		DepNode beta   = d_tree.get(i_beta);
 		
-		if      (lambda.headId == beta.id)	leftArc (lambda, beta, lambda.deprel, 1d);
-		else if (lambda.id == beta.headId)	rightArc(lambda, beta, beta  .deprel, 1d);
+		if (lambda.headId == beta.id)
+		{
+			if (isPop(d_tree))	leftPop(lambda, beta, lambda.deprel, 1d);
+			else				leftArc(lambda, beta, lambda.deprel, 1d);
+		}
+		else if (lambda.id == beta.headId)	rightArc(lambda, beta, beta.deprel, 1d);
 		else if (isShift(d_tree))			shift(false);
 		else								noArc();
 	}
 	
 	/**
-	 * This method is called from {@link ShiftEagerParser#train()}.
+	 * This method is called from {@link ShiftPopParser#train()}.
 	 * @return true if non-deterministic shift needs to be performed 
 	 */
 	private boolean isShift(DepTree tree)
 	{
 		DepNode beta = tree.get(i_beta);
+		DepNode node;
 		
 		for (int i=i_lambda; i>=0; i--)
 		{
-			DepNode lambda = tree.get(i);
+			node = tree.get(i);
 			
-			if (lambda.headId == beta.id || lambda.id == beta.headId)
+			if (node.headId == beta.id || node.id == beta.headId)
 				return false;
 		}
 
+		return true;
+	}
+	
+	private boolean isPop(DepTree tree)
+	{
+		int i, size = tree.size();
+		
+		for (i=i_beta+1; i<size; i++)
+		{
+			if (tree.get(i).headId == i_lambda)
+				return false;
+		}
+		
 		return true;
 	}
 	
@@ -175,7 +195,9 @@ public class ShiftEagerParser extends AbstractDepParser
 		DepNode lambda = d_tree.get(i_lambda);
 		DepNode beta   = d_tree.get(i_beta);
 
-		if      (trans.equals( LB_LEFT_ARC) && !d_tree.isAncestor(lambda, beta) && lambda.id != DepLib.ROOT_ID)
+		if      (trans.equals( LB_LEFT_POP) && !d_tree.isAncestor(lambda, beta) && lambda.id != DepLib.ROOT_ID)
+			leftPop (lambda, beta, deprel, res.d);
+		else if (trans.equals( LB_LEFT_ARC) && !d_tree.isAncestor(lambda, beta) && lambda.id != DepLib.ROOT_ID)
 			leftArc (lambda, beta, deprel, res.d);
 		else if (trans.equals(LB_RIGHT_ARC) && !d_tree.isAncestor(beta, lambda))
 			rightArc(lambda, beta, deprel, res.d);
@@ -192,7 +214,11 @@ public class ShiftEagerParser extends AbstractDepParser
 		DepNode lambda = tree.get(i_lambda);
 		DepNode beta   = tree.get(i_beta);
 		
-		if      (lambda.headId == beta.id)	return LB_LEFT_ARC  + LB_DELIM + lambda.deprel;
+		if (lambda.headId == beta.id)
+		{
+			if (isPop(tree))	return LB_LEFT_POP + LB_DELIM + lambda.deprel;
+			else				return LB_LEFT_ARC + LB_DELIM + lambda.deprel;
+		}
 		else if (lambda.id == beta.headId)	return LB_RIGHT_ARC + LB_DELIM + beta  .deprel;
 		else if (isShift(tree))				return LB_SHIFT;
 		else								return LB_NO_ARC;
@@ -224,14 +250,14 @@ public class ShiftEagerParser extends AbstractDepParser
 			{
 				node = d_tree.get(i);
 				if (d_tree.isAncestor(curr, node))	continue;
-				maxId = getMaxHeadId(curr, node, maxId, max, LB_LEFT_ARC);
+				maxId = getMaxHeadId(curr, node, maxId, max, LB_LEFT_ARC+"|"+LB_LEFT_POP);
 			}
 		
 			if (maxId != -1)	curr.setHead(maxId, max.object, max.value);
 		}
 	}
 	
-	/** This method is called from {@link ShiftEagerParser#postProcess()}. */
+	/** This method is called from {@link ShiftPopParser#postProcess()}. */
 	private int getMaxHeadId(DepNode curr, DepNode head, int maxId, JObjectDoubleTuple<String> max, String sTrans)
 	{
 		if (curr.id < head.id)
@@ -262,7 +288,7 @@ public class ShiftEagerParser extends AbstractDepParser
 			if (index == -1)	continue;
 			trans = label.substring(0, index);
 			
-			if (trans.equals(sTrans))
+			if (trans.matches(sTrans))
 			{
 				if (max.value < res.d)
 				{
@@ -337,6 +363,22 @@ public class ShiftEagerParser extends AbstractDepParser
 		i_lambda--;
 		
 		if (i_flag == FLAG_PRINT_TRANSITION)	printTransition("NO-ARC", "");
+	}
+	
+	private void leftPop(DepNode lambda, DepNode beta, String deprel, double score)
+	{
+		String  label = LB_LEFT_POP + LB_DELIM + deprel;
+		
+	    if      (i_flag == FLAG_PRINT_LEXICON)  addTags      (label);
+		else if (i_flag == FLAG_PRINT_INSTANCE)	printInstance(label, getFeatureArray());
+
+		lambda.setHead(beta.id, deprel, score);
+		lambda.isSkip = true;
+		if (lambda.id < beta.leftDepId)	beta.leftDepId = lambda.id;
+		i_lambda--;
+		
+		if (i_flag == FLAG_PRINT_TRANSITION)
+			printTransition("LEFT-POP", lambda.id+" <-"+deprel+"- "+beta.id);
 	}
 	
 	/**
@@ -435,7 +477,6 @@ public class ShiftEagerParser extends AbstractDepParser
 		
 		addNgramFeatures      (arr, idx);
 		addPunctuationFeatures(arr, idx);
-	//	addSemanticFeatures   (arr, idx);
 		
 		return arr;
 	}
@@ -450,7 +491,7 @@ public class ShiftEagerParser extends AbstractDepParser
 	
 	/**
 	 * Adds punctuation features.
-	 * This method is called from {@link ShiftEagerParser#getFeatureArray()}.
+	 * This method is called from {@link ShiftPopParser#getFeatureArray()}.
 	 */
 	private void addPunctuationFeatures(IntArrayList arr, int[] beginIndex)
 	{
@@ -472,40 +513,4 @@ public class ShiftEagerParser extends AbstractDepParser
 		if (index != -1)	arr.add(beginIndex[0] + index);
 		beginIndex[0] += n;		// 86.30 -> 86.29 (-0.01) */	
 	}
-	
-/*	private void addSemanticLexica()
-	{
-		int i, size = d_tree.size();
-		DepNode curr, node;
-		String  ftr;
-		
-		for (i=1; i<size; i++)
-		{
-			curr = d_tree.get(i);
-			
-			if (curr.isDeprel(DepLib.DEPREL_DIR))
-			{
-				node = d_tree.get(curr.headId);
-				ftr = node.lemma + FtrLib.TAG_DELIM + curr.lemma;
-				t_map.addDir(ftr);
-			}
-			else if ((curr.isDeprel(DepLib.DEPREL_LOC) || curr.isDeprel(DepLib.DEPREL_TMP)) && curr.isPosx("IN|TO") && curr.rightDepId != DepLib.NULL_ID)
-			{
-				node = d_tree.get(curr.rightDepId);
-				ftr = curr.lemma + FtrLib.TAG_DELIM + node.lemma;
-			}
-		}
-	}
-	
-	private void addSemanticFeatures(IntArrayList arr, int[] beginIndex)
-	{
-		DepNode lambda = d_tree.get(i_lambda);
-		DepNode beta   = d_tree.get(i_beta);
-		String  ftr;
-		
-		ftr = lambda.lemma + FtrLib.TAG_DELIM + beta.lemma;
-		if (t_map.dirToFreq(ftr) > 0)	arr.add(beginIndex[0]);
-		
-		beginIndex[0]++;
-	}*/
 }

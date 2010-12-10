@@ -37,16 +37,17 @@ import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
 import org.w3c.dom.Element;
 
-import clear.decode.AbstractDecoder;
+import clear.decode.AbstractMultiDecoder;
 import clear.decode.OneVsAllDecoder;
 import clear.dep.DepNode;
 import clear.dep.DepTree;
 import clear.ftr.map.DepFtrMap;
 import clear.ftr.xml.DepFtrXml;
-import clear.parse.DepSemParser;
-import clear.parse.ShiftEagerParser;
+import clear.parse.ShiftPopParser;
 import clear.reader.AbstractReader;
-import clear.reader.RichReader;
+import clear.reader.CoNLLReader;
+import clear.reader.DepReader;
+import clear.reader.PosReader;
 import clear.util.IOUtil;
 
 /**
@@ -54,7 +55,7 @@ import clear.util.IOUtil;
  * @author Jinho D. Choi
  * <b>Last update:</b> 6/29/2010
  */
-public class DepSemPredict extends AbstractCommon
+public class DepPredictSP extends AbstractCommon
 {
 	private final String TAG_PREDICT            = "predict";
 	private final String TAG_PREDICT_MORPH_DICT = "morph_dict";
@@ -68,13 +69,13 @@ public class DepSemPredict extends AbstractCommon
 	/** Morphological dictionary directory */
 	private String s_morphDict  = null;
 	/** Flag to choose parsing algorithm */
-	private byte   i_flag       = ShiftEagerParser.FLAG_PREDICT;
+	private byte   i_flag       = ShiftPopParser.FLAG_PREDICT;
 	
 	private int[]    n_size_total = new int[10];
 	private double[] d_time       = new double[10];
 	private double   d_time_total = 0;
 	
-	public DepSemPredict(String[] args)
+	public DepPredictSP(String[] args)
 	{
 		CmdLineParser cmd  = new CmdLineParser(this);
 		
@@ -86,9 +87,9 @@ public class DepSemPredict extends AbstractCommon
 			ZipInputStream zin = new ZipInputStream(new FileInputStream(s_modelFile));
 			ZipEntry zEntry;
 			
-			DepFtrXml       xml     = null;
-			DepFtrMap       map     = null;
-			AbstractDecoder decoder = null;
+			DepFtrXml            xml     = null;
+			DepFtrMap            map     = null;
+			AbstractMultiDecoder decoder = null;
 			
 			printConfig();
 			System.out.println("\n* Predict");
@@ -125,10 +126,11 @@ public class DepSemPredict extends AbstractCommon
 			}
 			
 			AbstractReader<DepNode, DepTree> reader = null;
+			if 		(s_format.equals(AbstractReader.FORMAT_POS))	reader = new PosReader  (s_inputFile, s_language, s_morphDict);
+			else if (s_format.equals(AbstractReader.FORMAT_DEP))	reader = new DepReader  (s_inputFile, false);
+			else 													reader = new CoNLLReader(s_inputFile, false);
 			
-			reader = new RichReader(s_inputFile, true);
-			
-			DepSemParser parser = new DepSemParser(i_flag, xml, map, decoder);
+			ShiftPopParser parser = new ShiftPopParser(i_flag, xml, map, decoder);
 			PrintStream      fout   = IOUtil.createPrintFileStream(s_outputFile);
 		//	PrintStream      fplot  = JIO.createPrintFileOutputStream("plot.txt");
 			DepTree     tree;
@@ -143,8 +145,7 @@ public class DepSemPredict extends AbstractCommon
 				if (tree == null)	break;
 				parser.parse(tree);	n++;
 				et   = System.currentTimeMillis();
-				fout.println(tree.toStringRich()+"\n");
-			//	fout.println(tree+"\n");
+				fout.println(tree+"\n");
 				if (n%100 == 0)	System.out.print("\r- parsing: "+n);
 				
 				int index = (tree.size() >= 101) ? 9 : (tree.size()-1) / 10;
@@ -194,6 +195,6 @@ public class DepSemPredict extends AbstractCommon
 	
 	static public void main(String[] args)
 	{
-		new DepSemPredict(args);
+		new DepPredictSP(args);
 	}
 }

@@ -41,6 +41,7 @@ public class DepFtrXml extends AbstractFtrXml
 	static public final String R_HD			= "hd";
 	static public final String R_LM			= "lm";
 	static public final String R_RM			= "rm";
+	static public final String R_ST			= "st";
 	static public final String F_FORM		= "f";
 	static public final String F_LEMMA		= "m";
 	static public final String F_POS		= "p";
@@ -79,7 +80,7 @@ public class DepFtrXml extends AbstractFtrXml
 	
 	protected boolean validRelation(String relation)
 	{
-		return relation.equals(R_HD) || relation.equals(R_LM) || relation.equals(R_RM);
+		return relation.equals(R_HD) || relation.equals(R_LM) || relation.equals(R_RM) || relation.equals(R_ST);
 	}
 	
 	protected boolean validField(String field)
