@@ -96,8 +96,6 @@ public class ShiftEagerParser extends AbstractDepParser
 	public void parse(DepTree tree)
 	{
 		init(tree);
-	//	if (i_flag == FLAG_PRINT_LEXICON)
-	//		addSemanticLexica();
 		
 		while (i_beta < tree.size())	// beta is not empty
 		{
@@ -435,7 +433,6 @@ public class ShiftEagerParser extends AbstractDepParser
 		
 		addNgramFeatures      (arr, idx);
 		addPunctuationFeatures(arr, idx);
-	//	addSemanticFeatures   (arr, idx);
 		
 		return arr;
 	}
@@ -472,40 +469,4 @@ public class ShiftEagerParser extends AbstractDepParser
 		if (index != -1)	arr.add(beginIndex[0] + index);
 		beginIndex[0] += n;		// 86.30 -> 86.29 (-0.01) */	
 	}
-	
-/*	private void addSemanticLexica()
-	{
-		int i, size = d_tree.size();
-		DepNode curr, node;
-		String  ftr;
-		
-		for (i=1; i<size; i++)
-		{
-			curr = d_tree.get(i);
-			
-			if (curr.isDeprel(DepLib.DEPREL_DIR))
-			{
-				node = d_tree.get(curr.headId);
-				ftr = node.lemma + FtrLib.TAG_DELIM + curr.lemma;
-				t_map.addDir(ftr);
-			}
-			else if ((curr.isDeprel(DepLib.DEPREL_LOC) || curr.isDeprel(DepLib.DEPREL_TMP)) && curr.isPosx("IN|TO") && curr.rightDepId != DepLib.NULL_ID)
-			{
-				node = d_tree.get(curr.rightDepId);
-				ftr = curr.lemma + FtrLib.TAG_DELIM + node.lemma;
-			}
-		}
-	}
-	
-	private void addSemanticFeatures(IntArrayList arr, int[] beginIndex)
-	{
-		DepNode lambda = d_tree.get(i_lambda);
-		DepNode beta   = d_tree.get(i_beta);
-		String  ftr;
-		
-		ftr = lambda.lemma + FtrLib.TAG_DELIM + beta.lemma;
-		if (t_map.dirToFreq(ftr) > 0)	arr.add(beginIndex[0]);
-		
-		beginIndex[0]++;
-	}*/
 }

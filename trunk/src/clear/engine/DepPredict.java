@@ -157,9 +157,10 @@ public class DepPredict extends AbstractCommon
 			
 			System.out.println("\n* Parsing time per sentence length");
 			for (int i=0; i<d_time.length; i++)
-				System.out.printf("<= %3d: %4.2f (ms)\n", (i+1)*10, d_time[i]/n_size_total[i]);
+				System.out.printf("<= %3d: %4.2f (%f/%d)\n", (i+1)*10, d_time[i]/n_size_total[i], d_time[i], n_size_total[i]);
 			
-			System.out.printf("\nAverage parsing time: %4.2f (ms)\n", d_time_total/n);
+			System.out.printf("\nAverage parsing time: %4.2f (ms) (%f/%d)\n", d_time_total/n, d_time_total, n);
+			fout.flush();	fout.close();
 		}
 		catch (CmdLineException e)
 		{

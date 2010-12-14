@@ -46,11 +46,11 @@ import clear.util.IOUtil;
  * <b>Last update:</b> 11/19/2010
  * @author Jinho D. Choi
  */
-public class TestDepSPCon extends AbstractTrain
+public class TestDepSPCV extends AbstractTrain
 {
 	private final int MAX_ITER = 5;
 	
-	@Option(name="-d", usage="development file", required=true, metaVar="REQUIRED")
+	private int    n_cv;
 	private String s_devFile = null; 
 	
 	private StringBuilder s_build = null;
@@ -58,7 +58,7 @@ public class TestDepSPCon extends AbstractTrain
 	private DepFtrMap     t_map   = null;
 	private OneVsAllModel m_model = null;
 	
-	public TestDepSPCon(String[] args)
+	public TestDepSPCV(String[] args)
 	{
 		super(args);
 	}
@@ -66,8 +66,9 @@ public class TestDepSPCon extends AbstractTrain
 	protected void train() throws Exception
 	{
 		printConfig();
-		
-		int    i = 0;
+		n_cv = 5;
+		createCVs();
+	/*	int    i = 0;
 		String instanceFile = "instaces.ftr";
 		String log          = "\n== Iteration: "+i+" ==\n";
 		
@@ -100,7 +101,34 @@ public class TestDepSPCon extends AbstractTrain
 		
 		new File(ENTRY_LEXICA).delete();
 		new File(instanceFile).delete();
-		System.out.println(s_build.toString());
+		System.out.println(s_build.toString());*/
+	}
+	
+	private void createCVs()
+	{
+		PrintStream[] fTrn = new PrintStream[n_cv];
+		PrintStream[] fTst = new PrintStream[n_cv];
+		int n;
+		
+		for (n=0; n<n_cv; n++)
+		{
+			fTrn[n] = IOUtil.createPrintFileStream(s_trainFile+".trn"+n);
+			fTst[n] = IOUtil.createPrintFileStream(s_trainFile+".tst"+n);
+		}
+		
+		DepReader reader = new DepReader(s_trainFile, true);
+		DepTree tree;	int i, j;
+		
+		for (n=0; (tree = reader.nextTree()) != null; n++)
+		{
+			i = n % n_cv;
+			fTst[i].println(tree+"\n");
+			
+			for (j=0; j<n_cv; j++)
+			{
+				if (j != i)	fTrn[j].println(tree+"\n");
+			}
+		}
 	}
 	
 	/** Trains the dependency parser. */
@@ -182,7 +210,7 @@ public class TestDepSPCon extends AbstractTrain
 		{
 			fout.close();
 			
-			String[] args = {"-g", s_devFile, "-s", outputFile};
+			String[] args = {"-g", "/data/choijd/opt/clearparser/wsj/conll-tst.auto", "-s", outputFile};
 			String   log  = "\n* Development accuracy\n";
 			
 			System.out.print(log);
@@ -206,11 +234,10 @@ public class TestDepSPCon extends AbstractTrain
 	protected void printConfig()
 	{
 		super.printConfig();
-		System.out.println("- dev_file   : "+s_devFile);
 	}
 	
 	static public void main(String[] args)
 	{
-		new TestDepSPCon(args);
+		new TestDepSPCV(args);
 	}
 }

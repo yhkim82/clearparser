@@ -23,6 +23,7 @@
 */
 package clear.util;
 
+import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -153,7 +154,8 @@ public class IOUtil
 		
 		try
 		{
-			fout = new PrintStream(filename, "UTF-8");
+		//	fout = new PrintStream(filename, "UTF-8");
+			fout = new PrintStream(new BufferedOutputStream(new FileOutputStream(filename), 65536), false, "UTF-8");
 		}
 		catch (Exception e) {e.printStackTrace();}
 		

@@ -65,6 +65,12 @@ public class DepSplit
 			int index = (tree.size() >= 101) ? 9 : (tree.size()-1) / 10;
 			fout[index].println(tree+"\n");
 		}
+		
+		for (int i=0; i<fout.length; i++)
+		{
+			fout[i].flush();
+			fout[i].close();
+		}
 	}
 	
 	static public void main(String[] args)
