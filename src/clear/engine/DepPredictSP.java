@@ -132,7 +132,7 @@ public class DepPredictSP extends AbstractCommon
 			
 			ShiftPopParser parser = new ShiftPopParser(i_flag, xml, map, decoder);
 			PrintStream      fout   = IOUtil.createPrintFileStream(s_outputFile);
-		//	PrintStream      fplot  = JIO.createPrintFileOutputStream("plot.txt");
+		//	PrintStream      fplot  = IOUtil.createPrintFileStream("plot.txt");
 			DepTree     tree;
 			
 			long st, et;
@@ -152,14 +152,16 @@ public class DepPredictSP extends AbstractCommon
 				d_time [index]     += (et - st);
 				d_time_total       += (et - st);
 				n_size_total[index]++;
-			//	fplot.println(tree.size()+"\t"+tree.n_trans);
+		//		fplot.println(tree.size()+"\t"+tree.n_trans);
 			}	System.out.println("\r- parsing: "+n);
 			
 			System.out.println("\n* Parsing time per sentence length");
 			for (int i=0; i<d_time.length; i++)
-				System.out.printf("<= %3d: %4.2f (ms)\n", (i+1)*10, d_time[i]/n_size_total[i]);
+				System.out.printf("<= %3d: %4.2f (%f/%d)\n", (i+1)*10, d_time[i]/n_size_total[i], d_time[i], n_size_total[i]);
 			
-			System.out.printf("\nAverage parsing time: %4.2f (ms)\n", d_time_total/n);
+			System.out.printf("\nAverage parsing time: %4.2f (ms) (%f/%d)\n", d_time_total/n, d_time_total, n);
+			fout.flush(); 	fout.close();
+		//	fplot.flush();	fplot.close();
 		}
 		catch (CmdLineException e)
 		{

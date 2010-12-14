@@ -343,23 +343,7 @@ abstract public class AbstractDepParser
 	protected String getField(FtrToken token)
 	{
 		int index = (token.source == DepFtrXml.LAMBDA) ? i_lambda : i_beta;
-		
-		if (token.relation != null && token.relation.equals(DepFtrXml.R_ST))
-		{
-			int i, offset = Math.abs(token.offset), dir = (token.offset < 0) ? -1 : 1;
-
-			for (i=0; i<offset;)
-			{
-				index += dir;
-				
-				if (!d_tree.isRange(index))
-					return null;
-				else if (!d_tree.get(index).isSkip)
-					i++;
-			}
-		}
-		else
-			index += token.offset;
+		index += token.offset;
 		
 		if (!d_tree.isRange(index) || (token.source == DepFtrXml.LAMBDA && index == i_beta) || (token.source == DepFtrXml.BETA && index == i_lambda))
 			return null;
@@ -367,7 +351,6 @@ abstract public class AbstractDepParser
 		DepNode node = null;
 		
 		if      (token.relation == null)				node = d_tree.get(index);
-		else if (token.relation.equals(DepFtrXml.R_ST))	node = d_tree.get(index);
 		else if (token.relation.equals(DepFtrXml.R_HD))	node = d_tree.getHead(index);
 		else if (token.relation.equals(DepFtrXml.R_LM))	node = d_tree.getLeftMostDependent(index);
 		else if (token.relation.equals(DepFtrXml.R_RM))	node = d_tree.getRightMostDependent(index);
@@ -387,23 +370,7 @@ abstract public class AbstractDepParser
 	protected JObjectDoubleTuple<String> getFieldValue(FtrToken token)
 	{
 		int index = (token.source == DepFtrXml.LAMBDA) ? i_lambda : i_beta;
-		
-		if (token.relation != null && token.relation.equals(DepFtrXml.R_ST))
-		{
-			int i, offset = Math.abs(token.offset), dir = (token.offset < 0) ? -1 : 1;
-
-			for (i=0; i<offset;)
-			{
-				index += dir;
-				
-				if (!d_tree.isRange(index))
-					return null;
-				else if (!d_tree.get(index).isSkip)
-					i++;
-			}
-		}
-		else
-			index += token.offset;
+		index += token.offset;
 		
 		if (!d_tree.isRange(index) || (token.source == DepFtrXml.LAMBDA && index == i_beta) || (token.source == DepFtrXml.BETA && index == i_lambda))
 			return null;

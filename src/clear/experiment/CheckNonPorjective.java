@@ -50,7 +50,7 @@ public class CheckNonPorjective
 			for (int j=sId+1; j<eId; j++)
 			{
 				DepNode node = tree.get(j);
-				if (TBEnLib.isPunctuation(node.pos))	continue;
+			//	if (TBEnLib.isPunctuation(node.pos))	continue;
 				
 				if (node.headId < sId || node.headId > eId)
 				{

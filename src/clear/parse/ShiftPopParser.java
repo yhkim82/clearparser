@@ -101,18 +101,18 @@ public class ShiftPopParser extends AbstractDepParser
 		
 		while (i_beta < tree.size())	// beta is not empty
 		{
-			d_tree.n_trans++;
-			
 			if (i_lambda == -1)			// lambda_1 is empty: deterministic shift
-				shift(true);
+			{	shift(true); continue;	}
 			else if (tree.get(i_lambda).isSkip)
-				i_lambda--;
+			{	i_lambda--;	continue;	}
 			else if (i_flag == FLAG_PREDICT)
 				predict();
 			else if (i_flag == FLAG_TRAIN_CONDITIONAL)
 				trainConditional();
 			else
 				train();
+			
+			d_tree.n_trans++;
 		}
 		
 		if      (i_flag == FLAG_PRINT_TRANSITION)	f_out.println();
