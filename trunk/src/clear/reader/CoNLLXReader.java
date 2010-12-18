@@ -33,7 +33,7 @@ import clear.dep.DepTree;
  * @author Jinho D. Choi
  * <b>Last update:</b> 6/26/2010
  */
-public class CoNLLReader extends AbstractReader<DepNode,DepTree>
+public class CoNLLXReader extends AbstractReader<DepNode,DepTree>
 {
 	private boolean b_train;
 	
@@ -42,7 +42,7 @@ public class CoNLLReader extends AbstractReader<DepNode,DepTree>
 	 * @param filename name of the file containing dependency trees
 	 * @param isTrain  true if the reader is for training
 	 */
-	public CoNLLReader(String filename, boolean isTrain)
+	public CoNLLXReader(String filename, boolean isTrain)
 	{
 		super(filename);
 		b_train = isTrain;

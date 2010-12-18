@@ -72,7 +72,10 @@ public class RRM implements IAlgorithm
 				y_i = aY[i];
 				
 				// calculate p
-				p = getScore(pWeight, nWeight, x_i) * y_i;
+				if (kernel.type == AbstractKernel.KERNEL_BINARY)
+					p = getScore(pWeight, nWeight, x_i) * y_i;
+				else
+					p = getScore(pWeight, nWeight, x_i, kernel.a_vs.get(i)) * y_i;
 				
 				// calculate delta
 				min1      = 2*d_c - alpha[i];
@@ -145,6 +148,20 @@ public class RRM implements IAlgorithm
 		return score;
 	}
 	
+	private double getScore(double[] pWeight, double[] nWeight, int[] x, double[] v)
+	{
+		double score = pWeight[0] - nWeight[0];
+		int idx, i;
+		
+		for (i=0; i<x.length; i++)
+		{
+			idx = x[i];
+			score += (pWeight[idx] - nWeight[idx]) * v[i];
+		}
+		
+		return score;
+	}
+	
 	/**
 	 * Returns F1 score of the balanced weight vectors.
 	 * @param pWeight positive weight vector
@@ -158,8 +175,12 @@ public class RRM implements IAlgorithm
 		
 		for (i=0; i<kernel.N; i++)
 		{
-			y_i   = aY[i];
-			score = getScore(pWeight, nWeight, kernel.a_xs.get(i));
+			y_i = aY[i];
+			
+			if (kernel.type == AbstractKernel.KERNEL_BINARY)
+				score = getScore(pWeight, nWeight, kernel.a_xs.get(i));
+			else
+				score = getScore(pWeight, nWeight, kernel.a_xs.get(i), kernel.a_vs.get(i));
 		
 			if (score > 0)
 			{

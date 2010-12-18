@@ -28,7 +28,7 @@ import java.io.PrintStream;
 
 import clear.dep.DepLib;
 import clear.dep.DepTree;
-import clear.reader.CoNLLReader;
+import clear.reader.CoNLLXReader;
 import clear.util.IOUtil;
 
 /**
@@ -53,7 +53,7 @@ public class DepSplit
 {
 	public DepSplit(String filename)
 	{
-		CoNLLReader reader = new CoNLLReader(filename, true);
+		CoNLLXReader reader = new CoNLLXReader(filename, true);
 		DepTree   tree;
 		PrintStream[] fout = new PrintStream[10];
 		

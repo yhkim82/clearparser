@@ -4,7 +4,7 @@ import java.io.PrintStream;
 
 import clear.dep.DepProj;
 import clear.dep.DepTree;
-import clear.reader.CoNLLReader;
+import clear.reader.CoNLLXReader;
 import clear.util.IOUtil;
 
 
@@ -22,7 +22,7 @@ public class DepProjectize
 		System.out.println(proj.count+" / "+total+" = "+(double)proj.count/total*100);
 		reader.close();*/
 		
-		CoNLLReader reader = new CoNLLReader(args[0], true);
+		CoNLLXReader reader = new CoNLLXReader(args[0], true);
 		DepProj   proj   = new DepProj();
 		DepTree   tree;	int total;
 		PrintStream fout = IOUtil.createPrintFileStream(args[1]);
