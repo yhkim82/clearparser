@@ -30,128 +30,177 @@ import java.io.FileOutputStream;
 import org.apache.commons.compress.archivers.jar.JarArchiveEntry;
 import org.apache.commons.compress.archivers.jar.JarArchiveOutputStream;
 import org.apache.commons.compress.utils.IOUtils;
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
 
+import clear.decode.OneVsAllDecoder;
 import clear.dep.DepNode;
 import clear.dep.DepTree;
+import clear.ftr.map.DepFtrMap;
 import clear.ftr.xml.DepFtrXml;
+import clear.model.OneVsAllModel;
+import clear.parse.AbstractDepParser;
 import clear.parse.ShiftEagerParser;
+import clear.parse.ShiftPopParser;
 import clear.reader.AbstractReader;
-import clear.reader.CoNLLReader;
+import clear.reader.CoNLLXReader;
 import clear.reader.DepReader;
 
 /**
- * Trains dependency parser.
- * <b>Last update:</b> 6/29/2010
+ * Trains conditional dependency parser.
+ * <b>Last update:</b> 11/19/2010
  * @author Jinho D. Choi
  */
 public class DepTrain extends AbstractTrain
 {
-	private final String EXT_INSTANCE_FILE = ".ftr";	
-	
+	@Option(name="-t", usage="feature template file", required=true, metaVar="REQUIRED")
+	private String s_featureXml = null;
+	@Option(name="-i", usage="training file", required=true, metaVar="REQUIRED")
+	private String s_trainFile  = null;
 	@Option(name="-m", usage="model file", required=true, metaVar="REQUIRED")
-	private String s_modelFile = null;
-	@Option(name="-f", usage=ShiftEagerParser.FLAG_PRINT_LEXICON+": train model (default), "+ShiftEagerParser.FLAG_PRINT_TRANSITION+": print transitions", metaVar="OPTIONAL")
-	private byte   i_flag = ShiftEagerParser.FLAG_PRINT_LEXICON;
+	private String s_modelFile  = null;
+	@Option(name="-n", usage="bootstrapping level (default = 0)", required=false, metaVar="OPTIONAL")
+	private int    n_boot       = 0;
 	
-	private String                 s_instanceFile;
-	private DepFtrXml              t_xml;
-	private JarArchiveOutputStream z_out;
+	private DepFtrXml     t_xml   = null;
+	private DepFtrMap     t_map   = null;
+	private OneVsAllModel m_model = null;
 	
-	public DepTrain(String[] args)
+	public void initElements() {}
+	
+	public void train() throws Exception
 	{
-		super(args);
-	}
-	
-	protected void train() throws Exception
-	{
-		if (i_flag == ShiftEagerParser.FLAG_PRINT_LEXICON)
+		printConfig();
+		
+		String instanceFile = "instaces.ftr";
+		String modelFile    = s_modelFile;
+		JarArchiveOutputStream zout = new JarArchiveOutputStream(new FileOutputStream(modelFile));
+		
+		trainDepParser(ShiftPopParser.FLAG_PRINT_LEXICON , null,         null);
+		trainDepParser(ShiftPopParser.FLAG_PRINT_INSTANCE, instanceFile, zout);
+		m_model = (OneVsAllModel)trainModel(instanceFile, zout);
+		zout.flush();	zout.close();
+		
+		for (int i=1; i<=n_boot; i++)
 		{
-			printConfig();
-			
-			z_out = new JarArchiveOutputStream(new FileOutputStream(s_modelFile));
-			s_instanceFile = s_modelFile + EXT_INSTANCE_FILE;
-			
-			trainDepParser(ShiftEagerParser.FLAG_PRINT_LEXICON , null);
-			trainDepParser(ShiftEagerParser.FLAG_PRINT_INSTANCE, s_instanceFile);
-			
-			trainModel(s_instanceFile, z_out);
-			new File(s_instanceFile).delete();
-			
-			z_out.flush();
-			z_out.close();
+			modelFile = s_modelFile + ".boot" + i;
+			System.out.print("\n== Bootstrapping: "+i+" ==\n");
+
+			zout = new JarArchiveOutputStream(new FileOutputStream(modelFile));
+			trainDepParser(ShiftPopParser.FLAG_TRAIN_CONDITIONAL, instanceFile, zout);
+			m_model = null;
+			m_model = (OneVsAllModel)trainModel(instanceFile, zout);
+			zout.flush();	zout.close();
 		}
-		else if (i_flag == ShiftEagerParser.FLAG_PRINT_TRANSITION)
-		{
-			trainDepParser(ShiftEagerParser.FLAG_PRINT_TRANSITION, s_modelFile);
-		}
+		
+		new File(ENTRY_LEXICA).delete();
+		new File(instanceFile).delete();
 	}
 	
 	/** Trains the dependency parser. */
-	private void trainDepParser(byte flag, String outputFile) throws Exception
+	private void trainDepParser(byte flag, String outputFile, JarArchiveOutputStream zout) throws Exception
 	{
-		ShiftEagerParser parser = null;
+		AbstractDepParser parser  = null;
+		OneVsAllDecoder   decoder = null;
 		
-		if (flag == ShiftEagerParser.FLAG_PRINT_LEXICON)
+		if (flag == ShiftPopParser.FLAG_PRINT_LEXICON)
 		{
 			System.out.println("\n* Save lexica");
-			parser = new ShiftEagerParser(flag, s_featureXml);
+			
+			if (s_depParser.equals(AbstractDepParser.ALG_SHIFT_EAGER))
+				parser = new ShiftEagerParser(flag, s_featureXml);
+			else if (s_depParser.equals(AbstractDepParser.ALG_SHIFT_POP))
+				parser = new ShiftPopParser  (flag, s_featureXml);
 		}
-		else if (flag == ShiftEagerParser.FLAG_PRINT_INSTANCE)
+		else if (flag == ShiftPopParser.FLAG_PRINT_INSTANCE)
 		{
-			System.out.println("\n* Print training instances: "+s_instanceFile);
+			System.out.println("\n* Print training instances");
 			System.out.println("- loading lexica");
-			parser = new ShiftEagerParser(flag, t_xml, ENTRY_LEXICA, outputFile);
+			
+			if (s_depParser.equals(AbstractDepParser.ALG_SHIFT_EAGER))
+				parser = new ShiftEagerParser(flag, t_xml, ENTRY_LEXICA, outputFile);
+			else if (s_depParser.equals(AbstractDepParser.ALG_SHIFT_POP))
+				parser = new ShiftPopParser  (flag, t_xml, ENTRY_LEXICA, outputFile);
 		}
-		else if (flag == ShiftEagerParser.FLAG_PRINT_TRANSITION)
+		else if (flag == ShiftPopParser.FLAG_TRAIN_CONDITIONAL)
 		{
-			System.out.println("\n* Print transitions");
-			System.out.println("- from   : "+s_trainFile);
-			System.out.println("- to     : "+s_modelFile);
-			parser = new ShiftEagerParser(flag, outputFile);
+			System.out.println("\n* Train conditional");
+			decoder = new OneVsAllDecoder(m_model);
+			
+			if (s_depParser.equals(AbstractDepParser.ALG_SHIFT_EAGER))
+				parser = new ShiftEagerParser(flag, t_xml, t_map, decoder, outputFile);
+			else if (s_depParser.equals(AbstractDepParser.ALG_SHIFT_POP))
+				parser = new ShiftPopParser  (flag, t_xml, t_map, decoder, outputFile);
 		}
 		
 		AbstractReader<DepNode, DepTree> reader = null;
 		DepTree tree;	int n;
 		
-		if (s_format.equals(AbstractReader.FORMAT_DEP))	reader = new DepReader  (s_trainFile, true);
-		else 											reader = new CoNLLReader(s_trainFile, true);
+		if      (s_format.equals(AbstractReader.FORMAT_DEP))	reader = new DepReader   (s_trainFile, true);
+		else if (s_format.equals(AbstractReader.FORMAT_CONLLX))	reader = new CoNLLXReader(s_trainFile, true);
 		
 		for (n=0; (tree = reader.nextTree()) != null; n++)
 		{
 			parser.parse(tree);
-			if (n % 1000 == 0)	System.out.printf("\r- parsing: %dK", n/1000);
-		}	System.out.println("\r- parsing: "+n);
+			
+			if (n % 1000 == 0)
+				System.out.printf("\r- parsing: %dK", n/1000);
+		}
 		
-		if (flag == ShiftEagerParser.FLAG_PRINT_LEXICON)
+		System.out.println("\r- parsing: "+n);
+		
+		if (flag == ShiftPopParser.FLAG_PRINT_LEXICON)
 		{
 			System.out.println("- saving");
 			parser.saveTags(ENTRY_LEXICA);
 			t_xml = parser.getDepFtrXml();
 		}
-		else if (flag == ShiftEagerParser.FLAG_PRINT_INSTANCE)
+		else if (flag == ShiftPopParser.FLAG_PRINT_INSTANCE || flag == ShiftPopParser.FLAG_TRAIN_CONDITIONAL)
 		{
 			parser.closeOutputStream();
 			
-			z_out.putArchiveEntry(new JarArchiveEntry(ENTRY_FEATURE));
-			IOUtils.copy(new FileInputStream(s_featureXml), z_out);
-			z_out.closeArchiveEntry();
+			zout.putArchiveEntry(new JarArchiveEntry(ENTRY_FEATURE));
+			IOUtils.copy(new FileInputStream(s_featureXml), zout);
+			zout.closeArchiveEntry();
 			
-			z_out.putArchiveEntry(new JarArchiveEntry(ENTRY_LEXICA));
-			IOUtils.copy(new FileInputStream(ENTRY_LEXICA), z_out);
-			z_out.closeArchiveEntry();
-			new File(ENTRY_LEXICA).delete();
+			zout.putArchiveEntry(new JarArchiveEntry(ENTRY_LEXICA));
+			IOUtils.copy(new FileInputStream(ENTRY_LEXICA), zout);
+			zout.closeArchiveEntry();
+			
+			if (flag == ShiftPopParser.FLAG_PRINT_INSTANCE)
+				t_map = parser.getDepFtrMap();
 		}
 	}
 	
 	protected void printConfig()
 	{
-		super.printConfig();
-		System.out.println("- model_file : "+s_modelFile);		
+		System.out.println("* Configurations");
+		System.out.println("- language   : "+s_language);
+		System.out.println("- format     : "+s_format);
+		System.out.println("- parser     : "+s_depParser);
+		System.out.println("- feature_xml: "+s_featureXml);
+		System.out.println("- train_file : "+s_trainFile);
+		System.out.println("- model_file : "+s_modelFile);
+		System.out.println("- n_boots    : "+n_boot);
 	}
 	
 	static public void main(String[] args)
 	{
-		new DepTrain(args);
+		DepTrain  trainer = new DepTrain();
+		CmdLineParser cmd = new CmdLineParser(trainer);
+		
+		try
+		{
+			cmd.parseArgument(args);
+			trainer.init();
+			trainer.train();
+		}
+		catch (CmdLineException e)
+		{
+			System.err.println(e.getMessage());
+			cmd.printUsage(System.err);
+		}
+		catch (Exception e) {e.printStackTrace();}
 	}
 }

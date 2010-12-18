@@ -45,17 +45,15 @@ abstract public class AbstractReader<NodeType, TreeType>
 	static public final String LANG_HI = "hi";
 	
 	/** Flag for raw format */
-	static public final String FORMAT_RAW   = "raw";
+	static public final String FORMAT_RAW    = "raw";
 	/** Flag for part-of-speech format */
-	static public final String FORMAT_POS   = "pos";
+	static public final String FORMAT_POS    = "pos";
 	/** Flag for dependency format */
-	static public final String FORMAT_DEP   = "dep";
+	static public final String FORMAT_DEP    = "dep";
 	/** Flag for semantic-role labeling format */
-	static public final String FORMAT_SRL   = "srl";
-	/** Flag for rich format */
-	static public final String FORMAT_RICH  = "rich";
+	static public final String FORMAT_SRL    = "srl";
 	/** Flag for CoNLL-X format */
-	static public final String FORMAT_CONLL = "conll";
+	static public final String FORMAT_CONLLX = "conllx";
 	
 	/** Delimiter between fields */
 	static public final String FIELD_DELIM = "\t";

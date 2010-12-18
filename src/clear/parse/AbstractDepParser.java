@@ -38,7 +38,6 @@ import clear.train.kernel.AbstractKernel;
 import clear.util.DSUtil;
 import clear.util.IOUtil;
 import clear.util.tuple.JIntDoubleTuple;
-import clear.util.tuple.JObjectDoubleTuple;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.ObjectIntOpenHashMap;
@@ -50,6 +49,11 @@ import com.carrotsearch.hppc.ObjectIntOpenHashMap;
  */
 abstract public class AbstractDepParser
 {
+	/** Flag for shift-eager algortihm */
+	static final public String ALG_SHIFT_EAGER = "shift-eager";
+	/** Flag for shift-pop algortihm */
+	static final public String ALG_SHIFT_POP   = "shift-pop";
+	
 	/** Flag to print lexicons */
 	static public final byte FLAG_PRINT_LEXICON     = 0;
 	/** Flag to print training instances */
@@ -268,37 +272,7 @@ abstract public class AbstractDepParser
 			}
 		}
 	}
-	
-	protected void addNgramFeatures(ArrayList<JIntDoubleTuple> arr, int[] beginIndex)
-	{
-		FtrTemplate[][] templates = t_xml.a_ngram_templates;
-		FtrTemplate[]   template;
-		int i, j, n, m = templates.length, size, value;
-		JObjectDoubleTuple  <String> ftr;
-		ObjectIntOpenHashMap<String> map;
 		
-		for (j=0; j<m; j++)
-		{
-			map  = t_map.getNgramHashMap(j);
-			size = t_map.n_ngram[j];
-			
-			template = templates[j];
-			n        = template.length;
-			
-			for (i=0; i<n; i++)
-			{
-				ftr = getFeatureValue(template[i]);
-				if (ftr != null)
-				{
-					value = map.get(ftr.object);
-					if (value > 0)	arr.add(new JIntDoubleTuple(beginIndex[0]+value-1, ftr.value));
-				}
-				
-				beginIndex[0] += size;
-			}
-		}
-	}
-	
 	/** @return feature retrieved from <code>ftr</code>. */
 	protected String getFeature(FtrTemplate ftr)
 	{
@@ -316,27 +290,6 @@ abstract public class AbstractDepParser
 		}
 		
 		return build.toString();
-	}
-	
-	/** @return ("feature", probability) retrieved from <code>ftr</code>. */
-	protected JObjectDoubleTuple<String> getFeatureValue(FtrTemplate ftr)
-	{
-		StringBuilder build = new StringBuilder();
-		int i, n = ftr.tokens.length;
-		JObjectDoubleTuple<String> field;
-		double value = 1;
-		
-		for (i=0; i<n; i++)
-		{
-			field = getFieldValue(ftr.tokens[i]);
-			if (field == null)	return null;
-			
-			if (i > 0)	build.append(FtrLib.TAG_DELIM);
-			build.append(field.object);
-			value *= field.value;
-		}
-		
-		return new JObjectDoubleTuple<String>(build.toString(), value);
 	}
 		
 	/** @return field retrieved from <code>token</code> */
@@ -361,49 +314,6 @@ abstract public class AbstractDepParser
 		else if (token.field.equals(DepFtrXml.F_LEMMA))		return node.lemma;
 		else if (token.field.equals(DepFtrXml.F_POS))		return node.pos;
 		else if (token.field.equals(DepFtrXml.F_DEPREL))	return node.getDeprel();
-		
-		System.err.println("Error: unspecified feature '"+token.field+"'");
-		return null;
-	}
-	
-	/** @return ("field", probability) retrieved from <code>token</code> */
-	protected JObjectDoubleTuple<String> getFieldValue(FtrToken token)
-	{
-		int index = (token.source == DepFtrXml.LAMBDA) ? i_lambda : i_beta;
-		index += token.offset;
-		
-		if (!d_tree.isRange(index) || (token.source == DepFtrXml.LAMBDA && index == i_beta) || (token.source == DepFtrXml.BETA && index == i_lambda))
-			return null;
-	
-		DepNode node  = null;
-		double  value = 1f;
-		
-		if (token.relation == null)
-		{
-			node = d_tree.get(index);
-		}
-		else if (token.relation.equals(DepFtrXml.R_HD))
-		{
-			node = d_tree.getHead(index);
-			if (node != null)	value = d_tree.get(index).score;
-		}
-		else if (token.relation.equals(DepFtrXml.R_LM))
-		{
-			node = d_tree.getLeftMostDependent(index);
-			if (node != null)	value = node.score;
-		}
-		else if (token.relation.equals(DepFtrXml.R_RM))
-		{
-			node = d_tree.getRightMostDependent(index);
-			if (node != null)	value = node.score;
-		}
-		
-		if (node == null)	return null;
-		
-		if      (token.field.equals(DepFtrXml.F_FORM))		return new JObjectDoubleTuple<String>(node.form       , value);
-		else if (token.field.equals(DepFtrXml.F_LEMMA))		return new JObjectDoubleTuple<String>(node.lemma      , value);
-		else if (token.field.equals(DepFtrXml.F_POS))		return new JObjectDoubleTuple<String>(node.pos        , value);
-		else if (token.field.equals(DepFtrXml.F_DEPREL))	return new JObjectDoubleTuple<String>(node.getDeprel(), value);
 		
 		System.err.println("Error: unspecified feature '"+token.field+"'");
 		return null;

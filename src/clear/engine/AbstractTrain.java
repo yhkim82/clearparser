@@ -27,9 +27,6 @@ import java.io.PrintStream;
 
 import org.apache.commons.compress.archivers.jar.JarArchiveEntry;
 import org.apache.commons.compress.archivers.jar.JarArchiveOutputStream;
-import org.kohsuke.args4j.CmdLineException;
-import org.kohsuke.args4j.CmdLineParser;
-import org.kohsuke.args4j.Option;
 import org.w3c.dom.Element;
 
 import clear.model.AbstractModel;
@@ -50,43 +47,17 @@ import clear.train.kernel.ValueKernel;
  */
 abstract public class AbstractTrain extends AbstractCommon
 {
-	protected final String TAG_TRAIN           = "train";
-	protected final String TAG_TRAIN_ALGORITHM = "algorithm";
-	
-	@Option(name="-i", usage="training file", required=true, metaVar="REQUIRED")
-	protected String s_trainFile  = null; 
-	@Option(name="-t", usage="feature template file", required=true, metaVar="REQUIRED")
-	protected String s_featureXml = null;
-	
+	protected final String TAG_CLASSIFY           = "classify";
+	protected final String TAG_CLASSIFY_ALGORITHM = "algorithm";
+
 	protected byte kernel_type  = AbstractKernel.KERNEL_BINARY;
 	protected byte trainer_type = AbstractTrainer.ST_ONE_VS_ALL;
-	
-	public AbstractTrain(String[] args)
-	{
-		CmdLineParser cmd  = new CmdLineParser(this);
-		
-		try
-		{
-			cmd.parseArgument(args);
-			if (!initConfigElements())	return;
-			
-			train();
-		}
-		catch (CmdLineException e)
-		{
-			System.err.println(e.getMessage());
-			cmd.printUsage(System.err);
-		}
-		catch (Exception e) {e.printStackTrace();}
-	}
-	
-	abstract protected void train() throws Exception;
 	
 	/** Trains the LibLinear classifier. */
 	protected AbstractModel trainModel(String instanceFile, JarArchiveOutputStream zout) throws Exception
 	{
-		Element eTrain  = getElement(e_config, TAG_TRAIN);
-		Element element = getElement(eTrain, TAG_TRAIN_ALGORITHM);
+		Element eTrain  = getElement(e_config, TAG_CLASSIFY);
+		Element element = getElement(eTrain, TAG_CLASSIFY_ALGORITHM);
 		String  name    = element.getAttribute("name").trim();
 		
 		StringBuilder options   = new StringBuilder();
@@ -144,7 +115,7 @@ abstract public class AbstractTrain extends AbstractCommon
 		
 		if (algorithm == null)
 		{
-			System.err.println("Learning algorithm is not specified in '"+s_featureXml+"'");
+			System.err.println("Learning algorithm is not specified in the feature template");
 			return null;
 		}
 		
@@ -167,7 +138,7 @@ abstract public class AbstractTrain extends AbstractCommon
 		}
 		
 		long st = System.currentTimeMillis();
-		AbstractKernel kernel = (kernel_type == AbstractKernel.KERNEL_BINARY) ? new BinaryKernel(instanceFile) : new ValueKernel(instanceFile);
+		AbstractKernel  kernel  = (kernel_type == AbstractKernel.KERNEL_BINARY) ? new BinaryKernel(instanceFile) : new ValueKernel(instanceFile);
 		AbstractTrainer trainer = (trainer_type == AbstractTrainer.ST_BINARY) ? new BinaryTrainer(fout, algorithm, kernel, numThreads) : new OneVsAllTrainer(fout, algorithm, kernel, numThreads);
 		long time = System.currentTimeMillis() - st;
 		System.out.printf("- duration: %d hours, %d minutes\n", time/(1000*3600), time/(1000*60));
@@ -175,19 +146,5 @@ abstract public class AbstractTrain extends AbstractCommon
 		if (zout != null)	zout.closeArchiveEntry();
 		
 		return trainer.getModel();
-	}
-	
-	protected void initElements()
-	{
-		initCommonElements();
-	}
-	
-	protected void printConfig()
-	{
-		System.out.println("* Configurations");
-		System.out.println("- language   : "+s_language);
-		System.out.println("- format     : "+s_format);
-		System.out.println("- feature_xml: "+s_featureXml);
-		System.out.println("- train_file : "+s_trainFile);
 	}
 }

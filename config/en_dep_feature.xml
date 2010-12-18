@@ -13,41 +13,39 @@
 	<ngram n="2" t="upm" f0="b:p" f1="b:m"/>
 		
 	<ngram n="2" f0="l:p"    f1="b:p"/>
-	<ngram n="2" f0="l_hd:p" f1="l:p"    note="83.13 -> 83.19"/>
-	<ngram n="2" f0="l-1:p"  f1="l:p"    note="88.23 -> 88.28"/>
-	<ngram n="2" f0="l:p"    f1="l+1:p"  note="88.28 -> 88.35"/>
-	<ngram n="2" f0="l:p"    f1="b+1:p"  note="88.55 -> 88.62"/>
-	<ngram n="2" f0="l-1:p"  f1="b:p"    note="88.35 -> 88.41"/>
-	<ngram n="2" f0="l+1:p"  f1="b:p"    note="88.41 -> 88.48"/>
-	<ngram n="2" f0="b_hd:p" f1="b:p"    note="83.19 -> 83.21"/>
-	<ngram n="2" f0="b:p"    f1="b+1:p"  note="88.48 -> 88.55"/>
+	<ngram n="2" f0="l_hd:p" f1="l:p"/>
+	<ngram n="2" f0="l-1:p"  f1="l:p"/>
+	<ngram n="2" f0="l:p"    f1="l+1:p"/>
+	<ngram n="2" f0="l:p"    f1="b+1:p"/>
+	<ngram n="2" f0="l-1:p"  f1="b:p"/>
+	<ngram n="2" f0="l+1:p"  f1="b:p"/>
+	<ngram n="2" f0="b_hd:p" f1="b:p"/>
+	<ngram n="2" f0="b:p"    f1="b+1:p"/>
 
 	<ngram n="2" f0="l:p"    f1="b:m"/>
-	<ngram n="2" f0="l-1:p"  f1="b:m"    note="88.12 -> 88.16"/>
-	<ngram n="2" f0="b-1:p"  f1="b:m"    note="88.16 -> 88.23"/>
+	<ngram n="2" f0="l-1:p"  f1="b:m"/>
+	<ngram n="2" f0="b-1:p"  f1="b:m"/>
 
 	<ngram n="2" f0="l:m"    f1="b:p"/>
-	<ngram n="2" f0="l:m"    f1="l+1:p"  note="87.45 -> 87.52"/>
-	<ngram n="2" f0="l:m"    f1="l_rm:p" note="87.52 -> 87.60"/>
-	<ngram n="2" f0="l:m"    f1="b+1:p"  note="87.60 -> 87.83"/>
-	<ngram n="2" f0="b:m"    f1="b+1:p"  note="87.83 -> 88.04"/>
-	<ngram n="2" f0="b:m"    f1="b+2:p"  note="88.04 -> 88.12"/>
+	<ngram n="2" f0="l:m"    f1="l+1:p"/>
+	<ngram n="2" f0="l:m"    f1="l_rm:p"/>
+	<ngram n="2" f0="l:m"    f1="b+1:p"/>
+	<ngram n="2" f0="b:m"    f1="b+1:p"/>
+	<ngram n="2" f0="b:m"    f1="b+2:p"/>
 
 	<ngram n="2" f0="l:m"    f1="b:m"/>
 	
-	<ngram n="3" f0="l:p"    f1="b_hd:p" f2="b:p"   note="87.45 -> 87.40"/>
-	<ngram n="3" f0="l-2:p"  f1="l-1:p"  f2="l:p"   note="87.45 -> 87.31"/>
-	<ngram n="3" f0="l_lm:p" f1="l:p"    f2="b:p"   note="87.45 -> 87.26"/>
-	<ngram n="3" f0="l-3:p"  f1="l:p"    f2="b:p"   note="87.45 -> 87.21"/>
-	<ngram n="3" f0="l-2:p"  f1="l:p"    f2="b:p"   note="87.45 -> 87.17"/>
-	<ngram n="3" f0="l-1:p"  f1="l:p"    f2="b:p"   note="87.45 -> 86.95"/>
-	<ngram n="3" f0="l:p"    f1="l+1:p"  f2="b:p"   note="87.45 -> 86.89"/>
-	<ngram n="3" f0="l:p"    f1="b_lm:p" f2="b:p"   note="87.45 -> 86.97"/>
-	<ngram n="3" f0="l:p"    f1="b-1:p"  f2="b:p"   note="87.45 -> 87.00"/>
-	<ngram n="3" f0="l:p"    f1="b:p"    f2="b+1:p" note="87.45 -> 86.23"/>
-	<ngram n="3" f0="l:p"    f1="b:p"    f2="b+2:p" note="87.45 -> 87.30"/>
-	<ngram n="3" f0="l:p"    f1="b:p"    f2="b+3:p" note="87.45 -> 87.37"/>
-	<ngram n="3" f0="b:p"    f1="b+1:p"  f2="b+2:p" note="87.45 -> 86.82"/>
-	
-	<rule n="2" c="2" f0="l:p" f1="b:p"/>
+	<ngram n="3" f0="l:p"    f1="b_hd:p" f2="b:p"/>
+	<ngram n="3" f0="l-2:p"  f1="l-1:p"  f2="l:p"/>
+	<ngram n="3" f0="l_lm:p" f1="l:p"    f2="b:p"/>
+	<ngram n="3" f0="l-3:p"  f1="l:p"    f2="b:p"/>
+	<ngram n="3" f0="l-2:p"  f1="l:p"    f2="b:p"/>
+	<ngram n="3" f0="l-1:p"  f1="l:p"    f2="b:p"/>
+	<ngram n="3" f0="l:p"    f1="l+1:p"  f2="b:p"/>
+	<ngram n="3" f0="l:p"    f1="b_lm:p" f2="b:p"/>
+	<ngram n="3" f0="l:p"    f1="b-1:p"  f2="b:p"/>
+	<ngram n="3" f0="l:p"    f1="b:p"    f2="b+1:p"/>
+	<ngram n="3" f0="l:p"    f1="b:p"    f2="b+2:p"/>
+	<ngram n="3" f0="l:p"    f1="b:p"    f2="b+3:p"/>
+	<ngram n="3" f0="b:p"    f1="b+1:p"  f2="b+2:p"/>
 </feature_template>

@@ -21,24 +21,29 @@
 * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 * POSSIBILITY OF SUCH DAMAGE.
 */
-package clear.engine;
+package clear.experiment;
 
 import java.io.File;
 import java.io.PrintStream;
 
 import org.apache.commons.compress.archivers.jar.JarArchiveOutputStream;
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
 
 import clear.decode.OneVsAllDecoder;
 import clear.dep.DepNode;
 import clear.dep.DepTree;
+import clear.engine.AbstractTrain;
+import clear.engine.DepEvaluate;
 import clear.ftr.map.DepFtrMap;
 import clear.ftr.xml.DepFtrXml;
 import clear.model.OneVsAllModel;
+import clear.parse.AbstractDepParser;
+import clear.parse.ShiftEagerParser;
 import clear.parse.ShiftPopParser;
 import clear.reader.AbstractReader;
 import clear.reader.DepReader;
-import clear.reader.RichReader;
 import clear.util.IOUtil;
 
 /**
@@ -46,22 +51,23 @@ import clear.util.IOUtil;
  * <b>Last update:</b> 11/19/2010
  * @author Jinho D. Choi
  */
-public class TestDepSPCon extends AbstractTrain
+public class DepDevelop extends AbstractTrain
 {
 	private final int MAX_ITER = 5;
 	
+	@Option(name="-t", usage="feature template file", required=true, metaVar="REQUIRED")
+	private String s_featureXml = null;
+	@Option(name="-i", usage="training file", required=true, metaVar="REQUIRED")
+	private String s_trainFile  = null;
 	@Option(name="-d", usage="development file", required=true, metaVar="REQUIRED")
-	private String s_devFile = null; 
+	private String s_devFile    = null; 
 	
 	private StringBuilder s_build = null;
 	private DepFtrXml     t_xml   = null;
 	private DepFtrMap     t_map   = null;
 	private OneVsAllModel m_model = null;
 	
-	public TestDepSPCon(String[] args)
-	{
-		super(args);
-	}
+	public void initElements() {}
 	
 	protected void train() throws Exception
 	{
@@ -69,13 +75,13 @@ public class TestDepSPCon extends AbstractTrain
 		
 		int    i = 0;
 		String instanceFile = "instaces.ftr";
-		String log          = "\n== Iteration: "+i+" ==\n";
+		String log          = "\n== Bootstrapping: "+i+" ==\n";
 		
 		s_build = new StringBuilder();
 		s_build.append(log);
 		System.out.print(log);
 		
-		trainDepParser(ShiftPopParser.FLAG_PRINT_LEXICON , null,         null);
+		trainDepParser(ShiftPopParser.FLAG_PRINT_LEXICON , null, null);
 		trainDepParser(ShiftPopParser.FLAG_PRINT_INSTANCE, instanceFile, null);
 		m_model = (OneVsAllModel)trainModel(instanceFile, null);
 		
@@ -84,12 +90,12 @@ public class TestDepSPCon extends AbstractTrain
 		do
 		{
 			currAcc = trainDepParser(ShiftPopParser.FLAG_PREDICT, s_devFile+".parse."+i, null);
-		//	if (currAcc <= prevAcc)	break;
+			if (currAcc <= prevAcc)	break;
 
 			prevAcc = currAcc;
 			trainDepParser(ShiftPopParser.FLAG_TRAIN_CONDITIONAL, instanceFile, null);
 			
-			log = "\n== Iteration: "+(++i)+" ==\n";
+			log = "\n== Bootstrapping: "+(++i)+" ==\n";
 			s_build.append(log);
 			System.out.print(log);
 
@@ -106,37 +112,50 @@ public class TestDepSPCon extends AbstractTrain
 	/** Trains the dependency parser. */
 	private double trainDepParser(byte flag, String outputFile, JarArchiveOutputStream zout) throws Exception
 	{
-		ShiftPopParser parser  = null;
-		OneVsAllDecoder  decoder = null;
-		PrintStream      fout    = null;
+		AbstractDepParser parser  = null;
+		OneVsAllDecoder   decoder = null;
+		PrintStream       fout    = null;
 		
 		if (flag == ShiftPopParser.FLAG_PRINT_LEXICON)
 		{
 			System.out.println("\n* Save lexica");
-			parser = new ShiftPopParser(flag, s_featureXml);
+			
+			if (s_depParser.equals(AbstractDepParser.ALG_SHIFT_EAGER))
+				parser = new ShiftEagerParser(flag, s_featureXml);
+			else if (s_depParser.equals(AbstractDepParser.ALG_SHIFT_POP))
+				parser = new ShiftPopParser  (flag, s_featureXml);
 		}
 		else if (flag == ShiftPopParser.FLAG_PRINT_INSTANCE)
 		{
 			System.out.println("\n* Print training instances");
 			System.out.println("- loading lexica");
-			parser = new ShiftPopParser(flag, t_xml, ENTRY_LEXICA, outputFile);
+			
+			if (s_depParser.equals(AbstractDepParser.ALG_SHIFT_EAGER))
+				parser = new ShiftEagerParser(flag, t_xml, ENTRY_LEXICA, outputFile);
+			else if (s_depParser.equals(AbstractDepParser.ALG_SHIFT_POP))
+				parser = new ShiftPopParser  (flag, t_xml, ENTRY_LEXICA, outputFile);
 		}
 		else if (flag == ShiftPopParser.FLAG_PREDICT)
 		{
 			System.out.println("\n* Predict");
 			decoder = new OneVsAllDecoder(m_model);
-			parser  = new ShiftPopParser(flag, t_xml, t_map, decoder); 
 			fout    = IOUtil.createPrintFileStream(outputFile);
+			
+			if (s_depParser.equals(AbstractDepParser.ALG_SHIFT_EAGER))
+				parser = new ShiftEagerParser(AbstractDepParser.FLAG_PREDICT, t_xml, t_map, decoder);
+			else if (s_depParser.equals(AbstractDepParser.ALG_SHIFT_POP))
+				parser = new ShiftPopParser  (AbstractDepParser.FLAG_PREDICT, t_xml, t_map, decoder);
 		}
 		else if (flag == ShiftPopParser.FLAG_TRAIN_CONDITIONAL)
 		{
 			System.out.println("\n* Train conditional");
 			decoder = new OneVsAllDecoder(m_model);
-			parser  = new ShiftPopParser(flag, t_xml, t_map, decoder, outputFile);
+			
+			if (s_depParser.equals(AbstractDepParser.ALG_SHIFT_EAGER))
+				parser = new ShiftEagerParser(flag, t_xml, t_map, decoder, outputFile);
+			else if (s_depParser.equals(AbstractDepParser.ALG_SHIFT_POP))
+				parser = new ShiftPopParser  (flag, t_xml, t_map, decoder, outputFile);
 		}
-		
-		AbstractReader<DepNode, DepTree> reader = null;
-		DepTree tree;	int n;
 		
 		String  inputFile;
 		boolean isTrain;
@@ -152,8 +171,8 @@ public class TestDepSPCon extends AbstractTrain
 			isTrain   = true;
 		}
 		
-		if      (s_format.equals(AbstractReader.FORMAT_DEP))	reader = new DepReader (inputFile, isTrain);
-		else if (s_format.equals(AbstractReader.FORMAT_RICH))	reader = new RichReader(inputFile, isTrain);
+		AbstractReader<DepNode, DepTree> reader = new DepReader(inputFile, isTrain);
+		DepTree tree;	int n;
 		
 		for (n=0; (tree = reader.nextTree()) != null; n++)
 		{
@@ -205,12 +224,31 @@ public class TestDepSPCon extends AbstractTrain
 	
 	protected void printConfig()
 	{
-		super.printConfig();
+		System.out.println("* Configurations");
+		System.out.println("- language   : "+s_language);
+		System.out.println("- format     : "+s_format);
+		System.out.println("- parser     : "+s_depParser);
+		System.out.println("- feature_xml: "+s_featureXml);
+		System.out.println("- train_file : "+s_trainFile);
 		System.out.println("- dev_file   : "+s_devFile);
 	}
 	
 	static public void main(String[] args)
 	{
-		new TestDepSPCon(args);
+		DepDevelop developer = new DepDevelop();
+		CmdLineParser    cmd = new CmdLineParser(developer);
+		
+		try
+		{
+			cmd.parseArgument(args);
+			developer.init();
+			developer.train();
+		}
+		catch (CmdLineException e)
+		{
+			System.err.println(e.getMessage());
+			cmd.printUsage(System.err);
+		}
+		catch (Exception e) {e.printStackTrace();}
 	}
 }

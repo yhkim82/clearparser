@@ -33,33 +33,39 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
+import clear.parse.AbstractDepParser;
 import clear.reader.AbstractReader;
 
 /**
- * <b>Last update:</b> 11/8/2010
+ * <b>Last update:</b> 12/15/2010
  * @author Jinho D. Choi
  */
 abstract public class AbstractCommon
 {
+	@Option(name="-c", usage="configuration file", required=true, metaVar="REQUIRED")
+	private String s_configFile = null;
+	
 	protected final String TAG_COMMON          = "common";
 	protected final String TAG_COMMON_LANGUAGE = "language";
 	protected final String TAG_COMMON_FORMAT   = "format";
+	protected final String TAG_COMMON_PARSER   = "parser";
 	
 	protected final String ENTRY_LEXICA  = "lexica";
 	protected final String ENTRY_MODEL   = "model";
 	protected final String ENTRY_FEATURE = "feature";
-	
-	@Option(name="-c", usage="configuration file", required=true, metaVar="REQUIRED")
-	protected String  s_configFile = null;
+
 	/** Language */
-	protected String  s_language   = AbstractReader.LANG_EN;
-	/** Format */
-	protected String  s_format     = AbstractReader.FORMAT_DEP;
+	protected String  s_language  = AbstractReader.LANG_EN;
+	/** Input format */
+	protected String  s_format    = AbstractReader.FORMAT_DEP;
+	/** Dependency parsing algorithm */
+	protected String  s_depParser = AbstractDepParser.ALG_SHIFT_POP;
 	/** Configuration element */
 	protected Element e_config;
 	
-	/** Initializes <configuration> element. */
-	public boolean initConfigElements()
+	abstract protected void initElements();
+	
+	public void init()
 	{
 		DocumentBuilderFactory dFactory = DocumentBuilderFactory.newInstance();
 		
@@ -69,18 +75,15 @@ abstract public class AbstractCommon
 			Document        doc     = builder.parse(new File(s_configFile));
 			
 			e_config = doc.getDocumentElement();
+			initCommonElements();
 			initElements();
 		}
 		catch (Exception e)
 		{
 			e.printStackTrace();
-			return false;
+			System.exit(1);
 		}
-		
-		return true;
 	}
-	
-	abstract protected void initElements();
 	
 	/** Initializes <common> elements. */	
 	protected void initCommonElements()
@@ -93,6 +96,9 @@ abstract public class AbstractCommon
 		
 		if ((element = getElement(eCommon, TAG_COMMON_FORMAT)) != null)
 			s_format = element.getTextContent().trim();
+		
+		if ((element = getElement(eCommon, TAG_COMMON_PARSER)) != null)
+			s_depParser = element.getTextContent().trim(); 
 	}
 	
 	protected Element getElement(Element parent, String name)
