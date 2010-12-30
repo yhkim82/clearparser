@@ -69,6 +69,40 @@ public class DepTrain extends AbstractTrain
 	
 	public void initElements() {}
 	
+	public DepTrain(String[] args)
+	{
+		CmdLineParser cmd = new CmdLineParser(this);
+		
+		try
+		{
+			cmd.parseArgument(args);
+			init();
+			train();
+		}
+		catch (CmdLineException e)
+		{
+			System.err.println(e.getMessage());
+			cmd.printUsage(System.err);
+		}
+		catch (Exception e) {e.printStackTrace();}
+	}
+	
+	public DepTrain(String configFile, String featureXml, String trainFile, String modelFile, int nBoot)
+	{
+		s_configFile = configFile;
+		s_featureXml = featureXml;
+		s_trainFile  = trainFile;
+		s_modelFile  = modelFile;
+		n_boot       = nBoot;
+		
+		try
+		{
+			init();
+			train();
+		}
+		catch (Exception e) {e.printStackTrace();}
+	}
+	
 	public void train() throws Exception
 	{
 		printConfig();
@@ -187,20 +221,6 @@ public class DepTrain extends AbstractTrain
 	
 	static public void main(String[] args)
 	{
-		DepTrain  trainer = new DepTrain();
-		CmdLineParser cmd = new CmdLineParser(trainer);
-		
-		try
-		{
-			cmd.parseArgument(args);
-			trainer.init();
-			trainer.train();
-		}
-		catch (CmdLineException e)
-		{
-			System.err.println(e.getMessage());
-			cmd.printUsage(System.err);
-		}
-		catch (Exception e) {e.printStackTrace();}
+		new DepTrain(args);
 	}
 }

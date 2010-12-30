@@ -374,7 +374,7 @@ public class ShiftPopParser extends AbstractDepParser
 
 		lambda.setHead(beta.id, deprel, score);
 		lambda.isSkip = true;
-		if (lambda.id < beta.leftDepId)	beta.leftDepId = lambda.id;
+		if (beta.leftMostDep == null || lambda.id < beta.leftMostDep.id)	beta.leftMostDep = lambda;
 		i_lambda--;
 		
 		if (i_flag == FLAG_PRINT_TRANSITION)
@@ -396,7 +396,7 @@ public class ShiftPopParser extends AbstractDepParser
 		else if (i_flag == FLAG_PRINT_INSTANCE)	printInstance(label, getFeatureArray());
 
 		lambda.setHead(beta.id, deprel, score);
-		if (lambda.id < beta.leftDepId)	beta.leftDepId = lambda.id;
+		if (beta.leftMostDep == null || lambda.id < beta.leftMostDep.id)	beta.leftMostDep = lambda;
 		i_lambda--;
 		
 		if (i_flag == FLAG_PRINT_TRANSITION)
@@ -418,7 +418,7 @@ public class ShiftPopParser extends AbstractDepParser
 		else if (i_flag == FLAG_PRINT_INSTANCE)	printInstance(label, getFeatureArray());
 
 		beta.setHead(lambda.id, deprel, score);
-		if (lambda.rightDepId < beta.id)	lambda.rightDepId = beta.id;
+		if (lambda.rightMostDep == null || lambda.rightMostDep.id < beta.id)	lambda.rightMostDep = beta;
 		i_lambda--;
 		
 		if (i_flag == FLAG_PRINT_TRANSITION)

@@ -130,9 +130,7 @@ public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
 	/** @return the leftmost dependent of the <code>currId</code>'th node. */
 	public DepNode getLeftMostDependent(int currId)
 	{
-		DepNode curr = get(currId);
-		
-		return isRange(curr.leftDepId) ? get(curr.leftDepId) : null;
+		return get(currId).leftMostDep;
 	}
 	
 	/**
@@ -159,9 +157,7 @@ public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
 	/** @return the rightmost dependent of the <code>currId</code>'th node. */
 	public DepNode getRightMostDependent(int currId)
 	{
-		DepNode curr = get(currId);
-		
-		return isRange(curr.rightDepId) ? get(curr.rightDepId) : null;
+		return get(currId).rightMostDep;
 	}
 	
 	/**

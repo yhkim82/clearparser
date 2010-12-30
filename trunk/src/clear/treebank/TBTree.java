@@ -324,4 +324,16 @@ public class TBTree
 		for (TBNode child : curr.getChildren())
 			checkNumChildrenAux(child);
 	}
+	
+	public boolean isUnder(int terminalIndex, String phrase)
+	{
+		for (int i=1; i<100; i++)
+		{
+			moveTo(terminalIndex, i);
+			if (nd_curr == null)		return false;
+			if (nd_curr.isPos(phrase))	return true;
+		}
+					
+		return false;
+	}
 }

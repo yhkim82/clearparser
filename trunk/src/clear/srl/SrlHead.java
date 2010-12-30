@@ -1,5 +1,5 @@
 /**
-* Copyright (c) 2009, Regents of the University of Colorado
+* Copyright (c) 2010, Regents of the University of Colorado
 * All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -21,17 +21,52 @@
 * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 * POSSIBILITY OF SUCH DAMAGE.
 */
-package clear.dep;
+package clear.srl;
 
 /**
- * Tree interface.
+ * Dependency head.
  * @author Jinho D. Choi
- * <b>Last update:</b> 11/4/2010
+ * <b>Last update:</b> 12/22/2010
  */
-public interface ITree<NodeType>
+public class SrlHead
 {
-	/** Adds <code>node</code> at the end of the tree. */
-	public boolean add(NodeType node);
-	/** @return size of the tree. */
-	public int size();
+	static final public String DELIM = ":";
+	
+	public float   headId;
+	public String  label;
+	public double  score;
+	public boolean hasHead;
+	
+	public SrlHead(float headId, String label)
+	{
+		set(headId, label, 1, false);
+	}
+
+	public SrlHead(float headId, String label, double score, boolean hasHead)
+	{
+		set(headId, label, score, hasHead);
+	}
+	
+	public void set(float headId, String label, double score, boolean hasHead)
+	{
+		this.headId  = headId;
+		this.label  = label;
+		this.score   = score;
+		this.hasHead = hasHead;
+	}
+	
+	public boolean isLabel(String regex)
+	{
+		return label.matches(regex);
+	}
+	
+	public String toString()
+	{
+		StringBuilder build = new StringBuilder();
+		
+		build.append(headId);	build.append(DELIM);
+		build.append(label);
+		
+		return build.toString();
+	}
 }

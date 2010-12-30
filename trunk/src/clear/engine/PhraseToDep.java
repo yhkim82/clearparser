@@ -42,53 +42,67 @@ import clear.util.IOUtil;
 public class PhraseToDep
 {
 	@Option(name="-i", usage="name of a file containing phrase structure tree", required=true, metaVar="REQUIRED")
-	String inputFile;
+	String s_inputFile;
 	@Option(name="-o", usage="name of a file containing dependency trees", required=true, metaVar="REQUIRED")
-	String outputFile;
+	String s_outputFile;
 	@Option(name="-h", usage="name of a file containing head-percolation rules", required=true, metaVar="REQUIRED")
-	String headruleFile;
+	String s_headruleFile;
 	@Option(name="-m", usage="path of a directory containing dictionaries for morphological analyzer", metaVar="OPTIONAL")
-	String dictDir = null;
+	String s_dictDir = null;
 	@Option(name="-l", usage="language ::= "+AbstractReader.LANG_CH+" | "+AbstractReader.LANG_EN+" (default)", metaVar="OPTIONAL")
-	String language = AbstractReader.LANG_EN;
+	String s_language = AbstractReader.LANG_EN;
 	@Option(name="-n", usage="minimum sentence length (inclusive; default = 0)", metaVar="OPTIONAL")
-	int length = 0;
+	int n_length = 0;
+	@Option(name="-f", usage="if set, include function tags", metaVar="OPTIONAL")
+	boolean b_funcTag = false;
+	@Option(name="-e", usage="if set, include empty categories", metaVar="OPTIONAL")
+	boolean b_ec = false;
+	@Option(name="-r", usage="if set, reverse dependencies of auxiliaries and modals", metaVar="OPTIONAL")
+	boolean b_reverseVC = false;
 	
-	static public void main(String[] args)
-	{
-		new PhraseToDep().convert(args);
-	}
-	
-	public void convert(String[] args)
+	public PhraseToDep(String[] args)
 	{
 		CmdLineParser cmd = new CmdLineParser(this);
 		
 		try
 		{
 			cmd.parseArgument(args);
-			
-			TBReader        reader    = new TBReader(inputFile);
-			TBHeadRules     headrules = new TBHeadRules(headruleFile);
-			MorphEnAnalyzer morph     = (dictDir != null) ? new MorphEnAnalyzer(dictDir) : null;
-			PrintStream     fout      = IOUtil.createPrintFileStream(outputFile);
-			TBTree          tree;
-			TBEnConvert     converter = new TBEnConvert();
-
-			String filename = inputFile.substring(inputFile.lastIndexOf(File.separator)+1);
-			int i = 0;
-			
-			System.out.print("\r"+filename+": 0");
-			while ((tree = reader.nextTree()) != null)
-			{
-				DepTree dTree = converter.toDepTree(tree, headrules, morph);
-				if (dTree.size() > length){ fout.println(dTree+"\n");	i++; }
-				if (i%1000 == 0)	System.out.print("\r"+filename+": "+i);
-			}	System.out.println("\r"+filename+": "+i);
+			convert();
 		}
 		catch (CmdLineException e)
 		{
 			System.err.println(e.getMessage());
 			cmd.printUsage(System.err);
 		}
+	}
+	
+	public void convert()
+	{
+		TBReader        reader    = new TBReader(s_inputFile);
+		TBHeadRules     headrules = new TBHeadRules(s_headruleFile);
+		MorphEnAnalyzer morph     = (s_dictDir != null) ? new MorphEnAnalyzer(s_dictDir) : null;
+		PrintStream     fout      = IOUtil.createPrintFileStream(s_outputFile);
+		TBTree          tree;
+		TBEnConvert     converter = new TBEnConvert();
+
+		String filename = s_inputFile.substring(s_inputFile.lastIndexOf(File.separator)+1);
+		int i = 0;
+		
+		System.out.print("\r"+filename+": 0");
+		
+		while ((tree = reader.nextTree()) != null)
+		{
+			DepTree dTree = converter.toDepTree(tree, headrules, morph, b_funcTag, b_ec, b_reverseVC);
+			if (dTree.size() > n_length){ fout.println(dTree+"\n");	i++; }
+			if (i%1000 == 0)	System.out.print("\r"+filename+": "+i);
+		}
+		
+		fout.flush();	fout.close();
+		System.out.println("\r"+filename+": "+i);
+	}
+	
+	static public void main(String[] args)
+	{
+		new PhraseToDep(args);
 	}
 }

@@ -63,7 +63,7 @@ public class TBReader
 			if (str == null){	f_tree.close();	return null;	}
 		}
 		while (!str.equals(LRB));
-		
+
 		int numBracket    = 1;
 		int terminalIndex = 0;
 		int tokenIndex    = 0;

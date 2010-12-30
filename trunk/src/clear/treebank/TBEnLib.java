@@ -224,4 +224,24 @@ public class TBEnLib extends TBLib
 	{
 		return pos.equals(POS_S) || pos.equals(POS_SBAR) || pos.equals(POS_SBARQ) || pos.equals(POS_SINV) || pos.equals(POS_SQ); 
 	}
+	
+	static public boolean isAux(String form)
+	{
+		return form.equals("be") || form.equals("been") || form.equals("being") ||
+		form.equals("am") || form.equals("is") || form.equals("was") ||
+		form.equals("are") || form.equals("were") ||
+		form.equals("have") || form.equals("has") || form.equals("had") || form.equals("having") ||
+		form.equals("'m") || form.equals("'s") || form.equals("'re") ||
+		form.equals("'ve") || form.equals("'d") ||
+		form.equals("do") || form.equals("does") || form.equals("did") || form.equals("done") || form.equals("doing");
+	}
+	
+	static public boolean isLightVerb(String form)
+	{
+		return form.equals("take") || form.equals("takes") || form.equals("took") || form.equals("taken") || form.equals("taking") ||
+		form.equals("give") || form.equals("gives") || form.equals("gave") || form.equals("given") || form.equals("giving") ||
+		form.equals("make") || form.equals("makes") || form.equals("made") || form.equals("making") ||
+		form.equals("do") || form.equals("does") || form.equals("did") || form.equals("done") || form.equals("doing") ||
+		form.equals("have") || form.equals("has") || form.equals("had") || form.equals("having");
+	}
 }

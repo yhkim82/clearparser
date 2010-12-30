@@ -42,6 +42,7 @@ public class DepLib
 	
 	static public final String DEPREL_ADV   = "ADV";
 	static public final String DEPREL_AMOD  = "AMOD";
+	static public final String DEPREL_AUX   = "AUX";
 	static public final String DEPREL_BNF   = "BNF";
 	static public final String DEPREL_CAP   = "CAP";
 	static public final String DEPREL_CIT   = "CIT";
@@ -61,6 +62,7 @@ public class DepLib
 	static public final String DEPREL_LOC   = "LOC";
 	static public final String DEPREL_META  = "META";
 	static public final String DEPREL_MNR   = "MNR";
+	static public final String DEPREL_MOD   = "MOD";
 	static public final String DEPREL_NMOD  = "NMOD";
 	static public final String DEPREL_OBJ   = "OBJ";
 	static public final String DEPREL_OPRD  = "OPRD";
