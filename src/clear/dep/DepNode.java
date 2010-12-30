@@ -49,10 +49,10 @@ public class DepNode
 	public double  score;
 	/** True if the node already found its head */
 	public boolean hasHead;
-	/** Index of the left-dependent */
-	public int     leftDepId;
-	/** Index of the right-dependent */
-	public int     rightDepId;
+	/** Leftmost dependent */
+	public DepNode leftMostDep;
+	/** Rightmost dependent */
+	public DepNode rightMostDep;
 	/** Skip this node if it is true */
 	public boolean isSkip;
 	/** 1 if the node is non-projective (experimental) */
@@ -83,34 +83,32 @@ public class DepNode
 	/** Initializes the node with parameter values. */
 	public void init(int id, String form, String lemma, String pos, int headId, String deprel)
 	{
-		this.id         = id;
-		this.form       = form;
-		this.lemma      = lemma;
-		this.pos        = pos;
-		this.headId     = headId;
-		this.deprel     = deprel;
-		this.score      = 0;
-		this.hasHead    = false;
-		this.leftDepId  = Integer.MAX_VALUE;
-		this.rightDepId = -1;
-		this.nonProj    = 0;
-		this.isSkip     = false;
+		this.id           = id;
+		this.form         = form;
+		this.lemma        = lemma;
+		this.pos          = pos;
+		this.headId       = headId;
+		this.deprel       = deprel;
+		this.score        = 0;
+		this.hasHead      = false;
+		this.leftMostDep  = null;
+		this.rightMostDep = null;
+		this.isSkip       = false;
 	}
 	
-	public void init(int id, String form, String lemma, String pos, int headId, String deprel, double score, boolean hasHead, int leftDepId, int rightDepId, byte nonProj)
+	public void init(int id, String form, String lemma, String pos, int headId, String deprel, double score, boolean hasHead, DepNode leftMostDep, DepNode rightMostDep, boolean isSkip)
 	{
-		this.id         = id;
-		this.form       = form;
-		this.lemma      = lemma;
-		this.pos        = pos;
-		this.headId     = headId;
-		this.deprel     = deprel;
-		this.score      = score;
-		this.hasHead    = hasHead;
-		this.leftDepId  = leftDepId;
-		this.rightDepId = rightDepId;
-		this.nonProj    = nonProj;
-		this.isSkip     = false;
+		this.id           = id;
+		this.form         = form;
+		this.lemma        = lemma;
+		this.pos          = pos;
+		this.headId       = headId;
+		this.deprel       = deprel;
+		this.score        = score;
+		this.hasHead      = hasHead;
+		this.leftMostDep  = leftMostDep;
+		this.rightMostDep = rightMostDep;
+		this.isSkip       = isSkip;
 	}
 	
 	/**
@@ -190,7 +188,7 @@ public class DepNode
 	
 	public void copy(DepNode node)
 	{
-		init(node.id, node.form, node.lemma, node.pos, node.headId, node.deprel, node.score, node.hasHead, node.leftDepId, node.rightDepId, node.nonProj);
+		init(node.id, node.form, node.lemma, node.pos, node.headId, node.deprel, node.score, node.hasHead, node.leftMostDep, node.rightMostDep, node.isSkip);
 	}
 	
 	public DepNode clone()

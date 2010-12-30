@@ -43,7 +43,7 @@ import clear.reader.AbstractReader;
 abstract public class AbstractCommon
 {
 	@Option(name="-c", usage="configuration file", required=true, metaVar="REQUIRED")
-	private String s_configFile = null;
+	protected String s_configFile = null;
 	
 	protected final String TAG_COMMON          = "common";
 	protected final String TAG_COMMON_LANGUAGE = "language";

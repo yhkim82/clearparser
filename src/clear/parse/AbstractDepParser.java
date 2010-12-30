@@ -142,7 +142,7 @@ abstract public class AbstractDepParser
 				{
 					if (tree.get(j).isPosx("NN.*|CD") && !(j+1 < size && tree.get(j+1).isPosx("NN.*|CD|POS")))
 					{
-						head.rightDepId = j;
+						head.rightMostDep = tree.get(j);
 						i = j;	break;
 					}
 				}

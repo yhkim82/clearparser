@@ -40,29 +40,46 @@ import clear.morph.MorphEnAnalyzer;
  */
 public class TBEnConvert
 {
+	private TBTree  p_tree;
+	private DepTree d_tree;
+	private boolean b_funcTag;
+	private boolean b_reverseVC;
+	
 	/** @return a dependency tree converted from <code>pTree</cdoe>. */
-	public DepTree toDepTree(TBTree pTree, TBHeadRules headrules, MorphEnAnalyzer morph)
+	public DepTree toDepTree(TBTree pTree, TBHeadRules headrules, MorphEnAnalyzer morph, boolean funcTag, boolean ec, boolean reverseVC)
 	{
-		DepTree dTree = new DepTree();
+		p_tree      = pTree;
+		d_tree      = new DepTree();
+		b_funcTag   = funcTag;
+		b_reverseVC = reverseVC;
 		
-		initDepTree(morph, dTree, pTree.getRootNode());
-		setDepHeads(pTree, dTree, pTree.getRootNode(), headrules);
-		setDepRoot(dTree);
-		setEmptyCategory(pTree, dTree);
-		DepTree copy = removeEmptyCategories(dTree);
-		copy.projectizePunc();
-		copy.checkTree();
+		initDepTree(morph, pTree.getRootNode());
+		setDepHeads(pTree.getRootNode(), headrules);
+		setDepRoot();
 		
-		return copy;
+		if (ec)
+		{
+			d_tree.checkTree();
+			return d_tree;
+		}
+		else
+		{
+			setEmptyCategory();
+			DepTree copy = removeEmptyCategories();
+			copy.projectizePunc();
+			copy.checkTree();
+			
+			return copy;
+		}
 	}
 	
 	/** Initializes <code>tree</code> using the subtree of <code>curr</code>. */
-	private void initDepTree(MorphEnAnalyzer morph, DepTree dTree, TBNode curr)
+	private void initDepTree(MorphEnAnalyzer morph, TBNode curr)
 	{
 		if (curr.isPhrase())
 		{
 			for (TBNode child : curr.getChildren())
-				initDepTree(morph, dTree, child);
+				initDepTree(morph, child);
 		}
 		else
 		{
@@ -73,52 +90,18 @@ public class TBEnConvert
 			node.pos   = curr.pos;
 			node.lemma = (morph != null) ? morph.getLemma(curr.form, curr.pos) : node.form.toLowerCase();
 			
-			dTree.add(node);
+			d_tree.add(node);
 		}
 	}
 	
-/*	private void initDepTree(MorphEnAnalyzer morph, DepTree dTree, TBNode curr, String bio)
-	{
-		if (curr.isPhrase())
-		{
-			if      (curr.isTag(TBEnLib.TAG_LOC))		bio = TBEnLib.TAG_LOC;
-			else if (curr.isTag(TBEnLib.TAG_TMP))		bio = TBEnLib.TAG_TMP;
-			else if (curr.isPos(TBEnLib.POS_SBAR+".*"))	bio = null;
-			
-			for (TBNode child : curr.getChildren())
-				initDepTree(morph, dTree, child, bio);
-			
-			bio = null;
-		}
-		else
-		{
-			DepNode node = new DepNode();
-
-			node.id    = curr.terminalId + 1;
-			node.form  = curr.form;
-			node.pos   = curr.pos;
-			node.lemma = (morph != null) ? morph.getLemma(curr.form, curr.pos) : node.form.toLowerCase();
-			
-			if (bio != null)
-			{
-				if (dTree.getLastNode().bio.charAt(0) == 'O')
-					node.bio = "B-"+bio;
-				else
-					node.bio = "I-"+bio;
-			}
-			
-			dTree.add(node);
-		}
-	}*/
-
 	/** Finds heads for all phrases. */
-	private void setDepHeads(TBTree pTree, DepTree dTree, TBNode curr, TBHeadRules headrules)
+	private void setDepHeads(TBNode curr, TBHeadRules headrules)
 	{
 		if (!curr.isPhrase())			return;
 		
 		// traverse all subtrees
 		for (TBNode child : curr.getChildren())
-			setDepHeads(pTree, dTree, child, headrules);
+			setDepHeads(child, headrules);
 
 		// top-level constituent
 		if (curr.isPos(TBLib.POS_TOP))	return;
@@ -126,12 +109,12 @@ public class TBEnConvert
 		// find heads of all subtrees
 		findHeads(curr, headrules);
 		if (isCoordination(curr))
-			setCoordination(pTree, dTree, curr);
+			setCoordination(curr);
 		else if (curr.isPos(TBEnLib.POS_NP+"|"+TBEnLib.POS_NX+"|"+TBEnLib.POS_NML))
-			setApposition  (pTree, dTree, curr);
-		setGap(pTree, dTree, curr);		
-		reconfigureHead(dTree, curr);
-		setDepHeadsAux (pTree, dTree, curr);
+			setApposition  (curr);
+		setGap(curr);		
+		reconfigureHead(curr);
+		setDepHeadsAux (curr);
 	}
 	
 	/**
@@ -181,10 +164,23 @@ public class TBEnConvert
 		if (curr.isPos(TBEnLib.POS_NP) && (child.isTag(TBEnLib.TAG_BNF) || child.isTag(TBEnLib.TAG_DIR) || child.isTag(TBEnLib.TAG_LOC) || child.isTag(TBEnLib.TAG_MNR) || child.isTag(TBEnLib.TAG_PRP) || child.isTag(TBEnLib.TAG_TMP)))
 			return false;
 		
-		if (child.isRule(rule) && !TBEnLib.isPunctuation(child.pos) && !child.isEmptyCategoryRec() && !child.isPos(TBEnLib.POS_EDITED))
+		if (child.isRule(rule) && !TBEnLib.isPunctuation(child.pos) && !child.isEmptyCategoryRec() && !child.isPos(TBEnLib.POS_EDITED) && !isAuxMod(curr, child))
 		{
 			curr.headId = child.headId;
 			return true;
+		}
+		
+		return false;
+	}
+	
+	private boolean isAuxMod(TBNode curr, TBNode child)
+	{
+		if (b_reverseVC && child.form != null && (TBEnLib.isAux(child.form) || child.isPos(TBEnLib.POS_MD)))
+		{
+			ArrayList<TBNode> children = curr.getChildren();
+			
+			for (int i=child.childId+1; i<children.size(); i++)
+				if (children.get(i).isPos(TBEnLib.POS_VP))	return true;
 		}
 		
 		return false;
@@ -197,7 +193,7 @@ public class TBEnConvert
 	}
 	
 	/** Reconstructs heads for coordinations. */
-	private void setCoordination(TBTree pTree, DepTree dTree, TBNode curr)
+	private void setCoordination(TBNode curr)
 	{
 		ArrayList<TBNode> children = curr.getChildren();
 		
@@ -212,7 +208,7 @@ public class TBEnConvert
 			if (prev == null)	break;
 			if (next == null)	continue;
 			
-			if (!setCoordinationAux(pTree, dTree, curr, conj, prev, next))
+			if (!setCoordinationAux(curr, conj, prev, next))
 			{
 				prev = getConjunct(children, i, true, -1);
 				next = getConjunct(children, i, true,  1);
@@ -220,7 +216,7 @@ public class TBEnConvert
 				if (prev == null)	break;
 				if (next == null)	continue;
 				
-				setCoordinationAux(pTree, dTree, curr, conj, prev, next);
+				setCoordinationAux(curr, conj, prev, next);
 			}
 			
 			i = prev.childId;
@@ -247,7 +243,7 @@ public class TBEnConvert
 	}
 	
 	/** Set dependencies for coordination structure. */
-	private boolean setCoordinationAux(TBTree pTree, DepTree dTree, TBNode curr, TBNode conj, TBNode prev, TBNode next)
+	private boolean setCoordinationAux(TBNode curr, TBNode conj, TBNode prev, TBNode next)
 	{
 		ArrayList<TBNode> children = curr.getChildren();
 
@@ -262,28 +258,28 @@ public class TBEnConvert
 			for (int i=prev.childId+1; i<=conj.childId; i++)
 			{
 				TBNode node = children.get(i);
-				setDependency(dTree, node.headId, prev.headId, getDeprel(pTree, curr, node));
+				setDependency(node.headId, prev.headId, getDeprel(curr, node));
 				if (TBEnLib.isWordConjunction(node.pos))	prev = node;
 			}
 			
 			for (int i=conj.childId+1; i<=next.childId-1; i++)
 			{
 				TBNode node = children.get(i);
-				setDependency(dTree, node.headId, next.headId, getDeprel(pTree, curr, node));
+				setDependency(node.headId, next.headId, getDeprel(curr, node));
 			}
 			
-			DepNode dNode = dTree.get(next.headId+1);
+			DepNode dNode = d_tree.get(next.headId+1);
 			
 			if (dNode.deprel.startsWith(DepLib.DEPREL_GAP))
 			{
 				if (TBEnLib.isWordConjunction(prev.pos))
 				{
-					setDependency(dTree, prev.headId, dNode.headId-1, DepLib.DEPREL_COORD);
-					setDependency(dTree, next.headId, prev.headId   , dNode.deprel);
+					setDependency(prev.headId, dNode.headId-1, DepLib.DEPREL_COORD);
+					setDependency(next.headId, prev.headId   , dNode.deprel);
 				}
 			}
 			else
-				setDependency(dTree, next.headId, prev.headId, DepLib.DEPREL_CONJ);
+				setDependency(next.headId, prev.headId, DepLib.DEPREL_CONJ);
 			
 			return true;
 		}
@@ -291,7 +287,7 @@ public class TBEnConvert
 		return false;
 	}
 	
-	private void setGap(TBTree pTree, DepTree dTree, TBNode curr)
+	private void setGap(TBNode curr)
 	{
 		ArrayList<TBNode> children = curr.getChildren();
 		
@@ -306,12 +302,12 @@ public class TBEnConvert
 				
 				if (head.coIndex == child.gapIndex || head.gapIndex == child.gapIndex)
 				{
-					DepNode dNode = dTree.get(child.headId+1);
+					DepNode dNode = d_tree.get(child.headId+1);
 					
 					if (dNode.isDeprel(DepLib.DEPREL_CONJ))
 						dNode.deprel = DepLib.DEPREL_GAP;
 					else
-						setDependency(dTree, child.headId, head.headId, DepLib.DEPREL_GAP);
+						setDependency(child.headId, head.headId, DepLib.DEPREL_GAP);
 					
 					continue outer;
 				}
@@ -325,16 +321,21 @@ public class TBEnConvert
 				
 				if ((head = siblings.get(j).getGapNode(child.gapIndex)) != null)
 				{
-					String deprel = getTagDeprel(pTree.getTerminalNodes().get(curr.headId).getParent());
-					deprel = (deprel == null) ? "" : "-"+deprel;
-					setDependency(dTree, curr.headId, head.headId, DepLib.DEPREL_GAP+deprel);
+					String deprel = getTagDeprel(p_tree.getTerminalNodes().get(curr.headId).getParent());
+					
+					if (deprel == null || !isFuncTag(deprel))
+						deprel = "";
+					else
+						deprel = "-"+deprel;
+					
+					setDependency(curr.headId, head.headId, DepLib.DEPREL_GAP+deprel);
 					return;
 				}
 			}
 		}
 	}
 	
-	private void setApposition(TBTree pTree, DepTree dTree, TBNode curr)
+	private void setApposition(TBNode curr)
 	{
 		ArrayList<TBNode> children = curr.getChildren();
 		
@@ -345,71 +346,80 @@ public class TBEnConvert
 			TBNode lst = children.get(i+2);
 			
 			if (fst.isPos(TBEnLib.POS_NP) && mid.isPos(TBEnLib.POS_COMMA) && lst.isPos(TBEnLib.POS_NP))
-				setDependency(dTree, lst.headId, fst.headId, "APPO");
+				setDependency(lst.headId, fst.headId, "APPO");
 		}
 	}
 	
 	/** Assigns the root of the dependency tree. */
-	private void setDepRoot(DepTree tree)
+	private void setDepRoot()
 	{
-		for (int i=1; i<tree.size(); i++)
+		for (int i=1; i<d_tree.size(); i++)
 		{
-			DepNode node = tree.get(i);
+			DepNode node = d_tree.get(i);
 			
 			if (node.headId == DepLib.NULL_HEAD_ID)
 				node.setHead(DepLib.ROOT_ID, DepLib.DEPREL_ROOT, 0);
 		}
 	}
 	
-	private void reconfigureHead(DepTree tree, TBNode curr)
+	private void reconfigureHead(TBNode curr)
 	{
 		BitSet  set = curr.getSubTerminalBitSet();
-		DepNode tmp = tree.get(curr.headId+1);
+		DepNode tmp = d_tree.get(curr.headId+1);
 		
 		while (tmp.hasHead && set.get(tmp.headId-1))
-			tmp = tree.get(tmp.headId);
+			tmp = d_tree.get(tmp.headId);
 			
 		curr.headId = tmp.id - 1;
 	}
 
-	private void setDepHeadsAux(TBTree pTree, DepTree dTree, TBNode curr)
+	private void setDepHeadsAux(TBNode curr)
 	{
 		ArrayList<TBNode> children = curr.getChildren();
+		TBNode child, prev;
+		int i, j;
 		
-		outer: for (int i=0; i<children.size(); i++)
+		outer: for (i=0; i<children.size(); i++)
 		{
-			TBNode child = children.get(i);
+			child = children.get(i);
 			
 			if (child.headId == curr.headId)	continue;
-			if (hasHead(dTree, child.headId))	continue;
+			if (hasHead(child.headId))	continue;
 		
 			if (child.isPos(TBEnLib.POS_HYPH))
 			{
-				for (int j=i-1; j>=0; j--)
+				for (j=i-1; j>=0; j--)
 				{
-					TBNode prev = children.get(j);
+					prev = children.get(j);
 					if (!prev.isEmptyCategoryRec() && !TBEnLib.isPunctuation(prev.pos))
 					{
-						setDependency(dTree, child.headId, prev.headId, DepLib.DEPREL_P);
+						setDependency(child.headId, prev.headId, DepLib.DEPREL_P);
 						continue outer;
 					}
 				}
 			}
 			
-			String deprel = getDeprel(pTree, curr, child);
-			setDependency(dTree, child.headId, curr.headId, deprel);
+			String deprel = getDeprel(curr, child);
+			setDependency(child.headId, curr.headId, deprel);
 		}
 	}
 	
-	private String getDeprel(TBTree pTree, TBNode parent, TBNode child)
+	private String getDeprel(TBNode parent, TBNode child)
 	{
 		String deprel;
 		
-		TBNode p = pTree.getTerminalNodes().get(parent.headId);
-		TBNode c = pTree.getTerminalNodes().get(child .headId);
+		TBNode p = p_tree.getTerminalNodes().get(parent.headId);
+		TBNode c = p_tree.getTerminalNodes().get(child .headId);
 		
 		if ((deprel = getTagDeprel(child)) != null)
-			return deprel;
+		{
+			TBNode tNode = getTagNode(parent, p, TBEnLib.TAG_SBJ);
+			
+			if (deprel.equals(TBEnLib.TAG_PRD) && tNode != null)
+				return DepLib.DEPREL_OPRD;
+			
+			if (isFuncTag(deprel))	return deprel;
+		}
 		if ((deprel = getObjectDeprel(parent, child, c)) != null)
 			return deprel;
 		if (TBEnLib.isWordConjunction(child.pos))
@@ -424,6 +434,10 @@ public class TBEnConvert
 			return DepLib.DEPREL_PRT;
 		if (p.isPos(TBEnLib.POS_TO) && child.isPos(TBEnLib.POS_VP))
 			return DepLib.DEPREL_IM;
+		if (b_reverseVC && TBEnLib.isAux(c.form) && p.isPos("VB.*"))
+			return DepLib.DEPREL_AUX;
+		if (b_reverseVC && c.isPos(TBEnLib.POS_MD) && p.isPos("VB.*"))
+			return DepLib.DEPREL_MOD;
 		if (parent.isPos(TBEnLib.POS_VP+"|"+TBEnLib.POS_SQ+"|"+TBEnLib.POS_SINV) && child.isPos(TBEnLib.POS_VP))
 			return DepLib.DEPREL_VC;
 		if (parent.isPos(TBEnLib.POS_SBAR) && p.isPos(TBEnLib.POS_IN+"|"+TBEnLib.POS_TO+"|"+TBEnLib.POS_DT))
@@ -448,6 +462,11 @@ public class TBEnConvert
 			return DepLib.DEPREL_NMOD;
 		
 		return DepLib.DEPREL_DEP;
+	}
+	
+	private boolean isFuncTag(String deprel)
+	{
+		return b_funcTag || deprel.matches(TBEnLib.TAG_SBJ+"|"+TBEnLib.TAG_LGS);
 	}
 	
 	private String getTagDeprel(TBNode child)
@@ -475,35 +494,63 @@ public class TBEnConvert
 	{
 		if (!parent.isPos(TBEnLib.POS_VP))	return null;
 		
-		if (child.isPos(TBEnLib.POS_NP) ||
-			child.isPos(TBEnLib.POS_SBAR) && !(c.form.toLowerCase().matches("as|because|for|since|with")) ||
-			child.isPos(TBEnLib.POS_S+"|"+TBEnLib.POS_SQ+"|"+TBEnLib.POS_SINV+"|"+TBEnLib.POS_SBARQ))
-			return c.isPos(TBEnLib.POS_TO+"|"+TBEnLib.POS_VBG+"|"+TBEnLib.POS_VBN) ? DepLib.DEPREL_OPRD : DepLib.DEPREL_OBJ;
-
+		String deprel = getObjectDeprelAux(child, c);
+		if (deprel != null)	return deprel;
+		
 		if (child.isPos(TBEnLib.POS_UCP))
 		{
-			if (child.isPos(TBEnLib.POS_NP) ||
-				child.isPos(TBEnLib.POS_SBAR) && !(c.form.toLowerCase().matches("as|because|for|since|with")) ||
-				child.isPos(TBEnLib.POS_S+"|"+TBEnLib.POS_SQ+"|"+TBEnLib.POS_SINV+"|"+TBEnLib.POS_SBARQ))
-				return c.isPos(TBEnLib.POS_TO+"|"+TBEnLib.POS_VBG+"|"+TBEnLib.POS_VBN) ? DepLib.DEPREL_OPRD : DepLib.DEPREL_OBJ;
+			deprel = getObjectDeprelAux(child, c);
+			if (deprel != null)	return deprel;
 		}
 		
 		return null;
 	}
 	
+	private String getObjectDeprelAux(TBNode child, TBNode c)
+	{
+		if (child.isPos(TBEnLib.POS_NP) ||
+			child.isPos(TBEnLib.POS_SBAR) && !(c.form.toLowerCase().matches("as|because|for|since|with")) ||
+			child.isPos(TBEnLib.POS_S+"|"+TBEnLib.POS_SQ+"|"+TBEnLib.POS_SINV+"|"+TBEnLib.POS_SBARQ))
+		{
+			TBNode tNode = getTagNode(child, c, TBEnLib.TAG_PRD);
+			
+			if (tNode != null)
+				return DepLib.DEPREL_OPRD;
+			
+			return c.isPos(TBEnLib.POS_TO+"|"+TBEnLib.POS_VBG+"|"+TBEnLib.POS_VBN) ? DepLib.DEPREL_OPRD : DepLib.DEPREL_OBJ;
+		}
+		
+		return null;
+	}
+	
+	private TBNode getTagNode(TBNode root, TBNode c, String tag)
+	{
+		if (c.isTag(tag))	return c;
+		
+		TBNode parent = c.getParent();
+		
+		while (parent != null && !parent.equals(root))
+		{
+			if (parent.isTag(tag))	return parent;
+			parent = parent.getParent();
+		}
+
+		return null;
+	}
+	
 	/** Redirects empty categories' antecedents. */
-	private void setEmptyCategory(TBTree pTree, DepTree dTree)
+	private void setEmptyCategory()
 	{
 		HashSet<String> sRNR = new HashSet<String>();
 		
-		for (int i=dTree.size()-1; i>=0; i--)
+		for (int i=d_tree.size()-1; i>=0; i--)
 		{
-			DepNode ec = dTree.get(i);
+			DepNode ec = d_tree.get(i);
 			
 			// checks for empty categories
 			if (!ec.form.startsWith(TBEnLib.EC_EXP) &&
 				!ec.form.startsWith(TBEnLib.EC_ICH) &&
-				!ec.form.startsWith(TBEnLib.EC_PPA) &&
+			//	!ec.form.startsWith(TBEnLib.EC_PPA) &&
 				!ec.form.startsWith(TBEnLib.EC_RNR) && 
 				!ec.form.startsWith(TBEnLib.EC_TRACE))	continue;
 			
@@ -513,10 +560,10 @@ public class TBEnConvert
 			
 			// finds its antecedent
 			int coIndex = Integer.parseInt(tmp[1]);
-			TBNode antecedent = pTree.getAntecedent(coIndex);
+			TBNode antecedent = p_tree.getAntecedent(coIndex);
 			if (antecedent == null)	continue;
 						
-			DepNode ante = dTree.get(antecedent.headId+1);
+			DepNode ante = d_tree.get(antecedent.headId+1);
 			if (ante.isPos(TBLib.POS_NONE))	continue;
 			if (ante.id == ec.headId)		continue;
 			
@@ -532,15 +579,30 @@ public class TBEnConvert
 				sRNR.add(ec.form);
 			}
 			
-			if (dTree.isAncestor(ante.id, ec.headId))
+			if (d_tree.isAncestor(ante.id, ec.headId))
 			{
-				for (DepNode node : dTree.getDependents(ante.id))
+				if (ec.form.startsWith(TBEnLib.EC_RNR))
 				{
-					if (node.id == ec.headId || dTree.isAncestor(node.id, ec.headId))
+					for (DepNode node : d_tree.getDependents(ante.id))
 					{
-						node.setHead(ante.headId, ante.deprel, 1);
-						break;
+						if (node.id == ec.headId || d_tree.isAncestor(node.id, ec.headId))
+						{
+							node.setHead(ante.headId, ante.deprel, 1);
+							break;
+						}
 					}
+				}
+				else
+				{
+					DepNode head = d_tree.get(ec.headId);
+					
+					if (p_tree.isUnder(ec.headId-1, TBEnLib.POS_PRN))
+					{
+						while (!head.isDeprel(DepLib.DEPREL_PRN))
+							head = d_tree.get(head.headId);						
+					}
+					
+					head.setHead(ante.headId, ante.deprel, 1);
 				}
 			}
 			
@@ -552,22 +614,22 @@ public class TBEnConvert
 	 * Removes all empty categories from <code>tree</code>.
 	 * @return dependency tree without empty categories.
 	 */
-	private DepTree removeEmptyCategories(DepTree tree)
+	private DepTree removeEmptyCategories()
 	{
 		HashMap<Integer, Integer> map = new HashMap<Integer, Integer>();
 		
-		for (int i=0,j=0; i<tree.size(); i++)
+		for (int i=0,j=0; i<d_tree.size(); i++)
 		{
-			DepNode node = tree.get(i);
+			DepNode node = d_tree.get(i);
 			map.put(i, j);
 			if (!node.isPos(TBLib.POS_NONE))	j++;
 		}
 		
 		DepTree copy = new DepTree();
 		
-		for (int i=1; i<tree.size(); i++)
+		for (int i=1; i<d_tree.size(); i++)
 		{
-			DepNode node = tree.get(i);
+			DepNode node = d_tree.get(i);
 			
 			if (!node.isPos(TBLib.POS_NONE))
 			{
@@ -581,14 +643,14 @@ public class TBEnConvert
 	}
 	
 	/** Assigns the dependency head of the current node. */
-	private void setDependency(DepTree tree, int currId, int headId, String deprel)
+	private void setDependency(int currId, int headId, String deprel)
 	{
-		tree.setHead(currId+1, headId+1, deprel, 1);
+		d_tree.setHead(currId+1, headId+1, deprel, 1);
 	}
 	
 	/** @return true if the current node already has its dependency head. */
-	private boolean hasHead(DepTree tree, int currId)
+	private boolean hasHead(int currId)
 	{
-		return tree.get(currId+1).hasHead;
+		return d_tree.get(currId+1).hasHead;
 	}
 }

@@ -21,17 +21,61 @@
 * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 * POSSIBILITY OF SUCH DAMAGE.
 */
-package clear.dep;
+package clear.reader;
+
+import java.io.IOException;
+
+import clear.srl.merge.MergeNode;
+import clear.srl.merge.MergeTree;
 
 /**
- * Tree interface.
+ * Dependency reader.
  * @author Jinho D. Choi
- * <b>Last update:</b> 11/4/2010
+ * <b>Last update:</b> 6/26/2010
  */
-public interface ITree<NodeType>
+public class MergeReader extends AbstractReader<MergeNode,MergeTree>
 {
-	/** Adds <code>node</code> at the end of the tree. */
-	public boolean add(NodeType node);
-	/** @return size of the tree. */
-	public int size();
+	/**
+	 * Initializes the merge reader for <code>filename</code>.
+	 * @param filename name of the file containing dependency trees
+	 */
+	public MergeReader(String filename)
+	{
+		super(filename);
+	}
+	
+	/** 
+	 * Returns the next dependency tree.
+	 * If there is no more tree, returns null.
+	 */
+	public MergeTree nextTree()
+	{
+		MergeTree tree = new MergeTree();
+		boolean isNext = false;
+		
+		try
+		{
+			isNext = appendNextTree(tree);
+		}
+		catch (IOException e) {e.printStackTrace();}
+
+		return isNext ? tree : null;
+	}
+	
+	protected MergeNode toNode(String line, int id)
+	{
+		MergeNode node = new MergeNode();
+		String[]  str  = line.split(FIELD_DELIM);
+		
+		node.id      = (float)id;
+		node.form    = str[1];
+		node.lemma   = str[2];
+		node.pos     = str[3];
+		node.headId  = Float.parseFloat(str[4]);
+		node.deprel  = str[5];
+		node.roleset = str[6];
+		node.args    = str[7];
+		
+		return node;
+	}
 }

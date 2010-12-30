@@ -71,6 +71,40 @@ public class DepPredict extends AbstractCommon
 	/** Morphological dictionary directory */
 	private String s_morphDict  = null;
 	
+	public DepPredict(String[] args)
+	{
+		CmdLineParser cmd = new CmdLineParser(this);
+		
+		try
+		{
+			cmd.parseArgument(args);
+			init();
+			predict();
+		}
+		catch (CmdLineException e)
+		{
+			System.err.println(e.getMessage());
+			cmd.printUsage(System.err);
+		}
+		catch (Exception e) {e.printStackTrace();}
+	}
+	
+	public DepPredict(String configFile, String inputFile, String outputFile, String modelFile, String morphDict)
+	{
+		s_configFile = configFile;
+		s_inputFile  = inputFile;
+		s_outputFile = outputFile;
+		s_modelFile  = modelFile;
+		s_morphDict  = morphDict;
+		
+		try
+		{
+			init();
+			predict();
+		}
+		catch (Exception e) {e.printStackTrace();}
+	}
+	
 	public void predict() throws Exception
 	{
 		ZipInputStream zin = new ZipInputStream(new FileInputStream(s_modelFile));
@@ -190,20 +224,6 @@ public class DepPredict extends AbstractCommon
 	
 	static public void main(String[] args)
 	{
-		DepPredict predictor = new DepPredict();
-		CmdLineParser cmd = new CmdLineParser(predictor);
-		
-		try
-		{
-			cmd.parseArgument(args);
-			predictor.init();
-			predictor.predict();
-		}
-		catch (CmdLineException e)
-		{
-			System.err.println(e.getMessage());
-			cmd.printUsage(System.err);
-		}
-		catch (Exception e) {e.printStackTrace();}
+		new DepPredict(args);
 	}
 }
