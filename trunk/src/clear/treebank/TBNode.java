@@ -28,8 +28,11 @@ import java.util.BitSet;
 import java.util.HashSet;
 import java.util.StringTokenizer;
 
-import clear.propbank.PBArg;
 import clear.propbank.PBLib;
+import clear.propbank.PBLoc;
+import clear.srl.SRLHead;
+
+import com.carrotsearch.hppc.IntOpenHashSet;
 
 /**
  * Treebank node.
@@ -56,15 +59,19 @@ public class TBNode
 	public int headId;
 	/** Child index among its siblings */
 	public int childId;
-	
+	/** If empty category, store its antecedent. */
+	public TBNode antecedent;
+	/** PropBank location of this node */
+	public PBLoc  pbLoc;
+	/** Roleset ID if exist */
+	public String rolesetId;
 	/** Parent node */
 	protected TBNode nd_parent;
 	/** List of children nodes */
 	protected ArrayList<TBNode> ls_children;
+	/** PropBank arguments */
+	protected ArrayList<SRLHead> pb_args;
 	
-	protected ArrayList<PBArg> pb_args;
-	
-	protected HashSet<String> pb_labels;
 	
 	/** Initializes the node with its parent node and pos-tag. */
 	public TBNode(TBNode parent, String postag)
@@ -77,10 +84,12 @@ public class TBNode
 		tokenId     = -1;
 		headId      = -1;
 		childId     = -1;
+		antecedent  = null;
+		pbLoc       = null;
+		rolesetId   = null;
 		nd_parent   = parent;
 		ls_children = null;
 		pb_args     = null;
-		pb_labels   = null;
 		init(postag);
 	}
 	
@@ -121,22 +130,19 @@ public class TBNode
 						tags.add(tag);
 					}
 				}
-				else	break;
+				else
+					break;
 			}
 			else if (op.equals("~"))
 			{
 				if (pb_args == null)
-				{
-					pb_args   = new ArrayList<PBArg>();
-					pb_labels = new HashSet<String>();
-				}
+					pb_args = new ArrayList<SRLHead>();
 				
 				if (tok.hasMoreTokens())
 				{
 					String   str = tok.nextToken();
 					String[] arg = str.split(PBLib.LABEL_DELIM);
-					pb_args.add(new PBArg(arg[0], Integer.parseInt(arg[1])));
-					pb_labels.add(arg[0]);
+					pb_args.add(new SRLHead(Integer.parseInt(arg[0]), arg[1]));
 				}
 				else
 					break;
@@ -148,9 +154,9 @@ public class TBNode
 	 * Returns true if the word-form of this node is <code>form</code>.
 	 * If the node is a phrase, returns false.
 	 */
-	public boolean isForm(String form)
+	public boolean isForm(String regex)
 	{
-		return this.form != null && this.form.equals(form);
+		return this.form != null && this.form.matches(regex);
 	}
 	
 	/**
@@ -200,6 +206,11 @@ public class TBNode
 		return true;
 	}
 	
+	public boolean isToken()
+	{
+		return tokenId != -1;
+	}
+	
 	/** @return true if the node is a phrase. */
 	public boolean isPhrase()
 	{
@@ -224,6 +235,29 @@ public class TBNode
 		
 		for (TBNode child : ls_children)
 			if (child.isTag(tag))	return true;
+		
+		return false;
+	}
+	
+	/**
+	 * @param regex word-form
+	 * @return true if this node contains the word-form.
+	 */
+	public boolean containsForm(String regex)
+	{
+		return containsFormAux(this, regex);
+	}
+	
+	private boolean containsFormAux(TBNode node, String regex)
+	{
+		if (!node.isPhrase())
+			return node.isForm(regex);
+		
+		for (TBNode child : node.getChildren())
+		{
+			if (containsFormAux(child, regex))	
+				return true;
+		}
 		
 		return false;
 	}
@@ -365,6 +399,25 @@ public class TBNode
 		return build.toString();
 	}
 	
+	public IntOpenHashSet getSubTermainlSet()
+	{
+		IntOpenHashSet set = new IntOpenHashSet();
+		getSubTerminalSetAux(this, set);
+		
+		return set;
+	}
+	
+	private void getSubTerminalSetAux(TBNode node, IntOpenHashSet set)
+	{
+		if (node.isPhrase())
+		{
+			for (TBNode child : node.getChildren())
+				getSubTerminalSetAux(child, set);
+		}
+		else
+			set.add(node.terminalId);
+	}
+	
 	/** @return the bitset of terminal indices of the subtree of this node. */
 	public BitSet getSubTerminalBitSet()
 	{
@@ -413,6 +466,7 @@ public class TBNode
 		}
 	}
 	
+	/** If this node is an empty category, return the coIndex of its antecedent. */
 	public int getEmptyCategoryCoIndex()
 	{
 		if (isEmptyCategory())
@@ -454,19 +508,57 @@ public class TBNode
 		
 		if (pb_args != null)
 		{
-			for (PBArg arg : pb_args)
+			for (SRLHead arg : pb_args)
 			{
 				build.append("~");
-				build.append(arg.toStringLabelPredicateId());
+				build.append(arg.headId);
+				build.append(PBLib.LABEL_DELIM);
+				build.append(arg.label);
 			}
 		}
 		
 		return build.toString();
 	}
 	
-	public void addPBArg(PBArg arg)
+	public void addPBArg(SRLHead sHead)
 	{
-		if (pb_args == null)	pb_args = new ArrayList<PBArg>();
-		pb_args.add(arg);
+		if (pb_args == null)
+			pb_args = new ArrayList<SRLHead>();
+		
+		for (SRLHead head : pb_args)
+		{
+			if (head.equals(sHead))
+				return;
+		}
+		
+		pb_args.add(sHead);
+	}
+	
+	public String getSentenceGroup()
+	{
+		return getSentenceGroupAux(this);
+	}
+	
+	private String getSentenceGroupAux(TBNode node)
+	{
+		if (node.isPos("S.*"))			return node.pos;
+		if (node.getParent() == null)	return null;
+		
+		return getSentenceGroupAux(node.getParent());
+	}
+	
+	public boolean isFollowedBy(String pos)
+	{
+		if (nd_parent == null)		return false;
+		
+		TBNode parent = getParent();
+		ArrayList<TBNode> siblings = parent.getChildren();
+		
+		for (int i=childId+1; i<siblings.size(); i++)
+		{
+			if (siblings.get(i).isPos(pos))	return true;
+		}
+		
+		return false;
 	}
 }

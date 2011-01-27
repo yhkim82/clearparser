@@ -23,13 +23,9 @@
 */
 package clear.propbank;
 
-import java.io.File;
-import java.util.ArrayList;
 import java.util.Scanner;
 import java.util.StringTokenizer;
 
-import clear.treebank.TBReader;
-import clear.treebank.TBTree;
 import clear.util.IOUtil;
 
 /**
@@ -39,29 +35,16 @@ import clear.util.IOUtil;
  */
 public class PBReader
 {
-	/** Path to the Treebank directory */
-	private String st_treeDir;
-	/** Name of the current Treebank file */
-	private String st_treeFile;
-	/** List of trees from {@link PBReader#st_treeFile} */
-	private ArrayList<TBTree> ls_tree;
 	/** Scanner to read Propbank files */
 	private Scanner f_prop;
-	/** Number of the current line */
-	private int n_lineNum;
 	
 	/**
 	 * Initializes the Propbank reader.
 	 * @param propFile name of the Propbank file
-	 * @param treeDir path to the Treebank directory.
 	 */
-	public PBReader(String propFile, String treeDir)
+	public PBReader(String propFile)
 	{
-		st_treeDir  = treeDir;
-		st_treeFile = "";
-		ls_tree     = new ArrayList<TBTree>();
-		f_prop      = IOUtil.createFileScanner(propFile);
-		n_lineNum   = 0;
+		f_prop = IOUtil.createFileScanner(propFile);
 	}
 		
 	/**
@@ -73,11 +56,11 @@ public class PBReader
 		if (!f_prop.hasNextLine())
 		{	f_prop.close();	return null;	}
 		
-		String[] str = f_prop.nextLine().split(PBLib.FIELD_DELIM);
-		n_lineNum++;
+		String   line = f_prop.nextLine();
+		String[] str  = line.split(PBLib.FIELD_DELIM);
 		
 		PBInstance instance  = new PBInstance();
-		instance.treeFile    = str[0];
+		instance.treePath    = str[0];
 		instance.treeIndex   = Integer.parseInt(str[1]);
 		instance.predicateId = Integer.parseInt(str[2]);
 		instance.annotator   = str[3];
@@ -90,7 +73,7 @@ public class PBReader
 			int    idx   = sarg.indexOf(PBLib.PROP_LABEL_DELIM);
 			String label = sarg.substring(idx+1);
 			String locs  = sarg.substring(0, idx);
-			PBArg  pbarg = new PBArg(label, instance.predicateId);
+			PBArg  pbArg = new PBArg(label, instance.predicateId);
 			
 			StringTokenizer tok     = new StringTokenizer(locs, PBLib.PROP_ARG_OP, true);
 			String          argType = "";
@@ -103,85 +86,20 @@ public class PBReader
 					argType = next;
 				else
 				{
-					String[]      loc = next.split(PBLib.PROP_LOC_DELIM);
-					int terminalIndex = Integer.parseInt(loc[0]);
-					int height        = Integer.parseInt(loc[1]);
+					String[]   loc = next.split(PBLib.PROP_LOC_DELIM);
+					int terminalId = Integer.parseInt(loc[0]);
+					int height     = Integer.parseInt(loc[1]);
 					
-					pbarg.addLoc(new PBLoc(argType, terminalIndex, height));
+					if (!pbArg.containsLoc(terminalId, height))
+						pbArg.addLoc(new PBLoc(argType, terminalId, height));
+				//	else
+				//		System.err.println("Duplicated location "+next+": "+line);
 				}
 			}
 			
-			instance.addArg(pbarg);
+			instance.addArg(pbArg);
 		}
 		
 		return instance;
-	}
-	
-	public void countTraces()
-	{
-		int numTraces = 0, numTotal = 0;
-		
-		while (f_prop.hasNextLine())
-		{
-			String[] str       = f_prop.nextLine().split(PBLib.FIELD_DELIM);
-			String   treeFile  = str[0];
-			int      treeIndex = Integer.parseInt(str[1]);
-			TBTree   tree;
-			
-			// retrieve trees from new file
-			if (!st_treeFile.equals(treeFile))
-			{
-				TBReader tbreader = new TBReader(st_treeDir + File.separator + treeFile);
-				st_treeFile       = treeFile;
-				ls_tree.clear();
-				
-				while ((tree = tbreader.nextTree()) != null)	ls_tree.add(tree);
-			}
-			
-			tree = ls_tree.get(treeIndex);
-			
-			outer: for (int i=6; i<str.length; i++)
-			{
-				String arg   = str[i];
-				int    idx   = arg.indexOf(PBLib.PROP_LABEL_DELIM);
-				String locs  = arg.substring(0, idx);
-				
-				StringTokenizer tok = new StringTokenizer(locs, PBLib.PROP_ARG_OP);
-				
-				while (tok.hasMoreTokens())
-				{
-					String[]      loc = tok.nextToken().split(PBLib.PROP_LOC_DELIM);
-					int terminalIndex = Integer.parseInt(loc[0]);
-					int height        = Integer.parseInt(loc[1]);
-					
-					if (!tree.moveTo(terminalIndex, height))
-						errorMsg("wrong argument: "+arg);
-					
-					if (tree.getCurrNode().isEmptyCategory())
-					{
-						numTraces++;
-						break outer;
-					//	break;
-					}
-				}
-				
-			//	numTotal++;
-			}
-		
-			numTotal++;
-		}
-		
-		System.out.println(numTraces+" / "+numTotal+" = "+((double)numTraces/numTotal));
-		f_prop.close();
-	}
-	
-	/**
-	 * Prints the error message and exists the system.
-	 * @param msg error message
-	 */
-	private void errorMsg(String msg)
-	{
-		System.err.println("error: "+msg+" (line: "+n_lineNum+")");
-		System.exit(1);
 	}
 }
