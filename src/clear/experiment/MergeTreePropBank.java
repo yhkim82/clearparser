@@ -1,143 +1,428 @@
 package clear.experiment;
 
+import java.io.File;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 
+import clear.morph.MorphEnAnalyzer;
 import clear.propbank.PBArg;
 import clear.propbank.PBInstance;
+import clear.propbank.PBLib;
 import clear.propbank.PBLoc;
 import clear.propbank.PBReader;
-import clear.treebank.TBEnLib;
+import clear.srl.SRLHead;
+import clear.treebank.TBHeadRules;
 import clear.treebank.TBNode;
+import clear.treebank.TBPBEnConvert;
 import clear.treebank.TBReader;
 import clear.treebank.TBTree;
 import clear.util.IOUtil;
 
+import com.carrotsearch.hppc.IntOpenHashSet;
+
 public class MergeTreePropBank
 {
-	HashMap<String,PBInstance> m_prop;
-	String tree_path = null;
+	HashMap<String,PBInstance> m_pbInstances;
 	
-	public MergeTreePropBank(String treeDir, String propFile)
+	public MergeTreePropBank(String propFile, String treeDir, String mergeDir, String headruleFile, String dictDir)
 	{
-		String filename = treeDir+"/"+propFile.substring(propFile.lastIndexOf('/')+1, propFile.lastIndexOf('.'));
-		
-		getPBInstances(propFile);
-		merge(filename);
+		readPBInstances(propFile);
+		merge(treeDir, mergeDir, headruleFile, dictDir);
 	}
 	
-	private void getPBInstances(String propFile)
+	/** Reads all PropBank instances and stores them to {@link MergeTreePropBank#m_pbInstances}. */
+	public void readPBInstances(String propFile)
 	{
-		PBReader   reader = new PBReader(propFile, "");
+		PBReader   reader = new PBReader(propFile);
 		PBInstance instance;
-		m_prop = new HashMap<String,PBInstance>();
+		
+		m_pbInstances = new HashMap<String,PBInstance>();
+		System.out.println("Initialize: "+propFile);
 		
 		while ((instance = reader.nextInstance()) != null)
+			m_pbInstances.put(instance.getKey(), instance);
+	}
+	
+	/** @return list of tree paths as in PropBank instance. */
+	private ArrayList<String> getTreePaths()
+	{
+		HashSet<String> set = new HashSet<String>();
+		
+		for (String key : m_pbInstances.keySet())
+			set.add(key.substring(0, key.indexOf(PBInstance.KEY_DELIM)));
+
+		ArrayList<String> list = new ArrayList<String>(set);
+		Collections.sort(list);
+		
+		return list;
+	}
+	
+	/** @return list of PropBank instances for the tree. */
+	private ArrayList<PBInstance> getPBInstances(String treePath, int treeIndex)
+	{
+		ArrayList<PBInstance> list = new ArrayList<PBInstance>();
+		String prefix = treePath + PBInstance.KEY_DELIM + treeIndex + PBInstance.KEY_DELIM;
+		
+		for (String key : m_pbInstances.keySet())
 		{
-			String key = instance.treeIndex+"_"+instance.predicateId;
-			m_prop.put(key, instance);
-			if (tree_path == null)	tree_path = instance.treeFile;
+			if (key.startsWith(prefix))
+				list.add(m_pbInstances.get(key));
+		}
+		
+		return list;
+	}
+	
+	public void merge(String treeDir, String mergeDir, String headruleFile, String dictDir)
+	{
+		TBReader    reader;
+		TBTree      tree;
+		int         treeIndex;
+		String      mergeFile;
+	 	PrintStream fout;
+		
+		TBPBEnConvert   convert   = new TBPBEnConvert();
+		TBHeadRules     headrules = new TBHeadRules(headruleFile);
+		MorphEnAnalyzer morph     = (dictDir != null) ? new MorphEnAnalyzer(dictDir) : null;
+		
+	 	treeDir  = treeDir  + File.separator;
+		mergeDir = mergeDir + File.separator;
+		
+		ArrayList<PBInstance> list;
+		
+		for (String treePath : getTreePaths())
+		{
+			mergeFile = mergeDir + treePath.substring(treePath.lastIndexOf(File.separator)+1) + ".merge";
+			reader    = new TBReader(treeDir + treePath);
+			fout      = IOUtil.createPrintFileStream(mergeFile);
+			
+			System.out.println(mergeFile);
+			
+			for (treeIndex=0; (tree = reader.nextTree()) != null; treeIndex++)
+			{
+				list = getPBInstances(treePath, treeIndex);
+				if (list.isEmpty())	continue;
+				
+				tree.setPBLocs();
+				tree.setAntecedents();
+				
+				for (PBInstance instance : list)
+					mergeAux(instance, tree);
+				
+				if (isCyclic(list, tree))
+					System.err.println("Cyclic relation: "+treePath+" "+treeIndex);
+				else
+					fout.println(convert.toSrlTree(tree, headrules, morph)+"\n");
+			}
+			
+			fout.close();
 		}
 	}
 	
-	private void merge(String filename)
+	private void mergeAux(PBInstance instance, TBTree tree)
 	{
-		PrintStream outFile = IOUtil.createPrintFileStream(filename+".merge");
-		PrintStream errFile = IOUtil.createPrintFileStream(filename+".miss");
-		TBReader    reader  = new TBReader(filename+".parse"); 
-		TBTree      tree;
+		if (instance.rolesetId.endsWith(".LV"))	return;
+	//	if (tree.isUnder(instance.predicateId, TBEnLib.POS_PRN))	return;
 		
-		for (int treeIndex=0; (tree = reader.nextTree()) != null; treeIndex++)
+		ArrayList<PBArg> pbArgs  = instance.getArgs();
+		ArrayList<PBArg> delArgs = new ArrayList<PBArg>();
+		
+		for (PBArg pbArg : pbArgs)
 		{
-			ArrayList<Integer> predicateIDs = tree.getAllVerbIDs(TBEnLib.POS_VB+".*");
-			if (predicateIDs.size() == 0)	continue;	// no predicate in this tree
-			boolean isComplete = true;					// if all predicate-argument annotations exist for the tree
-			
-			for (int predicateID : predicateIDs)
+			if (pbArg.isLabel("rel.*"))
 			{
-				String key = treeIndex+"_"+predicateID;
+				if (processRels(pbArg, instance.predicateId))
+					delArgs.add(pbArg);
 				
-				if (m_prop.containsKey(key))
-				{
-					PBInstance instance = m_prop.get(key);
-					
-					for (PBArg pbarg : instance.getArgs())
-					{
-						ArrayList<TBNode> nodes = new ArrayList<TBNode>();
-						HashSet<Integer>  coidx = new HashSet<Integer>();
-						
-						for (PBLoc loc : pbarg.getLocs())
-						{
-							tree.moveTo(loc.terminalId, loc.height);
-							TBNode curr = tree.getCurrNode();
-							nodes.add(curr);
-							
-							int idx;
-							if ((idx = curr.getEmptyCategoryCoIndex()) != -1)
-								coidx.add(idx);
-						}
-						
-						String label = "";
-						if (pbarg.label.length() < 5)	label = "A"+pbarg.label.substring(3);
-						else							label = pbarg.label.substring(5);
-						
-						for (TBNode node : nodes)
-						{
-							if (node.terminalId == instance.predicateId)	continue;
-							node.addPBArg(new PBArg(label, pbarg.predicateId));
-							coidx.remove(node.coIndex);
-						}
-						
-						for (int idx : coidx)
-						{
-							TBNode node = tree.getCoIndexedNode(idx);
-							if (node != null)	node.addPBArg(new PBArg(label, pbarg.predicateId));
-						}
-					}
-				}
+				continue;
+			}
+			
+			if (pbArg.isLabel("LINK.*"))
+			{
+				if (processLink(pbArgs, pbArg, tree))
+					delArgs.add(pbArg);					
 				else
+					System.err.println("No-achor in "+pbArg.label+": "+instance.toString());
+				
+				continue;
+			}
+		}
+		
+		pbArgs.removeAll(delArgs);
+		if (pbArgs.isEmpty())	return;
+		
+		for (PBArg pbArg : pbArgs)
+		{
+			if (!processEmtpyCategories(pbArg, tree))
+				System.err.println("Wrong location in "+pbArg.label+": "+instance.toString());
+		}
+		
+		if (!instance.rolesetId.endsWith(".DP"))
+			tree.getNode(instance.predicateId, 0).rolesetId = instance.rolesetId;
+		
+		for (PBArg pbArg : pbArgs)
+		{
+			if (!addPBArgToTBTree(pbArg, tree))
+				System.err.println("Wrong location in "+pbArg.label+": "+instance.toString());
+		}
+	}
+	
+	/** Removes <code>predId:0</code> from <code>pbArg</code>. */
+	private boolean processRels(PBArg pbArg, int predId)
+	{
+		for (PBLoc loc : pbArg.getLocs())
+		{
+			if (loc.equals(predId, 0))
+			{
+				pbArg.removeLoc(loc);
+				break;
+			}
+		}
+		
+		return pbArg.getLocs().isEmpty();
+	}
+	
+	/** Merges LINK-argument with its anchor-argument. */
+	private boolean processLink(ArrayList<PBArg> pbArgs, PBArg currArg, TBTree tree)
+	{
+		PBLoc  anchor = new PBLoc(null, -1, -1);
+		TBNode node, comp;
+		
+		if (currArg.isLabel("LINK-SLC"))
+		{
+			// find antecedent
+			for (PBLoc pbLoc : currArg.getLocs())
+			{
+				node = tree.getNode(pbLoc.terminalId, pbLoc.height);
+				if (node == null)	return false;
+				
+				if (node.isPos("WH.*"))
 				{
-					tree.moveTo(predicateID, 0);
-					TBNode node   = tree.getCurrNode();
-					TBNode parent = node.getParent();
-					String form   = node.form.toLowerCase();
-					
-					if (parent.isPos(TBEnLib.POS_VP) && !isAux(form))// && !isLightVerb(form))
-					{
-						String lemma = node.form.toLowerCase()+"_"+node.pos;
-						errFile.println(tree_path+" "+treeIndex+" "+predicateID+" "+lemma+" "+predicateID+":0-rel");
-						isComplete = false;
-					}
+					anchor = pbLoc;
+					break;
 				}
 			}
 			
-			if (isComplete)	outFile.println(tree.toTree()+"\n");
+			// find antecedent in height 1
+			if (anchor.terminalId == -1)
+			{
+				for (PBLoc pbLoc : currArg.getLocs())
+				{
+					node = tree.getNode(pbLoc.terminalId, 1);
+					
+					if (node != null && node.isPos("WH.*"))
+					{
+						pbLoc.height = 1;
+						anchor = pbLoc;
+						break;
+					}
+				}
+			}
 		}
+		else if (anchor.terminalId == -1)	// normalize empty categories
+		{
+			for (PBLoc pbLoc : currArg.getLocs())
+			{
+				node = tree.getNode(pbLoc.terminalId, 0);
+				if (node == null)	return false;
+				
+				if (node.isEmptyCategory())
+					pbLoc.height = 0;
+			}
+		}
+		
+		for (PBArg pbArg : pbArgs)
+		{
+			if (!pbArg.isLabel("LINK.*") && pbArg.overlapsLocs(currArg))
+			{
+				pbArg.putLocs(currArg.getLocs());
+				
+				// find antecedents of relativizer
+				if (anchor.terminalId != -1)
+				{
+					node = tree.getNode(anchor.terminalId, anchor.height);
+					comp = tree.getComplementizer(node);
+					
+					if (comp.antecedent == null)
+					{
+						Collections.sort(pbArg.getLocs());
+						PBLoc anteLoc = pbArg.getLocs().get(0);
+						
+						comp.pbLoc.type = PBLib.PROP_OP_COMP;
+						comp.antecedent = tree.getNode(anteLoc.terminalId, anteLoc.height);
+						
+						System.out.println(comp.pbLoc+" "+comp.antecedent.pbLoc+" "+tree.toTree());
+					}
+					else
+						pbArg.putLoc(comp.antecedent.pbLoc);
+				}
+		
+				return true;
+			}
+		}
+		
+		return false;
 	}
 	
-	private boolean isAux(String form)
+	/** Finds empty categories' antecedents. */
+	private boolean processEmtpyCategories(PBArg pbArg, TBTree tree)
 	{
-		return form.equals("be") || form.equals("been") || form.equals("being") ||
-		form.equals("am") || form.equals("is") || form.equals("was") ||
-		form.equals("are") || form.equals("were") ||
-		form.equals("have") || form.equals("has") || form.equals("had") || form.equals("having") ||
-		form.equals("'m") || form.equals("'s") || form.equals("'re") ||
-		form.equals("'ve") || form.equals("'d");
+		ArrayList<PBLoc> addLocs = new ArrayList<PBLoc>();
+		ArrayList<PBLoc> delLocs = new ArrayList<PBLoc>();
+		TBNode curr;
+		
+		for (PBLoc pbLoc : pbArg.getLocs())
+		{
+			curr = tree.getNode(pbLoc.terminalId, pbLoc.height);
+			if (curr == null)	return false;
+			
+			if (tree.isAntecedentOf(curr, "\\*ICH\\*.*"))
+				pbLoc.type = ";";
+			else if (tree.isAntecedentOf(curr, "\\*RNR\\*.*"))
+				pbLoc.type = "&";
+			else if (curr.isEmptyCategoryRec())
+			{
+				if (curr.isPhrase())
+					curr = tree.getNode(pbLoc.terminalId, 0);
+				
+				if (curr.isForm("\\*T\\*.*"))
+				{
+					delLocs.add(pbLoc);
+					addLocs.add(curr.antecedent.pbLoc);
+				}
+				else if (curr.isForm("\\*PRO\\*-\\d|\\*-\\d"))
+				{
+					if (curr.getParent().isFollowedBy("VP"))
+						addLocs.add(curr.antecedent.pbLoc);
+					else
+						delLocs.add(pbLoc);
+				}
+			}
+		}
+		
+		for (PBLoc pbLoc: addLocs)
+			pbArg.putLoc(pbLoc);
+		
+		for (PBLoc pbLoc: delLocs)
+			pbArg.removeLocs(pbLoc);
+		
+		trimEmptyCategories(pbArg, tree);
+		
+		return true;
 	}
 	
-	private boolean isLightVerb(String form)
+	private void trimEmptyCategories(PBArg pbArg, TBTree tree)
 	{
-		return form.equals("take") || form.equals("takes") || form.equals("took") || form.equals("taken") || form.equals("taking") ||
-		form.equals("give") || form.equals("gives") || form.equals("gave") || form.equals("given") || form.equals("giving") ||
-		form.equals("make") || form.equals("makes") || form.equals("made") || form.equals("making") ||
-		form.equals("do") || form.equals("does") || form.equals("did") || form.equals("done") || form.equals("doing") ||
-		form.equals("have") || form.equals("has") || form.equals("had") || form.equals("having");
+		ArrayList<PBLoc> pbLocs  = pbArg.getLocs();
+		ArrayList<PBLoc> delLocs = new ArrayList<PBLoc>();
+		PBLoc pbLoc;
+		TBNode curr, ante;
+		Collections.sort(pbLocs);
+		
+		int i, size = pbLocs.size();
+		boolean isFound = false;
+		
+		for (i=size-1; i>=0; i--)
+		{
+			pbLoc = pbLocs.get(i);
+			curr  = tree.getNode(pbLoc.terminalId, pbLoc.height);
+			
+			if (curr.isEmptyCategoryRec())
+			{
+				if (curr.isPhrase())
+					curr = tree.getNode(pbLoc.terminalId, 0);
+				
+				if (curr.isForm("\\*PRO\\*.*|\\*.*"))
+				{
+					if (isFound)
+						delLocs.add(pbLoc);
+					else
+					{
+						isFound = true;
+						
+						if (curr.antecedent == null)
+						{
+							pbLoc = pbLocs.get(0);
+							ante  = tree.getNode(pbLoc.terminalId, pbLoc.height);
+							if (!ante.isEmptyCategoryRec())	curr.antecedent = ante;
+						}
+					}
+				}
+			}
+		}
+		
+		pbLocs.removeAll(delLocs);
+	}
+	
+	private boolean isCyclic(ArrayList<PBInstance> pbInstances, TBTree tree)
+	{
+		ArrayList<IntOpenHashSet> list = new ArrayList<IntOpenHashSet>();
+		TBNode node;
+		
+		for (PBInstance instance : pbInstances)
+		{
+			IntOpenHashSet set = new IntOpenHashSet();
+			
+			if (!instance.rolesetId.endsWith(".LV"))
+			{
+				for (PBArg pbArg : instance.getArgs())
+				{
+					for (PBLoc pbLoc : pbArg.getLocs())
+					{
+						node = tree.getNode(pbLoc.terminalId, pbLoc.height);
+						set.addAll(node.getSubTermainlSet());
+					}
+				}				
+			}
+			
+			list.add(set);
+		}
+		
+		int i, j, size = pbInstances.size();
+		
+		for (i=0; i<size; i++)
+		{
+			PBInstance iInstance = pbInstances.get(i);
+			IntOpenHashSet  iSet = list.get(i);
+			
+			for (j=i+1; j<size; j++)
+			{
+				PBInstance jInstance = pbInstances.get(j);
+				IntOpenHashSet  jSet = list.get(j);
+				
+				if (iSet.contains(jInstance.predicateId) && jSet.contains(iInstance.predicateId))
+					return true;
+			}
+		}
+		
+		return false;
+	}
+	
+	private boolean addPBArgToTBTree(PBArg pbArg, TBTree tree)
+	{
+		TBNode node;
+		
+		for (PBLoc pbLoc : pbArg.getLocs())
+		{
+			node = tree.getNode(pbLoc.terminalId, pbLoc.height);
+			if (node == null)	return false;
+			
+			node.addPBArg(new SRLHead(pbArg.predicateId, pbArg.label));
+		}
+		
+		return true;
 	}
 	
 	static public void main(String[] args)
 	{
-		new MergeTreePropBank(args[0], args[1]);
+		String propFile = args[0];
+		String treeDir  = args[1];
+		String mergeDir = args[2];
+		String headruleFile = args[3];
+		String dictDir  = args[4];
+		
+		new MergeTreePropBank(propFile, treeDir, mergeDir, headruleFile, dictDir);
 	}
 }

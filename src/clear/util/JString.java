@@ -45,4 +45,9 @@ public class JString
 		
 		return utf; 
 	}
+	
+	static public String getNormalizedForm(float f)
+	{
+		return (f == (int)f) ? String.valueOf((int)f) : String.valueOf(f);
+	}
 }	

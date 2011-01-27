@@ -37,6 +37,10 @@ public class PBLib
 	/** Annotation operators as in Propbank (e.g., *) */
 	static public final String PROP_ARG_OP      = "*,;&";
 
+	static public final String PROP_OP_ANTE = "@";
+	static public final String PROP_OP_RNR  = "&";
+	static public final String PROP_OP_COMP  = "r";
+	
 	/** Delimiter between label and IDs (e.g., ARG0:1,2) */
 	static public String LABEL_DELIM = ":";
 	/** Delimiter between IDs (e.g., 1,2) */

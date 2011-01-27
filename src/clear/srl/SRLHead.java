@@ -23,12 +23,15 @@
 */
 package clear.srl;
 
+import clear.ftr.FtrLib;
+import clear.util.JString;
+
 /**
- * Dependency head.
+ * Semantic role labeling head.
  * @author Jinho D. Choi
- * <b>Last update:</b> 12/22/2010
+ * <b>Last update:</b> 1/26/2011
  */
-public class SrlHead
+public class SRLHead implements Comparable<SRLHead>
 {
 	static final public String DELIM = ":";
 	
@@ -37,22 +40,48 @@ public class SrlHead
 	public double  score;
 	public boolean hasHead;
 	
-	public SrlHead(float headId, String label)
+	public SRLHead()
 	{
-		set(headId, label, 1, false);
+		set(SRLLib.NULL_HEAD_ID, FtrLib.TAG_NULL, 0, false);
+	}
+	
+	public SRLHead(float headId, String label)
+	{
+		set(headId, label, 0, false);
 	}
 
-	public SrlHead(float headId, String label, double score, boolean hasHead)
+	public SRLHead(float headId, String label, double score, boolean hasHead)
 	{
 		set(headId, label, score, hasHead);
+	}
+	
+	public void set(float headId, String label)
+	{
+		this.headId = headId;
+		this.label  = label;
 	}
 	
 	public void set(float headId, String label, double score, boolean hasHead)
 	{
 		this.headId  = headId;
-		this.label  = label;
+		this.label   = label;
 		this.score   = score;
 		this.hasHead = hasHead;
+	}
+	
+	public void setHeadId(float headId)
+	{
+		this.headId = headId;
+	}
+	
+	public void setLabel(String label)
+	{
+		this.label = label;
+	}
+	
+	public boolean isHeadId(float headId)
+	{
+		return this.headId == headId;
 	}
 	
 	public boolean isLabel(String regex)
@@ -60,13 +89,30 @@ public class SrlHead
 		return label.matches(regex);
 	}
 	
+	public boolean equals(SRLHead head)
+	{
+		return headId == head.headId && label.equals(head.label);
+	}
+	
 	public String toString()
 	{
 		StringBuilder build = new StringBuilder();
 		
-		build.append(headId);	build.append(DELIM);
+		build.append(JString.getNormalizedForm(headId));
+		build.append(DELIM);
 		build.append(label);
 		
 		return build.toString();
+	}
+
+	@Override
+	public int compareTo(SRLHead head)
+	{
+		float diff = headId - head.headId;
+		
+		if      (diff < 0)	return -1;
+		else if (diff > 0)	return  1;
+		
+		return  0;
 	}
 }

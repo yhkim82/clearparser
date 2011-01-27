@@ -23,7 +23,8 @@
 */
 package clear.util.tuple;
 
-public class JObjectDoubleTuple<ObjectType>
+@SuppressWarnings("unchecked")
+public class JObjectDoubleTuple<ObjectType> implements Comparable
 {
 	public ObjectType object;
 	public double     value;
@@ -37,5 +38,20 @@ public class JObjectDoubleTuple<ObjectType>
 	{
 		this.object = object;
 		this.value  = value;
+	}
+	
+	public String toString()
+	{
+		return object+":"+value;
+	}
+
+	@Override
+	public int compareTo(Object arg0)
+	{
+		double d = ((JObjectDoubleTuple<ObjectType>)arg0).value - value;
+		
+		if      (d > 0)		return  1;
+		else if (d < 0)		return -1;
+		else				return  0;
 	}
 }

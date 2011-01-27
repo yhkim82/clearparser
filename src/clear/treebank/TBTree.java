@@ -25,8 +25,10 @@ package clear.treebank;
 
 import java.util.ArrayList;
 import java.util.BitSet;
-import java.util.HashMap;
 import java.util.HashSet;
+
+import clear.propbank.PBLib;
+import clear.propbank.PBLoc;
 
 /**
  * Tree as in Penn Treebank.
@@ -72,6 +74,7 @@ public class TBTree
 		return nd_curr;
 	}
 	
+	/** @return the antecedent indicated by <code>coIndex</code>. */
 	public TBNode getAntecedent(int coIndex)
 	{
 		return getAntecedentAux(nd_root, coIndex);
@@ -89,6 +92,128 @@ public class TBTree
 		}
 		
 		return null;
+	}
+	
+	/** Assigns the PropBank locations to all nodes. */
+	public void setPBLocs()
+	{
+		TBNode parent;
+		int    height;
+		
+		for (TBNode node : ls_terminal)
+		{
+			parent = node;
+			height = 0;
+			node.pbLoc = new PBLoc(null, node.terminalId, height++);
+			
+			while ((parent = parent.getParent()) != null)
+			{
+				if (parent.pbLoc != null)	break;
+				parent.pbLoc = new PBLoc("", node.terminalId, height++);
+			}
+		}
+	}
+	
+	/** Finds antecedents of all empty categories. */
+	public void setAntecedents()
+	{
+		setAntecedentsEC();
+		setAntecedentsSBAR(nd_root);
+	}
+	
+	private void setAntecedentsEC()
+	{
+		TBNode ante;
+		int coIndex;
+		
+		for (TBNode node : ls_terminal)
+		{
+			coIndex = node.getEmptyCategoryCoIndex();
+			if (coIndex == -1)	continue;
+			
+			do
+			{
+				ante = getAntecedent(coIndex);
+				if (ante == null)	System.err.println("Missing antecedent "+coIndex+": "+node.form+"\n"+toTree());
+				coIndex = ante.getEmptyCategoryCoIndex();
+			}
+			while (coIndex != -1);
+			
+			ante.pbLoc.type = PBLib.PROP_OP_ANTE;
+			node.antecedent = ante;
+		}
+	}
+	
+	private void setAntecedentsSBAR(TBNode curr)
+	{
+		if (!curr.isPhrase())	return;
+		
+		for (TBNode child : curr.getChildren())
+		{
+			if (curr.isPos(TBEnLib.POS_SBAR) && child.isPos("WH.*"))
+			{
+				TBNode parent = curr.getParent();
+				
+				if (parent != null && parent.isPos(TBEnLib.POS_NP))
+				{
+					ArrayList<TBNode> siblings = parent.getChildren();
+					TBNode ante;
+					
+					for (int i=curr.childId-1; i>=0; i--)
+					{
+						ante = siblings.get(i);
+						
+						if (ante.isPos(TBEnLib.POS_NP))
+						{
+							TBNode comp = getComplementizer(child);
+							
+							if (comp != null)
+							{
+								comp.pbLoc.type = PBLib.PROP_OP_COMP;
+								comp.antecedent = ante;
+							}
+							
+							break;
+						}
+					}
+				}
+			}
+			
+			setAntecedentsSBAR(child);
+		}
+	}
+	
+	public TBNode getComplementizer(TBNode curr)
+	{
+		TBNode node;
+		
+		for (int id : curr.getSubTermainlSet().toArray())
+		{
+			node = getNode(id, 0);
+			
+			if (node.isPos("W.*|-NONE-") || node.isForm("that"))
+				return node;
+		}
+		
+		return null;
+	}
+	
+	/** @param regex "\\*T\\*.*", etc. */
+	public boolean isAntecedentOf(TBNode curr, String regex)
+	{
+		if (curr.coIndex == -1)	return false;
+		
+		int coindex;
+		
+		for (TBNode node : ls_terminal)
+		{
+			coindex = node.getEmptyCategoryCoIndex();
+			
+			if (coindex == curr.coIndex)
+				return node.isForm(regex);
+		}
+		
+		return false;
 	}
 	
 	/** @return list of terminal nodes. */
@@ -145,6 +270,11 @@ public class TBTree
 			return moveToAncestor(height);
 		
 		return false;
+	}
+	
+	public TBNode getNode(int terminalIndex, int height)
+	{
+		return moveTo(terminalIndex, height) ? nd_curr : null;
 	}
 	
 	/**
@@ -212,7 +342,7 @@ public class TBTree
 	
 	public String toTree()
 	{
-		return toTreeAux(nd_root, "");
+		return "("+toTreeAux(nd_root, "")+")";
 	}
 	
 	private String toTreeAux(TBNode node, String indent)
@@ -248,46 +378,6 @@ public class TBTree
 			for (TBNode child : curr.getChildren())
 				toStanfordPosAux(child, build);
 		}
-	}
-	
-	public void countTags(HashMap<String,Integer> map, int[] tCount, int[] pCount, int[] overlap)
-	{
-		countTagsAux(nd_root, map, tCount, pCount, overlap);
-	}
-	
-	private void countTagsAux(TBNode curr, HashMap<String,Integer> map, int[] tCount, int[] pCount, int[] overlap)
-	{
-		if (!curr.isPhrase())	return;
-		
-		if (curr.tags != null)
-		{
-			for (String tag : curr.tags)
-			{
-				Integer idx = map.get(tag);
-				if (idx != null)	tCount[idx]++;
-			}
-		}
-		
-		if (curr.pb_labels != null)
-		{
-			for (String tag : curr.pb_labels)
-			{
-				Integer idx = map.get(tag);
-				if (idx != null)
-				{
-					pCount[idx]++;
-					if (curr.tags != null)
-					{
-						if (curr.tags.contains(tag))	overlap[idx]++;
-						else if (tag.equals("DIS") && curr.tags.contains("VOC"))	overlap[idx]++;
-					}
-					
-				}
-			}
-		}
-		
-		for (TBNode child : curr.getChildren())
-			countTagsAux(child, map, tCount, pCount, overlap);
 	}
 	
 	public TBNode getCoIndexedNode(int coIndex)
@@ -327,11 +417,13 @@ public class TBTree
 	
 	public boolean isUnder(int terminalIndex, String phrase)
 	{
+		TBNode curr;
+		
 		for (int i=1; i<100; i++)
 		{
-			moveTo(terminalIndex, i);
-			if (nd_curr == null)		return false;
-			if (nd_curr.isPos(phrase))	return true;
+			curr = getNode(terminalIndex, i);
+			if (curr == null)		return false;
+			if (curr.isPos(phrase))	return true;
 		}
 					
 		return false;

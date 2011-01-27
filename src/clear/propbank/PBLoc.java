@@ -26,9 +26,9 @@ package clear.propbank;
 /**
  * Propbank location.
  * @author Jinho D. Choi
- * <b>Last update:</b> 9/30/2010
+ * <b>Last update:</b> 1/25/2011
  */
-public class PBLoc
+public class PBLoc implements Comparable<PBLoc>
 {
 	public String type;			// "" | "*" | "," | ";"
 	public int    terminalId;
@@ -46,6 +46,46 @@ public class PBLoc
 		this.height     = height;
 	}
 	
+	public void copy(PBLoc pbLoc)
+	{
+		set(pbLoc.type, pbLoc.terminalId, pbLoc.height);
+	}
+	
+	/** @return true if this location is <code>terminalId:height</code>. */
+	public boolean equals(int terminalId, int height)
+	{
+		return this.terminalId == terminalId && this.height == height;	
+	}
+	
+	/** @return true if this location is the same as <code>loc</code> (regardless of the type). */
+	public boolean equals(PBLoc loc)
+	{
+		return terminalId == loc.terminalId && height == loc.height;
+	}
+	
+	/** @return true if the type of this location is <code>type</code>. */
+	public boolean isType(String type)
+	{
+		return this.type.equals(type);
+	}
+	
+	/** @return true if the current location is superset of <code>loc</code> (regardless of the type). */
+	public boolean contains(PBLoc loc)
+	{
+		return terminalId == loc.terminalId && height >= loc.height;
+	}
+	
+	public String getLoc()
+	{
+		StringBuilder build = new StringBuilder();
+		
+		build.append(terminalId);
+		build.append(PBLib.PROP_LOC_DELIM);
+		build.append(height);
+		
+		return build.toString(); 
+	}
+	
 	public String toString()
 	{
 		StringBuilder build = new StringBuilder();
@@ -56,5 +96,14 @@ public class PBLoc
 		build.append(height);
 		
 		return build.toString(); 
+	}
+
+	@Override
+	public int compareTo(PBLoc pbLoc)
+	{
+		int diffTerminal = terminalId - pbLoc.terminalId;
+		
+		if (diffTerminal != 0)	return diffTerminal;
+		return height - pbLoc.height;
 	}
 }

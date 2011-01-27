@@ -24,11 +24,12 @@
 package clear.propbank;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 
 /**
  * Propbank argument.
  * @author Jinho D. Choi
- * <b>Last update:</b> 9/30/2010
+ * <b>Last update:</b> 1/25/2011
  */
 public class PBArg
 {
@@ -45,28 +46,128 @@ public class PBArg
 		init(label, predicateId);
 	}
 	
-	public PBArg(String labelPredicatId)
-	{
-		String[] tmp = labelPredicatId.split(PBLib.LABEL_DELIM);
-		init(tmp[0], Integer.parseInt(tmp[1]));
-	}
-	
-	private void init(String label, int predicateId)
+	public void init(String label, int predicateId)
 	{
 		this.label       = label;
 		this.predicateId = predicateId;
 		this.pb_locs     = new ArrayList<PBLoc>();
 	}
 	
-	/** Adds a location. */
-	public void addLoc(PBLoc loc)
+	/** @return true if this argument contains <code>terminalId:height</code>. */
+	public boolean containsLoc(int terminalId, int height)
 	{
-		pb_locs.add(loc);
+		for (PBLoc loc : pb_locs)
+		{
+			if (loc.equals(terminalId, height))
+				return true;
+		}
+		
+		return false;
 	}
 	
+	/** @return true if this argument contains <code>pbLoc</code>. */
+	public boolean containsLoc(PBLoc pbLoc)
+	{
+		for (PBLoc loc : pb_locs)
+		{
+			if (loc.equals(pbLoc))
+				return true;
+		}
+		
+		return false;
+	}
+	
+	/** @return true if this argument has overlap with <code>pbArg</code>. */
+	public boolean overlapsLocs(PBArg pbArg)
+	{
+		for (PBLoc cLoc : pb_locs)
+		{
+			for (PBLoc pLoc : pbArg.getLocs())
+			{
+				if (cLoc.equals(pLoc))
+					return true;
+			}
+		}
+		
+		return false;
+	}
+	
+	/** Adds a location. */
+	public boolean addLoc(PBLoc pbLoc)
+	{
+		return pb_locs.add(pbLoc);
+	}
+	
+	/** Adds all locations in <code>pbLocs</code> that are not already in this argument. */
+	public void addLocs(ArrayList<PBLoc> pbLocs)
+	{
+		for (PBLoc pbLoc : pbLocs)
+		{
+			if (!containsLoc(pbLoc))
+				pb_locs.add(pbLoc);
+		}
+	}
+	
+	/** Inserts the location to the argument; if already exists, overwrite. */
+	public boolean putLoc(PBLoc pbLoc)
+	{
+		for (PBLoc loc : pb_locs)
+		{
+			if (loc.contains(pbLoc))
+			{
+				loc.type = pbLoc.type;
+				return true;
+			}
+			else if (pbLoc.contains(loc))
+			{
+				loc.copy(pbLoc);
+				return true;
+			}
+		}
+		
+		return pb_locs.add(pbLoc);
+	}
+	
+	public void putLocs(ArrayList<PBLoc> pbLocs)
+	{
+		for (PBLoc pbLoc : pbLocs)
+			putLoc(pbLoc);
+	}
+	
+	public void removeAllLocs()
+	{
+		pb_locs = new ArrayList<PBLoc>();
+	}
+	
+	/** Removes <code>pbLoc</code> (the object) from this argument. */
+	public boolean removeLoc(PBLoc pbLoc)
+	{
+		return pb_locs.remove(pbLoc);
+	}
+	
+	/** Removes all occurrences of <code>pbLoc</code> (the location) from this argument. */
+	public boolean removeLocs(PBLoc pbLoc)
+	{
+		HashSet<PBLoc> set = new HashSet<PBLoc>();
+		
+		for (PBLoc loc : pb_locs)
+		{
+			if (pbLoc.contains(loc))
+				set.add(loc);
+		}
+		
+		return pb_locs.removeAll(set);
+	}
+
 	public ArrayList<PBLoc> getLocs()
 	{
 		return pb_locs;
+	}
+
+	/** @return if the label is a pattern of <code>regex</code>. */
+	public boolean isLabel(String regex)
+	{
+		return label.matches(regex);
 	}
 
 	/** @return string representation of the argument. */
@@ -79,17 +180,6 @@ public class PBArg
 		
 		buff.append(PBLib.PROP_LABEL_DELIM);
 		buff.append(label);
-		
-		return buff.toString();
-	}
-
-	public String toStringLabelPredicateId()
-	{
-		StringBuilder buff = new StringBuilder();
-		
-		buff.append(label);
-		buff.append(PBLib.LABEL_DELIM);
-		buff.append(predicateId);
 		
 		return buff.toString();
 	}

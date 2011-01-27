@@ -32,8 +32,10 @@ import java.util.ArrayList;
  */
 public class PBInstance
 {
+	static final public String KEY_DELIM = "*"; 
+	
 	/** Name of the treebank file */
-	public  String treeFile;
+	public  String treePath;
 	/** Tree index (starting from 0) */
 	public  int    treeIndex;
 	/** Predicate ID */
@@ -46,11 +48,16 @@ public class PBInstance
 	public  String rolesetId;
 	/** List of arguments */
 	private ArrayList<PBArg> a_arg = null;
-
+	
 	/** Initializes the Propbank instance. */
 	public PBInstance()
 	{
 		a_arg = new ArrayList<PBArg>();
+	}
+	
+	public String getKey()
+	{
+		return treePath + KEY_DELIM + treeIndex + KEY_DELIM + predicateId;
 	}
 	
 	/**
@@ -70,6 +77,17 @@ public class PBInstance
 	{
 		for (PBArg arg : args)
 			if (!contains(arg))	addArg(arg);
+	}
+	
+	public PBArg getArg(String label)
+	{
+		for (PBArg pbArg : a_arg)
+		{
+			if (pbArg.isLabel(label))
+				return pbArg;
+		}
+		
+		return null;
 	}
 	
 	/** @return the list of Propbank arguments */
@@ -92,7 +110,7 @@ public class PBInstance
 	{
 		StringBuilder buff = new StringBuilder();
 		
-		buff.append(treeFile);		buff.append(PBLib.FIELD_DELIM);
+		buff.append(treePath);		buff.append(PBLib.FIELD_DELIM);
 		buff.append(treeIndex);		buff.append(PBLib.FIELD_DELIM);
 		buff.append(predicateId);	buff.append(PBLib.FIELD_DELIM);
 		buff.append(rolesetId);
