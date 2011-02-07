@@ -72,7 +72,6 @@ public class TBNode
 	/** PropBank arguments */
 	protected ArrayList<SRLHead> pb_args;
 	
-	
 	/** Initializes the node with its parent node and pos-tag. */
 	public TBNode(TBNode parent, String postag)
 	{
@@ -172,9 +171,9 @@ public class TBNode
 	}
 	
 	/** @return true if the pos-tag of this node is <code>pos</code> in regular expression (e.g., NN.*|VB). */
-	public boolean isPos(String rule)
+	public boolean isPos(String regex)
 	{
-		return pos.matches(rule);
+		return pos.matches(regex);
 	}
 	
 	/** @return true is the function tag of this node is <code>tag</code>. */
@@ -192,16 +191,16 @@ public class TBNode
 	/** @return true if the node contains only empty category, recursively. */
 	public boolean isEmptyCategoryRec()
 	{
-		return isEmptyCategoryRec(this);
+		return isEmptyCategoryRecAux(this);
 	}
 	
 	/** This method is called from {@link TBNode#isEmptyCategoryRec()}. */
-	private boolean isEmptyCategoryRec(TBNode curr)
+	private boolean isEmptyCategoryRecAux(TBNode curr)
 	{
 		if (!curr.isPhrase())	return curr.isEmptyCategory();
 
 		for (TBNode child : curr.getChildren())
-			if (!isEmptyCategoryRec(child))	return false;
+			if (!isEmptyCategoryRecAux(child))	return false;
 
 		return true;
 	}
@@ -399,20 +398,39 @@ public class TBNode
 		return build.toString();
 	}
 	
-	public IntOpenHashSet getSubTermainlSet()
+	public ArrayList<TBNode> getSubTerminalNodes()
 	{
-		IntOpenHashSet set = new IntOpenHashSet();
-		getSubTerminalSetAux(this, set);
+		ArrayList<TBNode> list = new ArrayList<TBNode>();
+		getSubTerminalNodesAux(this, list);
 		
-		return set;
+		return list;
 	}
 	
-	private void getSubTerminalSetAux(TBNode node, IntOpenHashSet set)
+	private void getSubTerminalNodesAux(TBNode node, ArrayList<TBNode> list)
 	{
 		if (node.isPhrase())
 		{
 			for (TBNode child : node.getChildren())
-				getSubTerminalSetAux(child, set);
+				getSubTerminalNodesAux(child, list);
+		}
+		else
+			list.add(node);
+	}
+	
+	public IntOpenHashSet getSubTermainlIDs()
+	{
+		IntOpenHashSet set = new IntOpenHashSet();
+		getSubTerminalIDsAux(this, set);
+		
+		return set;
+	}
+	
+	private void getSubTerminalIDsAux(TBNode node, IntOpenHashSet set)
+	{
+		if (node.isPhrase())
+		{
+			for (TBNode child : node.getChildren())
+				getSubTerminalIDsAux(child, set);
 		}
 		else
 			set.add(node.terminalId);
@@ -560,5 +578,36 @@ public class TBNode
 		}
 		
 		return false;
+	}
+	
+	/**
+	 * @return complementizer terminal node.
+	 * If there is no such node, return null. 
+	 */
+	public TBNode getComplementizer()
+	{
+		for (TBNode node : getSubTerminalNodes())
+		{
+			if (node.isPos("W.*|-NONE-") || TBEnLib.isComplementizer(node.form))
+				return node;
+		}
+		
+		return null;
+	}
+	
+	public TBNode getIncludedEmptyCategory(String regex)
+	{
+		for (TBNode node : getSubTerminalNodes())
+		{
+			if (node.isForm(regex))
+				return node;
+		}
+		
+		return null;
+	}
+	
+	public boolean hasAntecedent()
+	{
+		return antecedent != null;
 	}
 }

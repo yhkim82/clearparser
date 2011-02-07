@@ -14,12 +14,15 @@ import clear.propbank.PBLib;
 import clear.propbank.PBLoc;
 import clear.propbank.PBReader;
 import clear.srl.SRLHead;
+import clear.srl.SRLTree;
+import clear.treebank.TBEnLib;
 import clear.treebank.TBHeadRules;
 import clear.treebank.TBNode;
 import clear.treebank.TBPBEnConvert;
 import clear.treebank.TBReader;
 import clear.treebank.TBTree;
 import clear.util.IOUtil;
+import clear.util.JSet;
 
 import com.carrotsearch.hppc.IntOpenHashSet;
 
@@ -43,7 +46,10 @@ public class MergeTreePropBank
 		System.out.println("Initialize: "+propFile);
 		
 		while ((instance = reader.nextInstance()) != null)
-			m_pbInstances.put(instance.getKey(), instance);
+		{
+			if (!instance.rolesetId.endsWith(".LV"))
+				m_pbInstances.put(instance.getKey(), instance);
+		}
 	}
 	
 	/** @return list of tree paths as in PropBank instance. */
@@ -103,6 +109,7 @@ public class MergeTreePropBank
 			for (treeIndex=0; (tree = reader.nextTree()) != null; treeIndex++)
 			{
 				list = getPBInstances(treePath, treeIndex);
+				removeAdjectivalPredicates(tree, list);
 				if (list.isEmpty())	continue;
 				
 				tree.setPBLocs();
@@ -114,18 +121,33 @@ public class MergeTreePropBank
 				if (isCyclic(list, tree))
 					System.err.println("Cyclic relation: "+treePath+" "+treeIndex);
 				else
-					fout.println(convert.toSrlTree(tree, headrules, morph)+"\n");
+				{
+					SRLTree sTree = convert.toSrlTree(tree, headrules, morph);
+					fout.println(sTree+"\n");
+				}
 			}
 			
 			fout.close();
 		}
 	}
 	
+	private void removeAdjectivalPredicates(TBTree tree, ArrayList<PBInstance> instances)
+	{
+		ArrayList<PBInstance> remove = new ArrayList<PBInstance>();
+		TBNode node;
+		
+		for (PBInstance instance : instances)
+		{
+			node = tree.getNode(instance.predicateId, 1);
+			if (node.isPos(TBEnLib.POS_NP))
+				remove.add(instance);
+		}
+		
+		instances.removeAll(remove);
+	}
+	
 	private void mergeAux(PBInstance instance, TBTree tree)
 	{
-		if (instance.rolesetId.endsWith(".LV"))	return;
-	//	if (tree.isUnder(instance.predicateId, TBEnLib.POS_PRN))	return;
-		
 		ArrayList<PBArg> pbArgs  = instance.getArgs();
 		ArrayList<PBArg> delArgs = new ArrayList<PBArg>();
 		
@@ -243,17 +265,15 @@ public class MergeTreePropBank
 				if (anchor.terminalId != -1)
 				{
 					node = tree.getNode(anchor.terminalId, anchor.height);
-					comp = tree.getComplementizer(node);
+					comp = node.getComplementizer();
 					
-					if (comp.antecedent == null)
+					if (!comp.hasAntecedent())
 					{
 						Collections.sort(pbArg.getLocs());
 						PBLoc anteLoc = pbArg.getLocs().get(0);
 						
 						comp.pbLoc.type = PBLib.PROP_OP_COMP;
 						comp.antecedent = tree.getNode(anteLoc.terminalId, anteLoc.height);
-						
-						System.out.println(comp.pbLoc+" "+comp.antecedent.pbLoc+" "+tree.toTree());
 					}
 					else
 						pbArg.putLoc(comp.antecedent.pbLoc);
@@ -271,17 +291,23 @@ public class MergeTreePropBank
 	{
 		ArrayList<PBLoc> addLocs = new ArrayList<PBLoc>();
 		ArrayList<PBLoc> delLocs = new ArrayList<PBLoc>();
-		TBNode curr;
+		TBNode curr, node;
 		
 		for (PBLoc pbLoc : pbArg.getLocs())
 		{
 			curr = tree.getNode(pbLoc.terminalId, pbLoc.height);
 			if (curr == null)	return false;
 			
-			if (tree.isAntecedentOf(curr, "\\*ICH\\*.*"))
-				pbLoc.type = ";";
-			else if (tree.isAntecedentOf(curr, "\\*RNR\\*.*"))
-				pbLoc.type = "&";
+			if ((node = curr.getIncludedEmptyCategory("\\*ICH\\*.*")) != null && node.hasAntecedent())
+			{
+				node.antecedent.pbLoc.type = PBLib.PROP_OP_SKIP;
+				addLocs.add(node.antecedent.pbLoc);
+			}
+			else if ((node = curr.getIncludedEmptyCategory("\\*RNR\\*.*")) != null && node.hasAntecedent())
+			{
+				node.antecedent.pbLoc.type = PBLib.PROP_OP_SKIP;
+				addLocs.add(node.antecedent.pbLoc);
+			}
 			else if (curr.isEmptyCategoryRec())
 			{
 				if (curr.isPhrase())
@@ -292,10 +318,13 @@ public class MergeTreePropBank
 					delLocs.add(pbLoc);
 					addLocs.add(curr.antecedent.pbLoc);
 				}
-				else if (curr.isForm("\\*PRO\\*-\\d|\\*-\\d"))
+				else if (curr.isForm("\\*PRO\\*.*|\\*|\\*-\\d"))
 				{
 					if (curr.getParent().isFollowedBy("VP"))
-						addLocs.add(curr.antecedent.pbLoc);
+					{
+						if (curr.hasAntecedent())
+							addLocs.add(curr.antecedent.pbLoc);
+					}
 					else
 						delLocs.add(pbLoc);
 				}
@@ -327,26 +356,29 @@ public class MergeTreePropBank
 		for (i=size-1; i>=0; i--)
 		{
 			pbLoc = pbLocs.get(i);
-			curr  = tree.getNode(pbLoc.terminalId, pbLoc.height);
+			curr  = tree.getNode(pbLoc);
+			if (!curr.isEmptyCategoryRec())	continue;
 			
-			if (curr.isEmptyCategoryRec())
+			if (curr.isPhrase())
+				curr = tree.getNode(pbLoc.terminalId, 0);
+			
+			if (curr.isForm("\\*PRO\\*.*|\\*|\\*-\\d"))
 			{
-				if (curr.isPhrase())
-					curr = tree.getNode(pbLoc.terminalId, 0);
-				
-				if (curr.isForm("\\*PRO\\*.*|\\*.*"))
+				if (isFound)
+					delLocs.add(pbLoc);
+				else
 				{
-					if (isFound)
-						delLocs.add(pbLoc);
-					else
+					isFound = true;
+					
+					if (!curr.hasAntecedent())
 					{
-						isFound = true;
+						pbLoc = pbLocs.get(0);
+						ante  = tree.getNode(pbLoc);
 						
-						if (curr.antecedent == null)
+						if (!ante.isEmptyCategoryRec())
 						{
-							pbLoc = pbLocs.get(0);
-							ante  = tree.getNode(pbLoc.terminalId, pbLoc.height);
-							if (!ante.isEmptyCategoryRec())	curr.antecedent = ante;
+							ante.pbLoc.type = PBLib.PROP_OP_ANTE;
+							curr.antecedent = ante;
 						}
 					}
 				}
@@ -365,16 +397,13 @@ public class MergeTreePropBank
 		{
 			IntOpenHashSet set = new IntOpenHashSet();
 			
-			if (!instance.rolesetId.endsWith(".LV"))
+			for (PBArg pbArg : instance.getArgs())
 			{
-				for (PBArg pbArg : instance.getArgs())
+				for (PBLoc pbLoc : pbArg.getLocs())
 				{
-					for (PBLoc pbLoc : pbArg.getLocs())
-					{
-						node = tree.getNode(pbLoc.terminalId, pbLoc.height);
-						set.addAll(node.getSubTermainlSet());
-					}
-				}				
+					node = tree.getNode(pbLoc);
+					set.addAll(node.getSubTermainlIDs());
+				}
 			}
 			
 			list.add(set);
@@ -402,16 +431,40 @@ public class MergeTreePropBank
 	
 	private boolean addPBArgToTBTree(PBArg pbArg, TBTree tree)
 	{
+		ArrayList<PBLoc> pbLocs = pbArg.getLocs();
 		TBNode node;
 		
-		for (PBLoc pbLoc : pbArg.getLocs())
+		if (pbLocs.size() == 1)
 		{
-			node = tree.getNode(pbLoc.terminalId, pbLoc.height);
+			PBLoc pbLoc = pbLocs.get(0);
+			node = tree.getNode(pbLoc);
 			if (node == null)	return false;
 			
 			node.addPBArg(new SRLHead(pbArg.predicateId, pbArg.label));
+			return true;
 		}
 		
+		IntOpenHashSet   tokens = new IntOpenHashSet();
+		ArrayList<PBLoc> heads  = new ArrayList<PBLoc>();
+		int              height, terminalId;
+		
+		for (PBLoc pbLoc : pbArg.getLocs())
+		{
+			if (pbLoc.isType(PBLib.PROP_OP_SKIP))	continue;
+			node = tree.getNode(pbLoc);
+			if (node == null)	return false;
+			
+			tokens.addAll(node.getSubTermainlIDs());
+		}
+
+		while (!tokens.isEmpty())
+		{
+			terminalId = JSet.min(tokens);
+			height     = 1;
+			
+		}
+		
+		node.addPBArg(new SRLHead(pbArg.predicateId, pbArg.label));
 		return true;
 	}
 	

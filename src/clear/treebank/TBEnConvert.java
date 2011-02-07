@@ -64,7 +64,7 @@ public class TBEnConvert
 		}
 		else
 		{
-			setEmptyCategory();
+			remapEmptyCategory();
 			DepTree copy = removeEmptyCategories();
 			copy.projectizePunc();
 			copy.checkTree();
@@ -434,11 +434,13 @@ public class TBEnConvert
 			return DepLib.DEPREL_PRT;
 		if (p.isPos(TBEnLib.POS_TO) && child.isPos(TBEnLib.POS_VP))
 			return DepLib.DEPREL_IM;
+		if (p.isPos(TBEnLib.POS_VB) && c.isPos(TBEnLib.POS_TO))		// when VC is reversed
+			return DepLib.DEPREL_IM;
 		if (b_reverseVC && TBEnLib.isAux(c.form) && p.isPos("VB.*"))
 			return DepLib.DEPREL_AUX;
 		if (b_reverseVC && c.isPos(TBEnLib.POS_MD) && p.isPos("VB.*"))
 			return DepLib.DEPREL_MOD;
-		if (parent.isPos(TBEnLib.POS_VP+"|"+TBEnLib.POS_SQ+"|"+TBEnLib.POS_SINV) && child.isPos(TBEnLib.POS_VP))
+		if (parent.isPos(TBEnLib.POS_VP+"|"+TBEnLib.POS_SQ+"|"+TBEnLib.POS_SINV) && child.isPos(TBEnLib.POS_VP) && p_tree.getTerminalNode(child.headId).isPos("VB.*"))
 			return DepLib.DEPREL_VC;
 		if (parent.isPos(TBEnLib.POS_SBAR) && p.isPos(TBEnLib.POS_IN+"|"+TBEnLib.POS_TO+"|"+TBEnLib.POS_DT))
 			return DepLib.DEPREL_SUB;
@@ -539,7 +541,7 @@ public class TBEnConvert
 	}
 	
 	/** Redirects empty categories' antecedents. */
-	private void setEmptyCategory()
+	private void remapEmptyCategory()
 	{
 		HashSet<String> sRNR = new HashSet<String>();
 		
@@ -606,7 +608,11 @@ public class TBEnConvert
 				}
 			}
 			
-			ante.setHead(ec.headId, ec.deprel, 1);
+			String deprel = ec.deprel;
+			while (ec.hasHead && d_tree.get(ec.headId).isPos(TBEnLib.POS_NONE))
+				ec = d_tree.get(ec.headId);
+			
+			ante.setHead(ec.headId, deprel, 1);
 		}
 	}
 	

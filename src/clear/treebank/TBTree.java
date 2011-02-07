@@ -24,8 +24,6 @@
 package clear.treebank;
 
 import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.HashSet;
 
 import clear.propbank.PBLib;
 import clear.propbank.PBLoc;
@@ -33,14 +31,12 @@ import clear.propbank.PBLoc;
 /**
  * Tree as in Penn Treebank.
  * @author Jinho D. Choi
- * <b>Last update:</b> 9/1/2010
+ * <b>Last update:</b> 1/27/2011
  */
 public class TBTree
 {
 	/** Pointer to the root node */
 	private TBNode nd_root;
-	/** Pointer to the current node */
-	private TBNode nd_curr;
 	/** Pointer to terminal nodes */
 	private ArrayList<TBNode> ls_terminal;
 	
@@ -50,16 +46,26 @@ public class TBTree
 		ls_terminal = new ArrayList<TBNode>();
 	}
 	
-	/** Sets the current pointer to <code>root</code>. */
-	public void setRoot(TBNode root)
+	/** @return node in <code>terminalId:height</code>. */
+	public TBNode getNode(int terminalId, int height)
 	{
-		nd_root = nd_curr = root;
+		TBNode node;
+		
+		if ((node = getTerminalNode(terminalId)) != null)
+		{
+			for (int i=0; i<height; i++)
+			{
+				if (node.getParent() == null)	return null;
+				node = node.getParent();
+			}
+		}
+		
+		return node;
 	}
 	
-	/** Adds a terminal node. */
-	public void addTerminal(TBNode node)
+	public TBNode getNode(PBLoc pbLoc)
 	{
-		ls_terminal.add(node);
+		return getNode(pbLoc.terminalId, pbLoc.height); 
 	}
 	
 	/** @return the root node. */
@@ -68,30 +74,34 @@ public class TBTree
 		return nd_root;
 	}
 	
-	/** @return the current node. */
-	public TBNode getCurrNode()
+	/** Sets the root node of this tree. */
+	public void setRootNode(TBNode root)
 	{
-		return nd_curr;
+		nd_root = root;
 	}
 	
-	/** @return the antecedent indicated by <code>coIndex</code>. */
-	public TBNode getAntecedent(int coIndex)
+	/**
+	 * @return terminal node with the terminal ID.
+	 * If the terminal ID is not within the range, return null.
+	 */
+	public TBNode getTerminalNode(int terminalId)
 	{
-		return getAntecedentAux(nd_root, coIndex);
-	}
-	
-	public TBNode getAntecedentAux(TBNode curr, int coIndex)
-	{
-		if (curr.coIndex == coIndex)	return curr;
-		if (!curr.isPhrase())			return null;
-		
-		for (TBNode child : curr.getChildren())
-		{
-			TBNode node = getAntecedentAux(child, coIndex);
-			if (node != null)	return node;
-		}
+		if (0 <= terminalId && terminalId < ls_terminal.size())
+			return ls_terminal.get(terminalId);
 		
 		return null;
+	}
+	
+	/** @return list of terminal nodes. */
+	public ArrayList<TBNode> getTerminalNodes()
+	{
+		return ls_terminal;
+	}
+	
+	/** Adds a terminal node. */
+	public void addTerminalNode(TBNode node)
+	{
+		ls_terminal.add(node);
 	}
 	
 	/** Assigns the PropBank locations to all nodes. */
@@ -114,14 +124,39 @@ public class TBTree
 		}
 	}
 	
-	/** Finds antecedents of all empty categories. */
-	public void setAntecedents()
+	/**
+	 * @return antecedent node indicated by the co-index.
+	 * If there is no such node, return null.
+	 */
+	public TBNode getAntecedent(int coIndex)
 	{
-		setAntecedentsEC();
-		setAntecedentsSBAR(nd_root);
+		return getAntecedentAux(nd_root, coIndex);
 	}
 	
-	private void setAntecedentsEC()
+	/** Called from {@link TBTree#getAntecedent(int)}. */
+	public TBNode getAntecedentAux(TBNode curr, int coIndex)
+	{
+		if (curr.coIndex == coIndex)	return curr;
+		if (!curr.isPhrase())			return null;
+		
+		for (TBNode child : curr.getChildren())
+		{
+			TBNode node = getAntecedentAux(child, coIndex);
+			if (node != null)	return node;
+		}
+		
+		return null;
+	}
+	
+	/** Finds antecedents of all empty categories and complementizer. */
+	public void setAntecedents()
+	{
+		setAntecedentsEmptyCategory();
+		setAntecedentsComplementizer(nd_root);
+	}
+	
+	/** Called from {@link TBTree#setAntecedents()}. */
+	private void setAntecedentsEmptyCategory()
 	{
 		TBNode ante;
 		int coIndex;
@@ -131,20 +166,16 @@ public class TBTree
 			coIndex = node.getEmptyCategoryCoIndex();
 			if (coIndex == -1)	continue;
 			
-			do
-			{
-				ante = getAntecedent(coIndex);
-				if (ante == null)	System.err.println("Missing antecedent "+coIndex+": "+node.form+"\n"+toTree());
-				coIndex = ante.getEmptyCategoryCoIndex();
-			}
-			while (coIndex != -1);
+			ante = getAntecedent(coIndex);
+			if (ante == null)	System.err.println("Missing antecedent "+coIndex+": "+node.form+"\n"+toTree());
 			
 			ante.pbLoc.type = PBLib.PROP_OP_ANTE;
 			node.antecedent = ante;
 		}
 	}
 	
-	private void setAntecedentsSBAR(TBNode curr)
+	/** Called from {@link TBTree#setAntecedents()}. */
+	private void setAntecedentsComplementizer(TBNode curr)
 	{
 		if (!curr.isPhrase())	return;
 		
@@ -154,7 +185,7 @@ public class TBTree
 			{
 				TBNode parent = curr.getParent();
 				
-				if (parent != null && parent.isPos(TBEnLib.POS_NP))
+				if (parent != null && parent.isPos("NP|VP"))
 				{
 					ArrayList<TBNode> siblings = parent.getChildren();
 					TBNode ante;
@@ -163,12 +194,13 @@ public class TBTree
 					{
 						ante = siblings.get(i);
 						
-						if (ante.isPos(TBEnLib.POS_NP))
+						if ((parent.isPos("NP") && ante.isPos("NP")) || (parent.isPos("VP") && ante.isPos("PP")))
 						{
-							TBNode comp = getComplementizer(child);
+							TBNode comp = child.getComplementizer();
 							
 							if (comp != null)
 							{
+								ante.pbLoc.type = PBLib.PROP_OP_ANTE;
 								comp.pbLoc.type = PBLib.PROP_OP_COMP;
 								comp.antecedent = ante;
 							}
@@ -179,172 +211,17 @@ public class TBTree
 				}
 			}
 			
-			setAntecedentsSBAR(child);
+			setAntecedentsComplementizer(child);
 		}
 	}
 	
-	public TBNode getComplementizer(TBNode curr)
-	{
-		TBNode node;
-		
-		for (int id : curr.getSubTermainlSet().toArray())
-		{
-			node = getNode(id, 0);
-			
-			if (node.isPos("W.*|-NONE-") || node.isForm("that"))
-				return node;
-		}
-		
-		return null;
-	}
-	
-	/** @param regex "\\*T\\*.*", etc. */
-	public boolean isAntecedentOf(TBNode curr, String regex)
-	{
-		if (curr.coIndex == -1)	return false;
-		
-		int coindex;
-		
-		for (TBNode node : ls_terminal)
-		{
-			coindex = node.getEmptyCategoryCoIndex();
-			
-			if (coindex == curr.coIndex)
-				return node.isForm(regex);
-		}
-		
-		return false;
-	}
-	
-	/** @return list of terminal nodes. */
-	public ArrayList<TBNode> getTerminalNodes()
-	{
-		return ls_terminal;
-	}
-	
-	/** @return the bitset of terminal indices of the subtree of the current node. */
-	public BitSet getSubTerminalIndices()
-	{
-		return nd_curr.getSubTerminalBitSet();
-	}
-	
-	/**
-	 * Returns the bitset of token indices of the subtree of the current node.
-	 * Each index gets added by <code>offset</code> (e.g., if <code>offset</code> is 1, [0,1,2] becomes [1,2,3]).
-	 */
-	public BitSet getSubTokenIndiced(int offset)
-	{
-		return nd_curr.getSubTokenBitSet(offset);
-	}
-	
-	public HashSet<String> getAllPos()
-	{
-		HashSet<String> set = new HashSet<String>();
-		
-		getAllPosAux(nd_root, set);
-		return set;
-	}
-	
-	private void getAllPosAux(TBNode curr, HashSet<String> set)
-	{
-		set.add(curr.pos);
-		
-		if (curr.isPhrase())
-		{
-			for (TBNode child : curr.getChildren())
-				getAllPosAux(child, set);
-		}
-	}
-	
-	/**
-	 * Moves the current pointer to the <code>height</code>'s ancestor of the <code>terminalIndex</code>'th node.
-	 * Returns false if either the terminal-index or the height is out of range; otherwise, returns true.
-	 * @see TBTree#moveToTerminal(int)
-	 * @see TBTree#moveToAncestor(int)
-	 * @param terminalIndex index of the terminal node (starting from 0)
-	 * @param height height of the ancestor (0 indicates the current node)
-	 */
-	public boolean moveTo(int terminalIndex, int height)
-	{
-		if (moveToTerminal(terminalIndex))
-			return moveToAncestor(height);
-		
-		return false;
-	}
-	
-	public TBNode getNode(int terminalIndex, int height)
-	{
-		return moveTo(terminalIndex, height) ? nd_curr : null;
-	}
-	
-	/**
-	 * Moves the current pointer to <code>terminalIndex</code>'th node.
-	 * Returns false if the terminal-index does not exist; otherwise, returns true.
-	 * @param terminalIndex index of the terminal node (starting from 0) 
-	 */
-	public boolean moveToTerminal(int terminalIndex)
-	{
-		for (TBNode node : ls_terminal)
-		{
-			if (node.terminalId == terminalIndex)
-			{
-				nd_curr = node;
-				return true;
-			}
-		}
-		
-		return false;
-	}
-	
-	/**
-	 * Moves the current pointer to its <code>height</code>'th ancestor.
-	 * If <code>height <= 0</code>, do nothing.
-	 * Returns false if the height is out of range; otherwise, returns true.
-	 * @param height height of the ancestor (0 indicates the self node)
-	 */
-	public boolean moveToAncestor(int height)
-	{
-		TBNode tmp = nd_curr;
-		
-		for (; height>0; height--)
-		{
-			if (tmp.getParent() == null)	return false;
-			tmp = tmp.getParent();
-		}
-			
-		nd_curr = tmp;
-		return true;
-	}
-	
-	/**
-	 * @param verbPos pos-tag of all verbs (e.g., "VB.*")
-	 * @return terminal IDs for all verbs 
-	 */
-	public ArrayList<Integer> getAllVerbIDs(String verbPos)
-	{
-		ArrayList<Integer> ids = new ArrayList<Integer>();
-		getAllVerbTerminalIDsAux(ids, nd_root, verbPos);
-		
-		return ids;
-	}
-	
-	private void getAllVerbTerminalIDsAux(ArrayList<Integer> ids, TBNode curr, String verbPos)
-	{
-		if (curr.isPos(verbPos))
-			ids.add(curr.terminalId);
-		
-		if (curr.isPhrase())
-		{
-			for (TBNode child : curr.getChildren())
-				getAllVerbTerminalIDsAux(ids, child, verbPos);
-		}
-	}
-	
+	/** @return tree representation in Penn Treebank style. */
 	public String toTree()
 	{
 		return "("+toTreeAux(nd_root, "")+")";
 	}
 	
+	/** Called from {@link TBTree#toTreeAux(TBNode, String).} */
 	private String toTreeAux(TBNode node, String indent)
 	{
 		String str = indent + "(" + node.getTags();
@@ -356,76 +233,28 @@ public class TBTree
 		return str+")";	
 	}
 	
-	public String toStanfordPos()
-	{
-		StringBuilder build = new StringBuilder();
-		
-		toStanfordPosAux(nd_root, build);
-		return build.toString().trim();
-	}
-	
-	private void toStanfordPosAux(TBNode curr, StringBuilder build)
-	{
-		if (!curr.isPhrase())
-		{
-			build.append(curr.form);
-			build.append("_");
-			build.append(curr.pos);
-			build.append(" ");
-		}
-		else
-		{
-			for (TBNode child : curr.getChildren())
-				toStanfordPosAux(child, build);
-		}
-	}
-	
-	public TBNode getCoIndexedNode(int coIndex)
-	{
-		return getCoIndexedNodeAux(getRootNode(), coIndex);
-	}
-	
-	private TBNode getCoIndexedNodeAux(TBNode curr, int coIndex)
-	{
-		if (!curr.isPhrase())			return null;
-		if (curr.coIndex == coIndex)	return curr;
-		
-		for (TBNode child : curr.getChildren())
-		{
-			TBNode node = getCoIndexedNodeAux(child, coIndex);
-			if (node != null)	return node;
-		}
-		
-		return null;
-	}
-	
-	public void checkNumChildren()
-	{
-		checkNumChildrenAux(nd_root);
-	}
-	
-	private void checkNumChildrenAux(TBNode curr)
-	{
-		if (!curr.isPhrase())	return;
-		
-		if (curr.isPos("CAPTION") && curr.getChildren().size() > 1)
-			System.out.println(curr.toWords());
-		
-		for (TBNode child : curr.getChildren())
-			checkNumChildrenAux(child);
-	}
-	
-	public boolean isUnder(int terminalIndex, String phrase)
+	public boolean isUnder(int terminalId, String phrase)
 	{
 		TBNode curr;
 		
 		for (int i=1; i<100; i++)
 		{
-			curr = getNode(terminalIndex, i);
+			curr = getNode(terminalId, i);
 			if (curr == null)		return false;
 			if (curr.isPos(phrase))	return true;
 		}
 					
 		return false;
+	}
+	
+	public boolean isLastRNR(TBNode node)
+	{
+		for (int i=node.terminalId+1; i<ls_terminal.size(); i++)
+		{
+			if (ls_terminal.get(i).form.equals((node.form)))
+				return false;
+		}
+		
+		return true;
 	}
 }

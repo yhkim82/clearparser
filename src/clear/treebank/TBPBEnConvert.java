@@ -29,10 +29,12 @@ import java.util.HashSet;
 
 import clear.dep.DepLib;
 import clear.morph.MorphEnAnalyzer;
+import clear.propbank.PBLib;
+import clear.srl.SRLLib;
 import clear.srl.SRLNode;
 import clear.srl.SRLTree;
 
-import com.carrotsearch.hppc.IntIntOpenHashMap;
+import com.carrotsearch.hppc.FloatFloatOpenHashMap;
 
 /**
  * Treebank + Propbank -> SrlTree.
@@ -53,11 +55,12 @@ public class TBPBEnConvert
 		p_tree = pTree;
 		s_tree = new SRLTree();
 		
+		reconfigureAntecedents();
 		initSrlTree(morph, pTree.getRootNode());
 		setDepHeads(pTree.getRootNode(), headrules);
 		setDepRoot();
-		
-		setEmptyCategory();
+			
+		remapEmptyCategory();
 		SRLTree copy = removeEmptyCategories();
 		copy.projectizePunc();
 		copy.checkTree();
@@ -390,9 +393,11 @@ public class TBPBEnConvert
 	/** Assigns the root of the dependency tree. */
 	private void setDepRoot()
 	{
-		for (int i=1; i<s_tree.size(); i++)
+		SRLNode node = s_tree.getRootNode();
+		
+		while (node.nextNode != null)
 		{
-			SRLNode node = s_tree.get(i);
+			node = node.nextNode;
 			
 			if (node.dHead.headId == DepLib.NULL_HEAD_ID)
 				node.setDepHead(DepLib.ROOT_ID, DepLib.DEPREL_ROOT);
@@ -429,11 +434,13 @@ public class TBPBEnConvert
 			return DepLib.DEPREL_PRT;
 		if (p.isPos(TBEnLib.POS_TO) && child.isPos(TBEnLib.POS_VP))
 			return DepLib.DEPREL_IM;
+		if (p.isPos(TBEnLib.POS_VB) && c.isPos(TBEnLib.POS_TO))		// when VC is reversed
+			return DepLib.DEPREL_IM;
 		if (b_reverseVC && TBEnLib.isAux(c.form) && p.isPos("VB.*"))
 			return DepLib.DEPREL_AUX;
 		if (b_reverseVC && c.isPos(TBEnLib.POS_MD) && p.isPos("VB.*"))
 			return DepLib.DEPREL_MOD;
-		if (parent.isPos(TBEnLib.POS_VP+"|"+TBEnLib.POS_SQ+"|"+TBEnLib.POS_SINV) && child.isPos(TBEnLib.POS_VP))
+		if (parent.isPos(TBEnLib.POS_VP+"|"+TBEnLib.POS_SQ+"|"+TBEnLib.POS_SINV) && child.isPos(TBEnLib.POS_VP) && p_tree.getTerminalNode(child.headId).isPos("VB.*"))
 			return DepLib.DEPREL_VC;
 		if (parent.isPos(TBEnLib.POS_SBAR) && p.isPos(TBEnLib.POS_IN+"|"+TBEnLib.POS_TO+"|"+TBEnLib.POS_DT))
 			return DepLib.DEPREL_SUB;
@@ -534,13 +541,15 @@ public class TBPBEnConvert
 	}
 	
 	/** Redirects empty categories' antecedents. */
-	private void setEmptyCategory()
+	private void remapEmptyCategory()
 	{
 		HashSet<String> sRNR = new HashSet<String>();
+		float[] ids = s_tree.getOrderedIDs();
+		SRLNode ec;		
 		
-		for (int i=s_tree.size()-1; i>=0; i--)
+		for (int i=ids.length-1; i>0; i--)
 		{
-			SRLNode ec = s_tree.get(i);
+			ec = s_tree.get(ids[i]);
 			
 			// checks for empty categories
 			if (!ec.form.startsWith(TBEnLib.EC_EXP) &&
@@ -601,7 +610,38 @@ public class TBPBEnConvert
 				}
 			}
 			
-			ante.setDepHead(ec.getDepHeadId(), ec.getDeprel(), 1);
+			String deprel = ec.getDeprel();
+			while (ec.hasDepHead() && s_tree.get(ec.getDepHeadId()).isPos(TBEnLib.POS_NONE))
+				ec = s_tree.get(ec.getDepHeadId());
+			
+			ante.setDepHead(ec.getDepHeadId(), deprel, 1);
+		}
+	}
+	
+	private void reconfigureAntecedents()
+	{
+		ArrayList<TBNode> terminalNodes = p_tree.getTerminalNodes();
+		TBNode node, ante;
+		
+		for (int i=0; i<terminalNodes.size(); i++)
+		{
+			node = terminalNodes.get(i);
+			if (!node.hasAntecedent())	continue;
+			
+			ante = node.antecedent;
+			
+			while (ante.isEmptyCategoryRec())
+			{
+				if (ante.isPhrase())
+					ante = p_tree.getTerminalNode(ante.pbLoc.terminalId);
+				
+				if (ante.hasAntecedent())
+					ante = ante.antecedent;
+				else
+					break;
+			}
+			
+			node.antecedent = ante;
 		}
 	}
 	
@@ -611,33 +651,44 @@ public class TBPBEnConvert
 	 */
 	private SRLTree removeEmptyCategories()
 	{
-		IntIntOpenHashMap map = new IntIntOpenHashMap();
+		FloatFloatOpenHashMap map = new FloatFloatOpenHashMap();
+		SRLNode sNode = s_tree.getRootNode();
+		TBNode  tNode;
 		
-		for (int i=1, j=0; i<s_tree.size(); i++)
+		float newId = SRLLib.ROOT_ID;
+		map.put(SRLLib.ROOT_ID, SRLLib.ROOT_ID);
+		
+		while (sNode.nextNode != null)
 		{
-			SRLNode sNode = s_tree.get(i);
-			TBNode  tNode = p_tree.getNode((int)sNode.id-1, 0);
+			sNode = sNode.nextNode;
+			tNode = p_tree.getTerminalNode((int)sNode.id-1);
 			
-			if (!sNode.isPos(TBLib.POS_NONE) || isDroppedArgument(tNode))
-				map.put(i, ++j);
+			if (!sNode.isPos(TBLib.POS_NONE))
+			{
+				newId = (float)Math.floor(newId + 1);
+				map.put(sNode.id, newId);
+			}
+			else if (isDroppedArgument(tNode))
+			{
+				newId += 0.1;
+				map.put(sNode.id, newId);
+			}
 		}
 		
 		SRLTree copy = new SRLTree();
+		sNode = s_tree.getRootNode();
 		
-		for (int i=1; i<s_tree.size(); i++)
+		while (sNode.nextNode != null)
 		{
-			SRLNode sNode = s_tree.get(i);
-			TBNode  tNode = p_tree.getNode((int)sNode.id-1, 0);
+			sNode = sNode.nextNode;
+			tNode = p_tree.getTerminalNode((int)sNode.id-1);
 			
 			if (!sNode.isPos(TBLib.POS_NONE) || isDroppedArgument(tNode))
 			{
-				if (!processRelativizer(sNode))
+				if (!processComplementizer(sNode))
 					processEmptyCategory(sNode);
 				
-				sNode.id           = map.get((int)sNode.id);
-				sNode.dHead.headId = map.get((int)sNode.getDepHeadId());
-				sNode.anteId       = map.get((int)sNode.anteId);
-				
+				sNode.remapIDs(map);
 				copy.add(sNode);
 			}
 		}
@@ -647,17 +698,25 @@ public class TBPBEnConvert
 	
 	private boolean isDroppedArgument(TBNode node)
 	{
-		if (node.isForm("0"))	return node.antecedent != null;
-		if (node.isForm("\\*PRO\\*.*|\\*|\\*-\\d") && node.getParent().isFollowedBy("VP"))	return true;
+		TBNode next = p_tree.getTerminalNode(node.terminalId+1);
+		
+		if (node.isForm("0") && next != null && !next.isPos(TBEnLib.POS_NONE))
+			return node.hasAntecedent();
+		
+		if (node.isForm("\\*PRO\\*.*|\\*|\\*-\\d") && node.getParent().isFollowedBy("VP"))
+			return true;
 		
 		return false;
 	}
 	
-	private boolean processRelativizer(SRLNode sNode)
+	private boolean processComplementizer(SRLNode sNode)
 	{
-		TBNode tNode = p_tree.getNode((int)sNode.id-1, 0);
-		if (tNode.antecedent == null)	return false;
-		if (tNode.pbLoc.type == null || !tNode.pbLoc.isType("r"))	return false;
+		TBNode tNode = p_tree.getTerminalNode((int)sNode.id-1);
+		
+		if (!tNode.hasAntecedent())
+			return false;
+		if (tNode.pbLoc.type == null || !tNode.pbLoc.isType(PBLib.PROP_OP_COMP))
+			return false;
 		
 		sNode.anteId = tNode.antecedent.headId + 1;
 		return true;
@@ -665,7 +724,7 @@ public class TBPBEnConvert
 	
 	private void processEmptyCategory(SRLNode sNode)
 	{
-		if (!sNode.isPos("-NONE-"))	return;
+		if (!sNode.isPos(TBEnLib.POS_NONE))	return;
 		
 		int lastIndex = sNode.form.lastIndexOf("-");
 		
@@ -674,10 +733,10 @@ public class TBPBEnConvert
 		
 		sNode.lemma = sNode.form;
 		
-		TBNode tNode = p_tree.getNode((int)sNode.id-1, 0);
-		if (tNode.antecedent != null)
+		TBNode tNode = p_tree.getTerminalNode((int)sNode.id-1);
+		
+		if (tNode.hasAntecedent())
 			sNode.anteId = tNode.antecedent.headId + 1;
-	//	System.err.println("No antecedent "+tNode.terminalId+" "+tNode.form+"\n"+p_tree.toTree());
 	}
 	
 	/** Assigns the dependency head of the current node. */

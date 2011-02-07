@@ -38,8 +38,8 @@ public class PBLib
 	static public final String PROP_ARG_OP      = "*,;&";
 
 	static public final String PROP_OP_ANTE = "@";
-	static public final String PROP_OP_RNR  = "&";
-	static public final String PROP_OP_COMP  = "r";
+	static public final String PROP_OP_COMP = "r";
+	static public final String PROP_OP_SKIP = ";";
 	
 	/** Delimiter between label and IDs (e.g., ARG0:1,2) */
 	static public String LABEL_DELIM = ":";

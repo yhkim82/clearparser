@@ -26,6 +26,8 @@ package clear.srl;
 import java.util.ArrayList;
 import java.util.Collections;
 
+import com.carrotsearch.hppc.FloatFloatOpenHashMap;
+
 import clear.ftr.FtrLib;
 import clear.reader.AbstractReader;
 import clear.treebank.TBEnLib;
@@ -73,6 +75,16 @@ public class SRLNode implements Comparable<SRLNode>
 		dHead.set(SRLLib.NULL_HEAD_ID, SRLLib.ROOT_TAG);
 	}
 	
+	public void setId(float id)
+	{
+		this.id = id;
+	}
+	
+	public void setAntecedentId(float anteId)
+	{
+		this.anteId = anteId;
+	}
+	
 	public float getDepHeadId()
 	{
 		return dHead.headId;
@@ -113,6 +125,11 @@ public class SRLNode implements Comparable<SRLNode>
 		sHeads.add(new SRLHead(headId, label, score, true));
 	}
 	
+	public boolean isForm(String regex)
+	{
+		return form.matches(regex);
+	}
+	
 	public boolean isPos(String regex)
 	{
 		return pos.matches(regex);
@@ -141,6 +158,11 @@ public class SRLNode implements Comparable<SRLNode>
 	public boolean hasSRLHead()
 	{
 		return !sHeads.isEmpty();
+	}
+	
+	public boolean hasAntecedent()
+	{
+		return anteId > 0;
 	}
 	
 	public String toString()
@@ -179,5 +201,15 @@ public class SRLNode implements Comparable<SRLNode>
 		else if (diff > 0)	return  1;
 		
 		return  0;
+	}
+	
+	public void remapIDs(FloatFloatOpenHashMap map)
+	{
+		id = map.get(id);
+		dHead.setHeadId(map.get(dHead.headId));
+		anteId = map.get(anteId);
+		
+		for (SRLHead head : sHeads)
+			head.setHeadId(map.get(head.headId));
 	}
 }

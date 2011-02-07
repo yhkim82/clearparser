@@ -24,6 +24,7 @@
 package clear.srl;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import clear.dep.DepLib;
 import clear.dep.ITree;
@@ -37,11 +38,16 @@ import com.carrotsearch.hppc.FloatObjectOpenHashMap;
  */
 public class SRLTree extends FloatObjectOpenHashMap<SRLNode> implements ITree<SRLNode>
 {
+	private SRLNode root_node;
+	private SRLNode last_node;
+	
 	/** Initializes this tree with an artificial root node. */
 	public SRLTree()
 	{
-		SRLNode root = new SRLNode();
-		root.toRoot();	add(root);
+		root_node = new SRLNode();
+		
+		root_node.toRoot();
+		add(root_node);
 	}
 
 	/** Adds a node to this tree. */
@@ -69,8 +75,29 @@ public class SRLTree extends FloatObjectOpenHashMap<SRLNode> implements ITree<SR
 			node.nextNode.prevNode = node;
 		}
 		
+		if (last_node == null || last_node.id < node.id)
+			last_node = node;
+		
 		put(node.id, node);
 		return true;
+	}
+	
+	public SRLNode getRootNode()
+	{
+		return root_node;
+	}
+	
+	public SRLNode getLastNode()
+	{
+		return last_node;
+	}
+	
+	public float[] getOrderedIDs()
+	{
+		float[] ids = keySet().toArray();
+		Arrays.sort(ids);
+		
+		return ids;
 	}
 	
 	/** @return true if the ID exists in this tree. */
@@ -100,7 +127,7 @@ public class SRLTree extends FloatObjectOpenHashMap<SRLNode> implements ITree<SR
 	public ArrayList<SRLNode> getDependents(float currId)
 	{
 		ArrayList<SRLNode> list = new ArrayList<SRLNode>();
-		SRLNode node = get(SRLLib.ROOT_ID);
+		SRLNode node = root_node;
 		
 		while (node.nextNode != null)
 		{
@@ -114,7 +141,7 @@ public class SRLTree extends FloatObjectOpenHashMap<SRLNode> implements ITree<SR
 	/** Makes non-projective dependencies on punctuation projective. */
 	public void projectizePunc()
 	{
-		SRLNode curr = get(SRLLib.ROOT_ID), head, node;
+		SRLNode curr = root_node, head, node;
 		float sId, eId;
 		
 		while (curr.nextNode != null)
@@ -149,7 +176,7 @@ public class SRLTree extends FloatObjectOpenHashMap<SRLNode> implements ITree<SR
 	public boolean checkTree()
 	{
 		int countRoot = 0;
-		SRLNode  node = get(SRLLib.ROOT_ID);
+		SRLNode  node = root_node;
 		
 		while (node.nextNode != null)
 		{
@@ -174,6 +201,7 @@ public class SRLTree extends FloatObjectOpenHashMap<SRLNode> implements ITree<SR
 		if (countRoot != 1)
 		{
 			System.err.println("Not single-rooted: "+countRoot);
+			System.out.println(toString());
 			return false;
 		}
 		
@@ -183,7 +211,7 @@ public class SRLTree extends FloatObjectOpenHashMap<SRLNode> implements ITree<SR
 	public String toString()
 	{
 		StringBuilder build = new StringBuilder();
-		SRLNode       node  = get(SRLLib.ROOT_ID);
+		SRLNode       node  = root_node;
 		
 		while (node.nextNode != null)
 		{

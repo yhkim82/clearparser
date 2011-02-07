@@ -262,4 +262,11 @@ public class TBEnLib extends TBLib
 		form.equals("do") || form.equals("does") || form.equals("did") || form.equals("done") || form.equals("doing") ||
 		form.equals("have") || form.equals("has") || form.equals("had") || form.equals("having");
 	}
+	
+	static public boolean isComplementizer(String form)
+	{
+		form = form.toLowerCase();
+		
+		return form.matches("what|when|where|which|who|whom|whose|why|how|that");
+	}
 }
