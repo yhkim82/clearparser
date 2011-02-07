@@ -103,13 +103,13 @@ public class TBReader
 				curr.setForm(str);						// str = word
 				curr.terminalId = curr.headId = terminalIndex++;
 				if (!curr.isEmptyCategory())	curr.tokenId = tokenIndex++;
-				tree.addTerminal(curr);					// add 'curr' as a leaf
+				tree.addTerminalNode(curr);					// add 'curr' as a leaf
 			}
 		}
 		
 		TBNode root = head.getChildren().get(0);		// omit the dummy head
 		root.setParent(null);
-		tree.setRoot(root);
+		tree.setRootNode(root);
 		
 		return tree;
 	}
