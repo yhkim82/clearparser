@@ -30,6 +30,8 @@ package clear.dep;
  */
 public class DepLib
 {
+	static final public String FIELD_BLANK = "_";
+	
 	/** ID of the root node */
 	static public final int ROOT_ID      =  0;
 	/** ID of a null node */

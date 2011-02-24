@@ -23,6 +23,8 @@
 */
 package clear.parse;
 
+import java.util.ArrayList;
+
 import clear.decode.AbstractMultiDecoder;
 import clear.decode.OneVsAllDecoder;
 import clear.dep.DepLib;
@@ -85,10 +87,11 @@ public class ShiftPopParser extends AbstractDepParser
 	/** Initializes lambda_1 and beta using <code>tree</code>. */
 	private void init(DepTree tree)
 	{
-		findRightDep(tree);
+		preProcess(tree);
 		d_tree   = tree;
 		i_lambda = 0;
 		i_beta   = 1;
+		prev_transitions = new ArrayList<String>();
 		
 		if      (i_flag == FLAG_PRINT_TRANSITION)	printTransition("", "");
 		else if (i_flag == FLAG_TRAIN_CONDITIONAL)	d_copy = tree.clone();
@@ -98,8 +101,9 @@ public class ShiftPopParser extends AbstractDepParser
 	public void parse(DepTree tree)
 	{
 		init(tree);
+		int size = tree.size();
 		
-		while (i_beta < tree.size())	// beta is not empty
+		while (i_beta < size)	// beta is not empty
 		{
 			if (i_lambda == -1)			// lambda_1 is empty: deterministic shift
 			{	shift(true); continue;	}
@@ -172,13 +176,13 @@ public class ShiftPopParser extends AbstractDepParser
 	/** Predicts dependencies. */
 	private void predict()
 	{
-		predictAux(getFeatureArray());
+		predictAux(getBinaryFeatureArray());
 	}
 	
 	private void trainConditional()
 	{
-		IntArrayList ftr = getFeatureArray();
 		String gLabel = getGoldLabel(d_copy);
+		IntArrayList ftr = getBinaryFeatureArray();
 		
 		printInstance(gLabel, ftr);
 		predictAux(ftr);
@@ -186,7 +190,10 @@ public class ShiftPopParser extends AbstractDepParser
 	
 	private String predictAux(IntArrayList ftr)
 	{
-		JIntDoubleTuple res = c_dec.predict(ftr);
+		JIntDoubleTuple res;
+		
+		res = c_dec.predict(ftr);
+	//	res = c_dec.predict(getValueFeatureArray());
 		
 		String  label  = (res.i < 0) ? LB_NO_ARC : t_map.indexToLabel(res.i);
 		int     index  = label.indexOf(LB_DELIM);
@@ -208,7 +215,7 @@ public class ShiftPopParser extends AbstractDepParser
 		
 		return label;
 	}
-	
+		
 	private String getGoldLabel(DepTree tree)
 	{
 		DepNode lambda = tree.get(i_lambda);
@@ -271,10 +278,13 @@ public class ShiftPopParser extends AbstractDepParser
 			i_beta   = curr.id;
 		}
 		
-		JIntDoubleTuple[] aRes = ((OneVsAllDecoder)c_dec).predictAll(getFeatureArray());
+		JIntDoubleTuple[] aRes;
 		JIntDoubleTuple   res;
 		String label, trans;
 		int    index;
+		
+		aRes = ((OneVsAllDecoder)c_dec).predictAll(getBinaryFeatureArray());
+	//	aRes = ((OneVsAllDecoder)c_dec).predictAll(getValueFeatureArray());
 		
 		if (curr.id < head.id && t_map.indexToLabel(aRes[0].i).equals(LB_SHIFT))
 			return maxId;
@@ -316,7 +326,7 @@ public class ShiftPopParser extends AbstractDepParser
 			i_beta   = currId;
 			
 			if (isShift(d_copy))
-				printInstance(LB_SHIFT, getFeatureArray());
+				printInstance(LB_SHIFT, getBinaryFeatureArray());
 		
 			if (currId < curr.headId)
 			{
@@ -329,7 +339,7 @@ public class ShiftPopParser extends AbstractDepParser
 				i_beta   = currId;
 			}
 			
-			printInstance(getGoldLabel(d_copy), getFeatureArray());
+			printInstance(getGoldLabel(d_copy), getBinaryFeatureArray());
 		}
 	}
 	
@@ -342,10 +352,11 @@ public class ShiftPopParser extends AbstractDepParser
 		if (!isDeterministic)
 		{
 			if      (i_flag == FLAG_PRINT_LEXICON )	addTags      (LB_SHIFT);
-			else if (i_flag == FLAG_PRINT_INSTANCE)	printInstance(LB_SHIFT, getFeatureArray());
+			else if (i_flag == FLAG_PRINT_INSTANCE)	printInstance(LB_SHIFT, getBinaryFeatureArray());
 		}
 			
 		i_lambda = i_beta++;
+		prev_transitions.clear();
 		
 		if (i_flag == FLAG_PRINT_TRANSITION)
 		{
@@ -358,9 +369,10 @@ public class ShiftPopParser extends AbstractDepParser
 	private void noArc()
 	{
 		if      (i_flag == FLAG_PRINT_LEXICON )	addTags      (LB_NO_ARC);
-		else if (i_flag == FLAG_PRINT_INSTANCE)	printInstance(LB_NO_ARC, getFeatureArray());
+		else if (i_flag == FLAG_PRINT_INSTANCE)	printInstance(LB_NO_ARC, getBinaryFeatureArray());
 		
 		i_lambda--;
+		prev_transitions.add(LB_NO_ARC);
 		
 		if (i_flag == FLAG_PRINT_TRANSITION)	printTransition("NO-ARC", "");
 	}
@@ -370,12 +382,13 @@ public class ShiftPopParser extends AbstractDepParser
 		String  label = LB_LEFT_POP + LB_DELIM + deprel;
 		
 	    if      (i_flag == FLAG_PRINT_LEXICON)  addTags      (label);
-		else if (i_flag == FLAG_PRINT_INSTANCE)	printInstance(label, getFeatureArray());
+		else if (i_flag == FLAG_PRINT_INSTANCE)	printInstance(label, getBinaryFeatureArray());
 
 		lambda.setHead(beta.id, deprel, score);
 		lambda.isSkip = true;
 		if (beta.leftMostDep == null || lambda.id < beta.leftMostDep.id)	beta.leftMostDep = lambda;
 		i_lambda--;
+		prev_transitions.add(label);
 		
 		if (i_flag == FLAG_PRINT_TRANSITION)
 			printTransition("LEFT-POP", lambda.id+" <-"+deprel+"- "+beta.id);
@@ -393,11 +406,12 @@ public class ShiftPopParser extends AbstractDepParser
 		String  label = LB_LEFT_ARC + LB_DELIM + deprel;
 		
 	    if      (i_flag == FLAG_PRINT_LEXICON)  addTags      (label);
-		else if (i_flag == FLAG_PRINT_INSTANCE)	printInstance(label, getFeatureArray());
+		else if (i_flag == FLAG_PRINT_INSTANCE)	printInstance(label, getBinaryFeatureArray());
 
 		lambda.setHead(beta.id, deprel, score);
 		if (beta.leftMostDep == null || lambda.id < beta.leftMostDep.id)	beta.leftMostDep = lambda;
 		i_lambda--;
+		prev_transitions.add(label);
 		
 		if (i_flag == FLAG_PRINT_TRANSITION)
 			printTransition("LEFT-ARC", lambda.id+" <-"+deprel+"- "+beta.id);
@@ -415,11 +429,12 @@ public class ShiftPopParser extends AbstractDepParser
 		String label = LB_RIGHT_ARC + LB_DELIM + deprel;
 		
 		if      (i_flag == FLAG_PRINT_LEXICON)	addTags      (label);
-		else if (i_flag == FLAG_PRINT_INSTANCE)	printInstance(label, getFeatureArray());
+		else if (i_flag == FLAG_PRINT_INSTANCE)	printInstance(label, getBinaryFeatureArray());
 
 		beta.setHead(lambda.id, deprel, score);
 		if (lambda.rightMostDep == null || lambda.rightMostDep.id < beta.id)	lambda.rightMostDep = beta;
 		i_lambda--;
+		prev_transitions.add(label);
 		
 		if (i_flag == FLAG_PRINT_TRANSITION)
 			printTransition("RIGHT-ARC", lambda.id+" -"+deprel+"-> "+beta.id);
@@ -468,49 +483,35 @@ public class ShiftPopParser extends AbstractDepParser
 	}
 	
 	// ---------------------------- getFtr*() ----------------------------
+
+	protected void addLexica()
+	{
+		addNgramLexica();
+		addLanguageSpecificLexica();
+	}
 	
-	private IntArrayList getFeatureArray()
+	protected IntArrayList getBinaryFeatureArray()
 	{
 		// add features
 		IntArrayList arr = new IntArrayList();
 		int idx[] = {1};
 		
-		addNgramFeatures      (arr, idx);
-		addPunctuationFeatures(arr, idx);
+		addNgramFeatures           (arr, idx);
+		addLanguageSpecificFeatures(arr, idx);
 		
 		return arr;
 	}
-	
-	protected void addLexica()
-	{
-		addNgramLexica();
 		
-		DepNode b0 = d_tree.get(i_beta);
-		if (b0.isDeprel(DepLib.DEPREL_P))	t_map.addPunctuation(b0.form);
+	protected ArrayList<JIntDoubleTuple> getValueFeatureArray()
+	{
+		return null;
 	}
 	
-	/**
-	 * Adds punctuation features.
-	 * This method is called from {@link ShiftPopParser#getFeatureArray()}.
-	 */
-	private void addPunctuationFeatures(IntArrayList arr, int[] beginIndex)
+/*	private void addVoiceLexica()
 	{
-		int index, n = t_map.n_punctuation;
+		DepNode l = d_tree.get(i_lambda);
 		
-		index = d_tree.getRightNearestPunctuation(i_lambda, i_beta-1, t_map);
-		if (index != -1)	arr.add(beginIndex[0] + index);
-		beginIndex[0] += n;		// 86.12 -> 86.30 (+0.18)
-		
-		index = d_tree.getRightNearestPunctuation(i_beta, d_tree.size()-1, t_map);
-		if (index != -1)	arr.add(beginIndex[0] + index);
-		beginIndex[0] += n;		// 86.30 -> 86.33 (+0.03)
-		
-		index = d_tree.getLeftNearestPunctuation(i_beta, i_lambda+1, t_map);
-		if (index != -1)	arr.add(beginIndex[0] + index);
-		beginIndex[0] += n;		// 86.33 -> 86.36 (+0.03)
-		
-	/*	index = d_tree.getLeftNearestPunctuation(i_lambda, 1, t_map);
-		if (index != -1)	arr.add(beginIndex[0] + index);
-		beginIndex[0] += n;		// 86.30 -> 86.29 (-0.01) */	
-	}
+		if (l.isPosx("V.*"))
+			
+	}*/
 }

@@ -23,6 +23,7 @@
 */
 package clear.dep;
 
+import clear.dep.feat.AbstractFeat;
 import clear.ftr.FtrLib;
 import clear.reader.AbstractReader;
 
@@ -41,6 +42,8 @@ public class DepNode
 	public String  lemma;
 	/** Part-of-speech tag */
 	public String  pos;
+	/** Feats */
+	public AbstractFeat feats;
 	/** Index of the head node */
 	public int     headId; 
 	/** Dependency label */
@@ -57,11 +60,12 @@ public class DepNode
 	public boolean isSkip;
 	/** 1 if the node is non-projective (experimental) */
 	public byte    nonProj = 0;
+	public int coordHeadId;
 	
 	/** Initializes the node as a null node. */
 	public DepNode()
 	{
-		init(DepLib.NULL_ID, FtrLib.TAG_NULL, FtrLib.TAG_NULL, FtrLib.TAG_NULL, DepLib.NULL_HEAD_ID, FtrLib.TAG_NULL);
+		init(DepLib.NULL_ID, FtrLib.TAG_NULL, FtrLib.TAG_NULL, FtrLib.TAG_NULL, null, DepLib.NULL_HEAD_ID, FtrLib.TAG_NULL);
 	}
 	
 	/**
@@ -70,38 +74,29 @@ public class DepNode
 	 */
 	public DepNode(boolean isRoot)
 	{
-		if (isRoot)	init(DepLib.ROOT_ID, DepLib.ROOT_TAG, DepLib.ROOT_TAG, DepLib.ROOT_TAG, DepLib.NULL_HEAD_ID, DepLib.ROOT_TAG);
-		else		init(DepLib.NULL_ID, FtrLib.TAG_NULL, FtrLib.TAG_NULL, FtrLib.TAG_NULL, DepLib.NULL_HEAD_ID, FtrLib.TAG_NULL);
+		if (isRoot)	init(DepLib.ROOT_ID, DepLib.ROOT_TAG, DepLib.ROOT_TAG, DepLib.ROOT_TAG, null, DepLib.NULL_HEAD_ID, DepLib.ROOT_TAG);
+		else		init(DepLib.NULL_ID, FtrLib.TAG_NULL, FtrLib.TAG_NULL, FtrLib.TAG_NULL, null, DepLib.NULL_HEAD_ID, FtrLib.TAG_NULL);
 	}
 	
 	/** Calls {@link DepNode#init(int, String, String, String, int, String)}. */
-	public DepNode(int id, String form, String lemma, String pos, int headId, String deprel)
+	public DepNode(int id, String form, String lemma, String pos, AbstractFeat feats, int headId, String deprel)
 	{
-		init(id, form, lemma, pos, headId, deprel);
+		init(id, form, lemma, pos, feats, headId, deprel);
 	}
 	
 	/** Initializes the node with parameter values. */
-	public void init(int id, String form, String lemma, String pos, int headId, String deprel)
+	public void init(int id, String form, String lemma, String pos, AbstractFeat feats, int headId, String deprel)
 	{
-		this.id           = id;
-		this.form         = form;
-		this.lemma        = lemma;
-		this.pos          = pos;
-		this.headId       = headId;
-		this.deprel       = deprel;
-		this.score        = 0;
-		this.hasHead      = false;
-		this.leftMostDep  = null;
-		this.rightMostDep = null;
-		this.isSkip       = false;
+		init(id, form, lemma, pos, feats, headId, deprel, 0, false, null, null, false, -1);
 	}
 	
-	public void init(int id, String form, String lemma, String pos, int headId, String deprel, double score, boolean hasHead, DepNode leftMostDep, DepNode rightMostDep, boolean isSkip)
+	public void init(int id, String form, String lemma, String pos, AbstractFeat feats, int headId, String deprel, double score, boolean hasHead, DepNode leftMostDep, DepNode rightMostDep, boolean isSkip, int coordHeadId)
 	{
 		this.id           = id;
 		this.form         = form;
 		this.lemma        = lemma;
 		this.pos          = pos;
+		this.feats        = feats;
 		this.headId       = headId;
 		this.deprel       = deprel;
 		this.score        = score;
@@ -109,6 +104,7 @@ public class DepNode
 		this.leftMostDep  = leftMostDep;
 		this.rightMostDep = rightMostDep;
 		this.isSkip       = isSkip;
+		this.coordHeadId  = coordHeadId;
 	}
 	
 	/**
@@ -186,9 +182,15 @@ public class DepNode
 		return this.deprel.equals(deprel);
 	}
 	
+	public String getFeat(int index)
+	{
+		if (feats != null)	return feats.get(index);
+		else				return null;
+	}
+	
 	public void copy(DepNode node)
 	{
-		init(node.id, node.form, node.lemma, node.pos, node.headId, node.deprel, node.score, node.hasHead, node.leftMostDep, node.rightMostDep, node.isSkip);
+		init(node.id, node.form, node.lemma, node.pos, node.feats, node.headId, node.deprel, node.score, node.hasHead, node.leftMostDep, node.rightMostDep, node.isSkip, node.coordHeadId);
 	}
 	
 	public DepNode clone()
@@ -211,6 +213,9 @@ public class DepNode
 		buff.append(form);		buff.append(AbstractReader.FIELD_DELIM);
 		buff.append(lemma);		buff.append(AbstractReader.FIELD_DELIM);
 		buff.append(pos);		buff.append(AbstractReader.FIELD_DELIM);
+		if (feats == null)		buff.append(DepLib.FIELD_BLANK);
+		else					buff.append(feats.toString());
+		buff.append(AbstractReader.FIELD_DELIM);
 		buff.append(headId);	buff.append(AbstractReader.FIELD_DELIM);
 		buff.append(deprel);
 		

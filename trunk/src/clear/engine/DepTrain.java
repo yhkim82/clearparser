@@ -173,6 +173,9 @@ public class DepTrain extends AbstractTrain
 		
 		if      (s_format.equals(AbstractReader.FORMAT_DEP))	reader = new DepReader   (s_trainFile, true);
 		else if (s_format.equals(AbstractReader.FORMAT_CONLLX))	reader = new CoNLLXReader(s_trainFile, true);
+
+		parser.setLanguage(s_language);
+		reader.setLanguage(s_language);
 		
 		for (n=0; (tree = reader.nextTree()) != null; n++)
 		{

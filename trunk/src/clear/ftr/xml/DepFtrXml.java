@@ -24,6 +24,7 @@
 package clear.ftr.xml;
 
 import java.io.InputStream;
+import java.util.regex.Pattern;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -36,11 +37,15 @@ import org.w3c.dom.NodeList;
  */
 public class DepFtrXml extends AbstractFtrXml
 {
-	static public final char   LAMBDA		= 'l';
-	static public final char   BETA			= 'b';
-	static public final String R_HD			= "hd";
-	static public final String R_LM			= "lm";
-	static public final String R_RM			= "rm";
+	static public final Pattern FEAT  = Pattern.compile("^ft(\\d+)$");
+	static public final Pattern TRANS = Pattern.compile("^tr(\\d+)$");
+	
+	static public final char   LAMBDA	= 'l';
+	static public final char   BETA		= 'b';
+	static public final String R_HD		= "hd";
+	static public final String R_LM		= "lm";
+	static public final String R_RM		= "rm";
+	
 	static public final String F_FORM		= "f";
 	static public final String F_LEMMA		= "m";
 	static public final String F_POS		= "p";
@@ -84,7 +89,12 @@ public class DepFtrXml extends AbstractFtrXml
 	
 	protected boolean validField(String field)
 	{
-		return field.equals(F_FORM) || field.equals(F_LEMMA) || field.equals(F_POS) || field.equals(F_DEPREL);
+		return field.equals(F_FORM) ||
+			   field.equals(F_LEMMA) ||
+			   field.equals(F_POS) || 
+			   field.equals(F_DEPREL) ||
+			   FEAT.matcher(field).find() ||
+			   TRANS.matcher(field).find();
 	}
 	
 	public String toString()

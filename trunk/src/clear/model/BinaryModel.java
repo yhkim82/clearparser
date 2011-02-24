@@ -132,10 +132,13 @@ public class BinaryModel extends AbstractModel
 	public double getScore(int[] x)
 	{
 		double score = d_weights[0];
-		int    i;
+		int    i, idx;
 		
 		for (i=0; i < x.length; i++)
-			score += d_weights[x[i]];
+		{
+			if ((idx = x[i]) < d_weights.length)
+				score += d_weights[idx];
+		}
 		
 		return score;
 	}
@@ -143,10 +146,13 @@ public class BinaryModel extends AbstractModel
 	public double getScore(IntArrayList x)
 	{
 		double score = d_weights[0];
-		int    i;
+		int    i, idx;
 		
 		for (i=0; i < x.size(); i++)
-			score += d_weights[x.get(i)];
+		{
+			if ((idx = x.get(i)) < d_weights.length)
+				score += d_weights[idx];
+		}
 		
 		return score;
 	}
@@ -154,9 +160,13 @@ public class BinaryModel extends AbstractModel
 	public double getScore(ArrayList<JIntDoubleTuple> x)
 	{
 		double score = d_weights[0];
+		int    idx;
 		
 		for (JIntDoubleTuple tup : x)
-			score += (d_weights[tup.i] * tup.d);
+		{
+			if ((idx = tup.i) < d_weights.length)
+				score += (d_weights[idx] * tup.d);
+		}
 		
 		return logistic(score);
 	}

@@ -147,12 +147,15 @@ public class OneVsAllModel extends AbstractMultiModel
 	public double[] getScores(int[] x)
 	{
 		double[] scores = Arrays.copyOf(d_weights, n_labels);
-		int      i, label;
+		int      i, idx, label;
 		
 		for (i=0; i < x.length; i++)
 		{
 			for (label=0; label<n_labels; label++)
-				scores[label] += d_weights[getBeginIndex(label, x[i])];
+			{
+				if ((idx = getBeginIndex(label, x[i])) < d_weights.length)
+					scores[label] += d_weights[idx];
+			}
 		}
 		
 		return scores;
@@ -161,12 +164,15 @@ public class OneVsAllModel extends AbstractMultiModel
 	public double[] getScores(IntArrayList x)
 	{
 		double[] scores = Arrays.copyOf(d_weights, n_labels);
-		int      i, label;
+		int      i, idx, label;
 		
 		for (i=0; i < x.size(); i++)
 		{
 			for (label=0; label<n_labels; label++)
-				scores[label] += d_weights[getBeginIndex(label, x.get(i))];
+			{
+				if ((idx = getBeginIndex(label, x.get(i))) < d_weights.length)
+					scores[label] += d_weights[idx];
+			}
 		}
 		
 		return scores;
@@ -175,12 +181,15 @@ public class OneVsAllModel extends AbstractMultiModel
 	public double[] getScores(ArrayList<JIntDoubleTuple> x)
 	{
 		double[] scores = Arrays.copyOf(d_weights, n_labels);
-		int      label;
+		int      idx, label;
 		
 		for (JIntDoubleTuple tup : x)
 		{
 			for (label=0; label<n_labels; label++)
-				scores[label] += (d_weights[getBeginIndex(label, tup.i)] * tup.d);
+			{
+				if ((idx = getBeginIndex(label, tup.i)) < d_weights.length)
+					scores[label] += (d_weights[idx] * tup.d);
+			}
 		}
 		
 		for (label=0; label<n_labels; label++)

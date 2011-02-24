@@ -4,5 +4,5 @@ import clear.dep.DepLib;
 
 public class SRLLib extends DepLib
 {
-	static final public String FIELD_BLANK = "_";
+	static public String HEAD_DELIM = ";";
 }

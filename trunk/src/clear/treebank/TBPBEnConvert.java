@@ -47,7 +47,8 @@ public class TBPBEnConvert
 	private SRLTree s_tree;
 	
 	boolean b_reverseVC = true;
-	boolean b_funcTag   = true;
+	boolean b_funcTag   = false;
+	boolean b_includeEC = false;
 	
 	/** @return a semantic role labeling tree converted from <code>pTree</code>. */
 	public SRLTree toSrlTree(TBTree pTree, TBHeadRules headrules, MorphEnAnalyzer morph)
@@ -61,6 +62,7 @@ public class TBPBEnConvert
 		setDepRoot();
 			
 		remapEmptyCategory();
+		p_tree.mapSRLTree(s_tree);
 		SRLTree copy = removeEmptyCategories();
 		copy.projectizePunc();
 		copy.checkTree();
@@ -128,7 +130,7 @@ public class TBPBEnConvert
 			curr.headId = children.get(0).headId;
 			return;
 		}
-			
+		
 		for (String rule : headrule.rules)
 		{
 			if (headrule.dir == -1)
@@ -698,6 +700,7 @@ public class TBPBEnConvert
 	
 	private boolean isDroppedArgument(TBNode node)
 	{
+		if (!b_includeEC)	return false;
 		TBNode next = p_tree.getTerminalNode(node.terminalId+1);
 		
 		if (node.isForm("0") && next != null && !next.isPos(TBEnLib.POS_NONE))
