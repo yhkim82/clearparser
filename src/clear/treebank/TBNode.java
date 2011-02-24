@@ -28,8 +28,8 @@ import java.util.BitSet;
 import java.util.HashSet;
 import java.util.StringTokenizer;
 
-import clear.propbank.PBLib;
 import clear.propbank.PBLoc;
+import clear.srl.SRLArg;
 import clear.srl.SRLHead;
 
 import com.carrotsearch.hppc.IntOpenHashSet;
@@ -69,8 +69,10 @@ public class TBNode
 	protected TBNode nd_parent;
 	/** List of children nodes */
 	protected ArrayList<TBNode> ls_children;
-	/** PropBank arguments */
-	protected ArrayList<SRLHead> pb_args;
+	/** PropBank heads */
+	protected ArrayList<SRLHead> pb_heads;
+	/** PropBank arguments (if this node is a predicate) */
+	protected ArrayList<SRLArg>	pb_args;
 	
 	/** Initializes the node with its parent node and pos-tag. */
 	public TBNode(TBNode parent, String postag)
@@ -88,6 +90,7 @@ public class TBNode
 		rolesetId   = null;
 		nd_parent   = parent;
 		ls_children = null;
+		pb_heads    = null;
 		pb_args     = null;
 		init(postag);
 	}
@@ -128,20 +131,6 @@ public class TBNode
 						if (tags == null)	tags = new HashSet<String>();
 						tags.add(tag);
 					}
-				}
-				else
-					break;
-			}
-			else if (op.equals("~"))
-			{
-				if (pb_args == null)
-					pb_args = new ArrayList<SRLHead>();
-				
-				if (tok.hasMoreTokens())
-				{
-					String   str = tok.nextToken();
-					String[] arg = str.split(PBLib.LABEL_DELIM);
-					pb_args.add(new SRLHead(Integer.parseInt(arg[0]), arg[1]));
 				}
 				else
 					break;
@@ -524,32 +513,35 @@ public class TBNode
 			}
 		}
 		
-		if (pb_args != null)
-		{
-			for (SRLHead arg : pb_args)
-			{
-				build.append("~");
-				build.append(arg.headId);
-				build.append(PBLib.LABEL_DELIM);
-				build.append(arg.label);
-			}
-		}
-		
 		return build.toString();
 	}
 	
-	public void addPBArg(SRLHead sHead)
+	public boolean addPBHead(SRLHead sHead)
 	{
-		if (pb_args == null)
-			pb_args = new ArrayList<SRLHead>();
+		if (pb_heads == null)
+			pb_heads = new ArrayList<SRLHead>();
 		
-		for (SRLHead head : pb_args)
+		for (SRLHead head : pb_heads)
 		{
 			if (head.equals(sHead))
-				return;
+				return false;
 		}
 		
-		pb_args.add(sHead);
+		return pb_heads.add(sHead);
+	}
+	
+	public boolean addPBArg(SRLArg sArg)
+	{
+		if (pb_args == null)
+			pb_args = new ArrayList<SRLArg>();
+		
+		for (SRLArg arg : pb_args)
+		{
+			if (arg.isLabel(sArg.label))
+				return false;
+		}
+		
+		return pb_args.add(sArg);
 	}
 	
 	public String getSentenceGroup()

@@ -26,12 +26,14 @@ package clear.srl;
 import java.util.ArrayList;
 import java.util.Collections;
 
-import com.carrotsearch.hppc.FloatFloatOpenHashMap;
-
 import clear.ftr.FtrLib;
 import clear.reader.AbstractReader;
 import clear.treebank.TBEnLib;
+import clear.util.JArrays;
 import clear.util.JString;
+
+import com.carrotsearch.hppc.FloatArrayList;
+import com.carrotsearch.hppc.FloatFloatOpenHashMap;
 
 /**
  * Semantic role labeling node.
@@ -48,6 +50,7 @@ public class SRLNode implements Comparable<SRLNode>
 	public String  roleset;				// PropBank roleset ID
 	public float   anteId;				// antecedent ID
 	public ArrayList<SRLHead> sHeads;	// SRL heads
+	public ArrayList<SRLArg>  sArgs;
 	public SRLNode prevNode;			// previous token
 	public SRLNode nextNode;			// next token
 	
@@ -61,6 +64,7 @@ public class SRLNode implements Comparable<SRLNode>
 		anteId   = SRLLib.NULL_HEAD_ID;
 		roleset  = SRLLib.FIELD_BLANK;
 		sHeads   = new ArrayList<SRLHead>();
+		sArgs    = new ArrayList<SRLArg>();
 		prevNode = null;
 		nextNode = null;
 	}
@@ -125,6 +129,35 @@ public class SRLNode implements Comparable<SRLNode>
 		sHeads.add(new SRLHead(headId, label, score, true));
 	}
 	
+	public void addSRLHeads(ArrayList<SRLHead> sHeads)
+	{
+		this.sHeads.addAll(sHeads);
+	}
+	
+	public void removeSRLHeads(ArrayList<SRLHead> sHeads)
+	{
+		ArrayList<SRLHead> delList = new ArrayList<SRLHead>();
+		
+		for (SRLHead tHead : this.sHeads)
+		{
+			for (SRLHead pHead : sHeads)
+			{
+				if (tHead.equals(pHead))
+				{
+					delList.add(tHead);
+					break;
+				}
+			}
+		}
+		
+		this.sHeads.removeAll(delList);
+	}
+	
+	public void addSRLArgs(ArrayList<SRLArg> sArgs)
+	{
+		this.sArgs.addAll(sArgs);
+	}
+	
 	public boolean isForm(String regex)
 	{
 		return form.matches(regex);
@@ -138,6 +171,11 @@ public class SRLNode implements Comparable<SRLNode>
 	public boolean isDeprel(String regex)
 	{
 		return dHead.isLabel(regex);
+	}
+	
+	public boolean isRoot()
+	{
+		return id == SRLLib.ROOT_ID;
 	}
 	
 	public boolean isPredicate()
@@ -178,16 +216,77 @@ public class SRLNode implements Comparable<SRLNode>
 		buff.append(dHead);		buff.append(AbstractReader.FIELD_DELIM);
 		buff.append(roleset);	buff.append(AbstractReader.FIELD_DELIM);
 		
-		if (anteId > 0)	buff.append(JString.getNormalizedForm(anteId));
-		else			buff.append(SRLLib.FIELD_BLANK);
+		if (anteId > 0)			buff.append(JString.getNormalizedForm(anteId));
+		else					buff.append(SRLLib.FIELD_BLANK);
+		buff.append(AbstractReader.FIELD_DELIM);
 		
-		Collections.sort(sHeads);
+		if (sHeads.isEmpty())
+			buff.append(SRLLib.FIELD_BLANK);
+		else
+		{
+			Collections.sort(sHeads);
+			
+			for (int i=0; i<sHeads.size(); i++)
+			{
+				if (i > 0)	buff.append(SRLLib.HEAD_DELIM);
+				buff.append(sHeads.get(i));
+			}
+		}
+		buff.append(AbstractReader.FIELD_DELIM);
+		
+		if (sArgs.isEmpty())
+			buff.append(SRLLib.FIELD_BLANK);
+		else
+		{
+			Collections.sort(sArgs);
+			
+			for (int i=0; i<sArgs.size(); i++)
+			{
+				if (i > 0)	buff.append(SRLLib.HEAD_DELIM);
+				buff.append(sArgs.get(i));
+			}
+		}
+		
+		return buff.toString();
+	}
+	
+	public String toCoNLL09(FloatArrayList predIDs)
+	{
+		StringBuilder buff = new StringBuilder();
+		String headId = JString.getNormalizedForm(dHead.headId);
+		
+		buff.append(JString.getNormalizedForm(id));
+		buff.append(AbstractReader.FIELD_DELIM);
+		
+		buff.append(form);					buff.append(AbstractReader.FIELD_DELIM);
+		buff.append(lemma);					buff.append(AbstractReader.FIELD_DELIM);
+		buff.append(lemma);					buff.append(AbstractReader.FIELD_DELIM);
+		buff.append(pos);					buff.append(AbstractReader.FIELD_DELIM);
+		buff.append(pos);					buff.append(AbstractReader.FIELD_DELIM);
+		buff.append(SRLLib.FIELD_BLANK);	buff.append(AbstractReader.FIELD_DELIM);
+		buff.append(SRLLib.FIELD_BLANK);	buff.append(AbstractReader.FIELD_DELIM);
+		buff.append(headId);				buff.append(AbstractReader.FIELD_DELIM);
+		buff.append(headId);				buff.append(AbstractReader.FIELD_DELIM);
+		buff.append(dHead.label);			buff.append(AbstractReader.FIELD_DELIM);
+		buff.append(dHead.label);			buff.append(AbstractReader.FIELD_DELIM);
+		
+		if (isPredicate())	buff.append("Y");
+		else				buff.append(SRLLib.FIELD_BLANK);
+		buff.append(AbstractReader.FIELD_DELIM);
+		
+		buff.append(roleset);
+		buff.append(AbstractReader.FIELD_DELIM);
+		
+		String[] arr = new String[predIDs.size()];
+		for (int i=0; i<arr.length; i++)	arr[i] = SRLLib.FIELD_BLANK;
 		
 		for (SRLHead head : sHeads)
 		{
-			buff.append(AbstractReader.FIELD_DELIM);
-			buff.append(head);
+			int idx = predIDs.indexOf(head.headId);
+			arr[idx] = head.label;
 		}
+		
+		buff.append(JArrays.join(arr, AbstractReader.FIELD_DELIM));
 		
 		return buff.toString();
 	}
@@ -211,5 +310,18 @@ public class SRLNode implements Comparable<SRLNode>
 		
 		for (SRLHead head : sHeads)
 			head.setHeadId(map.get(head.headId));
+		
+		for (SRLArg arg : sArgs)
+		{
+			FloatArrayList list = new FloatArrayList();
+			
+			for (float f : arg.ids)
+			{
+				if ((f = map.get(f)) > 0)
+					list.add(f);
+			}
+			
+			arg.ids = list.toArray();
+		}
 	}
 }

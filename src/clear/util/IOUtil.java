@@ -191,4 +191,26 @@ public class IOUtil
 		for (String key : map.keySet())
 			if (map.get(key) > cutoff)	fout.println(key);
 	}
+	
+	static public void mergeFiles(String outputFile, String... mergeFiles)
+	{
+		PrintStream fout = IOUtil.createPrintFileStream(outputFile);
+		String line;
+		
+		for (String filename : mergeFiles)
+		{
+			BufferedReader fin = IOUtil.createBufferedFileReader(filename);
+			
+			try
+			{
+				while ((line = fin.readLine()) != null)
+					fout.println(line);
+				
+				fin.close();
+			}
+			catch (IOException e) {e.printStackTrace();}
+		}
+		
+		fout.close();
+	}
 }

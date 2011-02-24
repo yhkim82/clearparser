@@ -282,10 +282,10 @@ public class MorphEnAnalyzer
 		
 		for (JObjectObjectTuple<String,String> tup : rule)
 		{
-			if (form.endsWith(tup.key))
+			if (form.endsWith(tup.object1))
 			{
-				offset = form.length() - tup.key.length();
-				base   = form.substring(0, offset) + tup.value;
+				offset = form.length() - tup.object1.length();
+				base   = form.substring(0, offset) + tup.object2;
 				
 				if (set.contains(base))	return base;
 			}
@@ -312,10 +312,20 @@ public class MorphEnAnalyzer
 	 * @param form word-form
 	 * @param pos pos-tag
 	 */
-	private String getNumber(String form, String pos)
+	public String getNumber(String form, String pos)
 	{
 		if (s_ord_base.contains(form))	return "$#ORD#$";
 		
+		String currStr = getNormalizedNumber(form);
+		
+		if (currStr.equals("0st") || currStr.equals("0nd") || currStr.equals("0rd") || currStr.equals("0th"))
+			return "$#ORD#$";
+		
+		return (currStr.equals(form)) ? null : currStr;	
+	}
+	
+	static public String getNormalizedNumber(String form)
+	{
 		String prevStr = "", currStr = form;
 		
 		while (!prevStr.equals(currStr))
@@ -331,11 +341,19 @@ public class MorphEnAnalyzer
 		//	currStr = currStr.replaceAll("\\\\/\\d", "0");
 		}
 		
-		currStr = currStr.replaceAll("\\d+", "0");
+		return currStr.replaceAll("\\d+", "0");
+	}
+	
+	static public String getAbbrVerb(String form, String pos)
+	{
+		if (form.equals("'d")  && pos.equals("MD"))		return "would";
+		if (form.equals("'ll") && pos.equals("MD"))		return "will";
+		if (form.equals("'m")  && pos.equals("VBP"))	return "be";
+		if (form.equals("'re") && pos.equals("VBP"))	return "be";
+		if (form.equals("'ve") && pos.equals("VB"))		return "have";
+		if (form.equals("'ve") && pos.equals("VBP"))	return "have";
+		if (form.equals("'d")  && pos.equals("VBD"))	return "have";
 		
-		if (currStr.equals("0st") || currStr.equals("0nd") || currStr.equals("0rd") || currStr.equals("0th"))
-			return "$#ORD#$";
-		
-		return (currStr.equals(form)) ? null : currStr;	
+		return form;
 	}
 }

@@ -25,6 +25,7 @@ package clear.dep;
 
 
 import java.util.ArrayList;
+import java.util.HashSet;
 
 import clear.ftr.map.DepFtrMap;
 
@@ -195,6 +196,58 @@ public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
 		return list;
 	}
 	
+	public ArrayList<DepNode> getLeftDependents(int currId)
+	{
+		ArrayList<DepNode> list = new ArrayList<DepNode>();
+		
+		for (int i=1; i<currId; i++)
+		{
+			DepNode node = get(i);
+			if (node.hasHead && node.headId == currId)	list.add(node);
+		}
+		
+		return list;
+	}
+	
+	public ArrayList<DepNode> getRightDependents(int currId)
+	{
+		ArrayList<DepNode> list = new ArrayList<DepNode>();
+		
+		for (int i=size()-1; i>currId; i--)
+		{
+			DepNode node = get(i);
+			if (node.hasHead && node.headId == currId)	list.add(node);
+		}
+		
+		return list;
+	}
+	
+	public HashSet<String> getLeftDependencies(int currId)
+	{
+		HashSet<String> set = new HashSet<String>();
+		
+		for (int i=1; i<currId; i++)
+		{
+			DepNode node = get(i);
+			if (node.hasHead && node.headId == currId)	set.add(node.deprel);
+		}
+		
+		return set;
+	}
+	
+	public HashSet<String> getRightDependencies(int currId)
+	{
+		HashSet<String> set = new HashSet<String>();
+		
+		for (int i=size()-1; i>currId; i--)
+		{
+			DepNode node = get(i);
+			if (node.hasHead && node.headId == currId)	set.add(node.deprel);
+		}
+		
+		return set;
+	}
+	
 	/** @return the score of the tree. */
 	public double getScore()
 	{
@@ -219,6 +272,36 @@ public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
 			
 		tree.trimToSize();
 		return tree;
+	}
+	
+	public boolean existsLeftDependent(int currId, String deprel)
+	{
+		DepNode node;
+		
+		for (int i=currId-1; i>0; i--)
+		{
+			node = get(i);
+			
+			if (node.hasHead && node.headId == currId && node.isDeprel(deprel))
+				return true;
+		}
+		
+		return false;
+	}
+	
+	public boolean existsRightDependent(int currId, String deprel)
+	{
+		DepNode node;
+		
+		for (int i=currId+1; i<size(); i++)
+		{
+			node = get(i);
+			
+			if (node.hasHead && node.headId == currId && node.isDeprel(deprel))
+				return true;
+		}
+		
+		return false;
 	}
 	
 	/**

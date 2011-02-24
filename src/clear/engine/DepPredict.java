@@ -153,6 +153,7 @@ public class DepPredict extends AbstractCommon
 		}
 		
 		AbstractReader<DepNode, DepTree> reader = null;
+		
 		if 		(s_format.equals(AbstractReader.FORMAT_POS))	reader = new PosReader   (s_inputFile, s_language, s_morphDict);
 		else if (s_format.equals(AbstractReader.FORMAT_DEP))	reader = new DepReader   (s_inputFile, false);
 		else if (s_format.equals(AbstractReader.FORMAT_CONLLX))	reader = new CoNLLXReader(s_inputFile, false);
@@ -163,6 +164,9 @@ public class DepPredict extends AbstractCommon
 			parser = new ShiftEagerParser(AbstractDepParser.FLAG_PREDICT, xml, map, decoder);
 		else if (s_depParser.equals(AbstractDepParser.ALG_SHIFT_POP))
 			parser = new ShiftPopParser  (AbstractDepParser.FLAG_PREDICT, xml, map, decoder);
+		
+		reader.setLanguage(s_language);
+		parser.setLanguage(s_language);
 		
 		PrintStream      fout   = IOUtil.createPrintFileStream(s_outputFile);
 	//	PrintStream      fplot  = IOUtil.createPrintFileStream("plot.txt");

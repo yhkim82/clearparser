@@ -68,8 +68,8 @@ public class TBReader
 		int terminalIndex = 0;
 		int tokenIndex    = 0;
 		TBTree tree       = new TBTree();
-		TBNode head       = new TBNode(null, "DUMMY");	// dummy-head
-		TBNode curr       = head;						// pointer to the current node
+		TBNode head       = new TBNode(null, TBEnLib.POS_TOP);	// dummy-head
+		TBNode curr       = head;								// pointer to the current node
 
 		while (true)
 		{		
@@ -102,14 +102,29 @@ public class TBReader
 			{
 				curr.setForm(str);						// str = word
 				curr.terminalId = curr.headId = terminalIndex++;
-				if (!curr.isEmptyCategory())	curr.tokenId = tokenIndex++;
+				if (!curr.isEmptyCategory())
+					curr.tokenId = tokenIndex++;
+				else if (curr.isForm("\\*T\\*|\\*ICH\\*|\\*RNR\\*") && curr.getParent().coIndex != -1)
+				{
+					curr.form += "-"+curr.getParent().coIndex;
+					curr.getParent().coIndex = -1;
+				}
+					
 				tree.addTerminalNode(curr);					// add 'curr' as a leaf
 			}
 		}
 		
-		TBNode root = head.getChildren().get(0);		// omit the dummy head
-		root.setParent(null);
-		tree.setRootNode(root);
+		TBNode top = head.getChildren().get(0);
+		
+		if (top.isPos(TBEnLib.POS_TOP))
+		{
+			top.setParent(null);
+			tree.setRootNode(top);
+		}
+		else
+		{
+			tree.setRootNode(head);
+		}
 		
 		return tree;
 	}

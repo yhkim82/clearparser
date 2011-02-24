@@ -5,7 +5,9 @@ import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
 
 import clear.dep.DepEval;
+import clear.dep.DepNode;
 import clear.dep.DepTree;
+import clear.reader.AbstractReader;
 import clear.reader.DepReader;
 
 public class DepEvaluate
@@ -26,8 +28,8 @@ public class DepEvaluate
 		{
 			cmd.parseArgument(args);
 			
-			DepReader gReader = new DepReader(s_goldFile, true);
-			DepReader sReader = new DepReader(s_sysFile , true);
+			AbstractReader<DepNode,DepTree> gReader = new DepReader(s_goldFile, true);
+			AbstractReader<DepNode,DepTree> sReader = new DepReader (s_sysFile , true);
 			DepTree   gTree, sTree;
 			d_eval = new DepEval(b_skip);
 			

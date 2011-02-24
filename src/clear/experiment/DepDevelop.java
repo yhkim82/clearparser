@@ -91,7 +91,7 @@ public class DepDevelop extends AbstractTrain
 		{
 			currAcc = trainDepParser(ShiftPopParser.FLAG_PREDICT, s_devFile+".parse."+i, null);
 			if (currAcc <= prevAcc)	break;
-
+			
 			prevAcc = currAcc;
 			trainDepParser(ShiftPopParser.FLAG_TRAIN_CONDITIONAL, instanceFile, null);
 			
@@ -173,6 +173,9 @@ public class DepDevelop extends AbstractTrain
 		
 		AbstractReader<DepNode, DepTree> reader = new DepReader(inputFile, isTrain);
 		DepTree tree;	int n;
+		
+		parser.setLanguage(s_language);
+		reader.setLanguage(s_language);
 		
 		for (n=0; (tree = reader.nextTree()) != null; n++)
 		{

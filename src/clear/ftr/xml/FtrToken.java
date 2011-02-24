@@ -72,4 +72,14 @@ public class FtrToken
 		
 		return build.toString();
 	}
+	
+	public boolean isField(String str)
+	{
+		return field.equals(str);
+	}
+	
+	public boolean isRelation(String str)
+	{
+		return relation.equals(str);
+	}
 }

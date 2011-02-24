@@ -27,6 +27,7 @@ import java.io.IOException;
 
 import clear.dep.DepNode;
 import clear.dep.DepTree;
+import clear.dep.feat.FeatCzech;
 
 /**
  * Dependency reader.
@@ -74,11 +75,14 @@ public class DepReader extends AbstractReader<DepNode,DepTree>
 		node.form    = str[1];
 		node.lemma   = str[2];
 		node.pos     = str[3];
+		
+		if (s_language.equals(LANG_CZ))
+			node.feats = new FeatCzech(str[4]);
 
 		if (b_train)
 		{
-			node.headId = Integer.parseInt(str[4]);
-			node.deprel = str[5];
+			node.headId = Integer.parseInt(str[5]);
+			node.deprel = str[6];
 		}
 		
 		return node;

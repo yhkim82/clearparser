@@ -66,7 +66,12 @@ public class PBInstance
 	 */
 	public void addArg(PBArg arg)
 	{
-		a_arg.add(arg);
+		PBArg tmp;
+		
+		if ((tmp = getArgByLabel(arg.label)) != null)
+			tmp.addLocs(arg.getLocs());
+		else
+			a_arg.add(arg);
 	}
 	
 	/**
@@ -103,6 +108,14 @@ public class PBInstance
 			if (a.equals(arg))	return true;
 		
 		return false;
+	}
+	
+	public PBArg getArgByLabel(String label)
+	{
+		for (PBArg arg : a_arg)
+			if (arg.isLabel(label))	return arg;
+		
+		return null;
 	}
 		
 	/** Returns the string representation of the Propbank instance. */

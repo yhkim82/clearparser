@@ -43,6 +43,8 @@ abstract public class AbstractReader<NodeType, TreeType>
 	static public final String LANG_EN = "en";
 	/** Flag for Hindi */
 	static public final String LANG_HI = "hi";
+	/** Flag for Czech */
+	static public final String LANG_CZ = "cz";
 	
 	/** Flag for raw format */
 	static public final String FORMAT_RAW    = "raw";
@@ -54,6 +56,8 @@ abstract public class AbstractReader<NodeType, TreeType>
 	static public final String FORMAT_SRL    = "srl";
 	/** Flag for CoNLL-X format */
 	static public final String FORMAT_CONLLX = "conllx";
+	/** Flag for dependency-verbnet format */
+	static public final String FORMAT_DEPV   = "depv";
 	
 	/** Delimiter between fields */
 	static public final String FIELD_DELIM = "\t";
@@ -62,6 +66,8 @@ abstract public class AbstractReader<NodeType, TreeType>
 	
 	/** File reader */
 	protected BufferedReader f_in;
+	/** Language code */
+	protected String s_language = LANG_EN;
 	
 	/**
 	 * The constructor calls {@link AbstractReader#open(String)}.
@@ -89,6 +95,11 @@ abstract public class AbstractReader<NodeType, TreeType>
 			f_in.close();
 		}
 		catch (IOException e) {e.printStackTrace();}
+	}
+	
+	public void setLanguage(String language)
+	{
+		s_language = language;
 	}
 	
 	/** @return true if <code>line</code> is empty */

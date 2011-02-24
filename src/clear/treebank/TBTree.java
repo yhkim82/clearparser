@@ -27,6 +27,10 @@ import java.util.ArrayList;
 
 import clear.propbank.PBLib;
 import clear.propbank.PBLoc;
+import clear.srl.SRLHead;
+import clear.srl.SRLNode;
+import clear.srl.SRLTree;
+import clear.util.tuple.JIntIntTuple;
 
 /**
  * Tree as in Penn Treebank.
@@ -256,5 +260,82 @@ public class TBTree
 		}
 		
 		return true;
+	}
+	
+	public void mapSRLTree(SRLTree tree)
+	{
+		mapSRLTreeAux(tree, getRootNode());
+		mapSRLTreeAuxClean(tree);
+	}
+	
+	private void mapSRLTreeAux(SRLTree tree, TBNode tNode)
+	{
+		SRLNode sNode = tree.get(tNode.headId+1);
+		
+		if (tNode.pb_heads != null)
+			sNode.addSRLHeads(tNode.pb_heads);
+		else if (tNode.rolesetId != null)
+		{
+			sNode.roleset = tNode.rolesetId;
+			if (tNode.pb_args != null)
+				sNode.addSRLArgs(tNode.pb_args);
+		}
+		
+		if (tNode.isPhrase())
+		{
+			for (TBNode child : tNode.getChildren())
+				mapSRLTreeAux(tree, child);
+		}
+	}
+	
+	private void mapSRLTreeAuxClean(SRLTree tree)
+	{
+		SRLNode node = tree.getRootNode(), head;
+		ArrayList<SRLHead> list = new ArrayList<SRLHead>();
+		
+		while (node.nextNode != null)
+		{
+			node = node.nextNode;
+			head = tree.get(node.getDepHeadId());
+			list = new ArrayList<SRLHead>();
+			
+			while (!head.isRoot())
+			{
+				list.addAll(head.sHeads);
+				head = tree.get(head.getDepHeadId());
+			}
+			
+			node.removeSRLHeads(list);
+		}
+	}
+	
+	public String formsWithoutSpace()
+	{
+		StringBuilder build = new StringBuilder();
+		
+		for (TBNode node : ls_terminal)
+		{
+			if (node.isEmptyCategory())	continue;
+			node.form = node.form.replaceAll("\\\\/", "/");
+			build.append(node.form);
+		}
+		
+		return build.toString();
+	}
+	
+	public ArrayList<JIntIntTuple> getCharIdToTerminalIdMap()
+	{
+		ArrayList<JIntIntTuple> map = new ArrayList<JIntIntTuple>();
+		int length = 0;
+
+		for (TBNode node : ls_terminal)
+		{
+			if (node.isEmptyCategory())	continue;
+			
+			map.add(new JIntIntTuple(length, node.terminalId));
+			length += node.form.length();
+		}
+		
+		return map;
 	}
 }

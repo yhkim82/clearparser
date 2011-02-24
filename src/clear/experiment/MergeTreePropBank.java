@@ -3,6 +3,7 @@ package clear.experiment;
 import java.io.File;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -13,6 +14,7 @@ import clear.propbank.PBInstance;
 import clear.propbank.PBLib;
 import clear.propbank.PBLoc;
 import clear.propbank.PBReader;
+import clear.srl.SRLArg;
 import clear.srl.SRLHead;
 import clear.srl.SRLTree;
 import clear.treebank.TBEnLib;
@@ -28,6 +30,7 @@ import com.carrotsearch.hppc.IntOpenHashSet;
 
 public class MergeTreePropBank
 {
+	final String SRL_EXT = ".srl";
 	HashMap<String,PBInstance> m_pbInstances;
 	
 	public MergeTreePropBank(String propFile, String treeDir, String mergeDir, String headruleFile, String dictDir)
@@ -100,7 +103,7 @@ public class MergeTreePropBank
 		
 		for (String treePath : getTreePaths())
 		{
-			mergeFile = mergeDir + treePath.substring(treePath.lastIndexOf(File.separator)+1) + ".merge";
+			mergeFile = mergeDir + treePath.substring(treePath.lastIndexOf(File.separator)+1) + SRL_EXT;
 			reader    = new TBReader(treeDir + treePath);
 			fout      = IOUtil.createPrintFileStream(mergeFile);
 			
@@ -163,11 +166,10 @@ public class MergeTreePropBank
 			
 			if (pbArg.isLabel("LINK.*"))
 			{
-				if (processLink(pbArgs, pbArg, tree))
-					delArgs.add(pbArg);					
-				else
+				if (!processLink(pbArgs, pbArg, tree))
 					System.err.println("No-achor in "+pbArg.label+": "+instance.toString());
 				
+				delArgs.add(pbArg);
 				continue;
 			}
 		}
@@ -261,7 +263,7 @@ public class MergeTreePropBank
 			{
 				pbArg.putLocs(currArg.getLocs());
 				
-				// find antecedents of relativizer
+				// find antecedents of complementizer
 				if (anchor.terminalId != -1)
 				{
 					node = tree.getNode(anchor.terminalId, anchor.height);
@@ -316,7 +318,7 @@ public class MergeTreePropBank
 				if (curr.isForm("\\*T\\*.*"))
 				{
 					delLocs.add(pbLoc);
-					addLocs.add(curr.antecedent.pbLoc);
+					if (curr.antecedent != null)	addLocs.add(curr.antecedent.pbLoc);
 				}
 				else if (curr.isForm("\\*PRO\\*.*|\\*|\\*-\\d"))
 				{
@@ -432,39 +434,82 @@ public class MergeTreePropBank
 	private boolean addPBArgToTBTree(PBArg pbArg, TBTree tree)
 	{
 		ArrayList<PBLoc> pbLocs = pbArg.getLocs();
-		TBNode node;
+		IntOpenHashSet   addIDs = new IntOpenHashSet();
+		IntOpenHashSet   delIDs = new IntOpenHashSet();
+		PBLoc            rLoc   = null;
+		TBNode           node, tmp;
+		String label = "A"+pbArg.label.substring(3);
 		
-		if (pbLocs.size() == 1)
+		// retrieve all terminal IDs
+		for (PBLoc pbLoc : pbLocs)
 		{
-			PBLoc pbLoc = pbLocs.get(0);
-			node = tree.getNode(pbLoc);
-			if (node == null)	return false;
+			if ((node = tree.getNode(pbLoc)) == null)
+				return false;
 			
-			node.addPBArg(new SRLHead(pbArg.predicateId, pbArg.label));
-			return true;
-		}
-		
-		IntOpenHashSet   tokens = new IntOpenHashSet();
-		ArrayList<PBLoc> heads  = new ArrayList<PBLoc>();
-		int              height, terminalId;
-		
-		for (PBLoc pbLoc : pbArg.getLocs())
-		{
-			if (pbLoc.isType(PBLib.PROP_OP_SKIP))	continue;
-			node = tree.getNode(pbLoc);
-			if (node == null)	return false;
-			
-			tokens.addAll(node.getSubTermainlIDs());
-		}
+			tmp = tree.getTerminalNode(pbLoc.terminalId);
 
-		while (!tokens.isEmpty())
-		{
-			terminalId = JSet.min(tokens);
-			height     = 1;
+			if (pbLoc.isType(PBLib.PROP_OP_SKIP))
+				delIDs.addAll(node.getSubTermainlIDs());
 			
+			if (node.isPos("WH.*"))
+				rLoc = pbLoc;
+			else if (node.isEmptyCategoryRec() && tmp.form.startsWith(TBEnLib.EC_PRO) && pbLoc.terminalId > pbArg.predicateId)
+				continue;
+			else
+				addIDs.addAll(node.getSubTermainlIDs());
 		}
 		
-		node.addPBArg(new SRLHead(pbArg.predicateId, pbArg.label));
+		if (addIDs.isEmpty())	return true;
+		
+		// add terminal IDs
+		int[] ids = addIDs.toArray();
+		Arrays.sort(ids);
+		
+		TBNode pred = tree.getTerminalNode(pbArg.predicateId);
+		pred.addPBArg(new SRLArg(label, ids));
+		
+		// add each argument
+		addIDs.removeAll(delIDs);
+		int terminalId, height;
+		String prefix = "";
+		
+		while (!addIDs.isEmpty())
+		{
+			height = 0;
+			ids = addIDs.toArray();
+			Arrays.sort(ids);
+			terminalId = ids[0];
+			
+			while (true)
+			{
+				node = tree.getNode(terminalId, height+1);
+				
+				if (node == null || !JSet.isSubset(addIDs, node.getSubTermainlIDs()))
+				{
+					node = tree.getNode(terminalId, height);
+					node.addPBHead(new SRLHead(pbArg.predicateId+1, prefix+label));
+					addIDs.removeAll(node.getSubTermainlIDs());
+					break;
+				}
+				
+				height++;
+			}
+			
+			prefix = "C-";
+		}
+		
+		prefix = "R-";
+		
+		if (rLoc != null)
+		{
+			node = tree.getNode(rLoc);
+			ids  = node.getSubTermainlIDs().toArray();
+			Arrays.sort(ids);
+			pred.addPBArg(new SRLArg(prefix+label, ids));
+			
+			node.addPBHead(new SRLHead(pbArg.predicateId+1, prefix+label));
+		}
+		
 		return true;
 	}
 	

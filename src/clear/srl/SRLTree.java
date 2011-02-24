@@ -29,6 +29,7 @@ import java.util.Arrays;
 import clear.dep.DepLib;
 import clear.dep.ITree;
 
+import com.carrotsearch.hppc.FloatArrayList;
 import com.carrotsearch.hppc.FloatObjectOpenHashMap;
 
 /**
@@ -201,7 +202,7 @@ public class SRLTree extends FloatObjectOpenHashMap<SRLNode> implements ITree<SR
 		if (countRoot != 1)
 		{
 			System.err.println("Not single-rooted: "+countRoot);
-			System.out.println(toString());
+		//	System.err.println(toString());
 			return false;
 		}
 		
@@ -217,6 +218,31 @@ public class SRLTree extends FloatObjectOpenHashMap<SRLNode> implements ITree<SR
 		{
 			node = node.nextNode;
 			build.append(node);
+			build.append("\n");
+		}
+		
+		return build.toString().trim();
+	}
+	
+	public String toCoNLL09()
+	{
+		StringBuilder build = new StringBuilder();
+		SRLNode       node  = root_node;
+		
+		FloatArrayList predIDs = new FloatArrayList();
+		
+		while (node.nextNode != null)
+		{
+			node = node.nextNode;
+			if (node.isPredicate())	predIDs.add(node.id);
+		}
+		
+		node = root_node;
+		
+		while (node.nextNode != null)
+		{
+			node = node.nextNode;
+			build.append(node.toCoNLL09(predIDs));
 			build.append("\n");
 		}
 		
