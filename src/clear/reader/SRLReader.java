@@ -30,13 +30,14 @@ import clear.dep.DepNode;
 import clear.dep.DepTree;
 import clear.dep.feat.FeatCzech;
 import clear.dep.feat.FeatEnglish;
+import clear.dep.srl.SRLInfo;
 
 /**
  * Dependency reader.
  * @author Jinho D. Choi
  * <b>Last update:</b> 6/26/2010
  */
-public class DepReader extends AbstractReader<DepNode,DepTree>
+public class SRLReader extends AbstractReader<DepNode,DepTree>
 {
 	private boolean b_train;
 	
@@ -45,7 +46,7 @@ public class DepReader extends AbstractReader<DepNode,DepTree>
 	 * @param filename name of the file containing dependency trees
 	 * @param isTrain  true if the reader is for training
 	 */
-	public DepReader(String filename, boolean isTrain)
+	public SRLReader(String filename, boolean isTrain)
 	{
 		super(filename);
 		b_train = isTrain;
@@ -65,7 +66,7 @@ public class DepReader extends AbstractReader<DepNode,DepTree>
 			isNext = appendNextTree(tree);
 		}
 		catch (IOException e) {e.printStackTrace();}
-
+		
 		return isNext ? tree : null;
 	}
 	
@@ -83,14 +84,15 @@ public class DepReader extends AbstractReader<DepNode,DepTree>
 			if      (s_language.equals(LANG_EN))
 				node.feats = new FeatEnglish(str[4]);
 			else if (s_language.equals(LANG_CZ))
-				node.feats = new FeatCzech(str[4]);			
+				node.feats = new FeatCzech(str[4]);
 		}
 		
-		if (b_train)
-		{
-			node.headId = Integer.parseInt(str[5]);
-			node.deprel = str[6];
-		}
+		node.headId = Integer.parseInt(str[5]);
+		node.deprel = str[6];
+		if ((node.headId >= 0))	node.hasHead = true;
+		
+		if (b_train)	node.srlInfo = new SRLInfo(str[7], str[8]);
+		else			node.srlInfo = new SRLInfo(str[7], DepLib.FIELD_BLANK);
 		
 		return node;
 	}

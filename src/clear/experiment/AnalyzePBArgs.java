@@ -160,6 +160,7 @@ public class AnalyzePBArgs
 		}
 	}
 	
+	@SuppressWarnings("unchecked")
 	void printNumberedAdjunct(String outputFile)
 	{
 		PrintStream fout = IOUtil.createPrintFileStream(outputFile);
@@ -291,12 +292,14 @@ public class AnalyzePBArgs
 		}
 	}
 	
+	@SuppressWarnings("unchecked")
 	void printVerbPrepPMI(String outputFile)
 	{
 		PrintStream fout = IOUtil.createPrintFileStream(outputFile);
 		ArrayList<JObjectDoubleTuple<String>> list = new ArrayList<JObjectDoubleTuple<String>>();
 		int nVerb, nVerbTotal, nPrep, nVerbArg, nVerbArgTotal, nVerbPrep;
 		String key;	String[] tmp;
+		@SuppressWarnings("unused")
 		double pmi, pv, p, v, pnv, pmv;
 		double smooth = 0.000001;
 		
@@ -391,6 +394,7 @@ public class AnalyzePBArgs
 		}
 	}
 	
+	@SuppressWarnings("unchecked")
 	void printRequiredArgument(String outputFile)
 	{
 		PrintStream fout = IOUtil.createPrintFileStream(outputFile);

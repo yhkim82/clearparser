@@ -602,11 +602,8 @@ public class TBPBEnConvert
 				{
 					SRLNode head = s_tree.get(ec.getDepHeadId());
 					
-					if (p_tree.isUnder((int)ec.getDepHeadId()-1, TBEnLib.POS_PRN))
-					{
-						while (!head.isDeprel(DepLib.DEPREL_PRN))
-							head = s_tree.get(head.getDepHeadId());						
-					}
+					while (head.getDepHeadId() != ante.id)
+						head = s_tree.get(head.getDepHeadId());
 					
 					head.setDepHead(ante.getDepHeadId(), ante.getDeprel(), 1);
 				}

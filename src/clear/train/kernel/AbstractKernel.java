@@ -34,8 +34,9 @@ import com.carrotsearch.hppc.IntArrayList;
  */
 abstract public class AbstractKernel
 {
-	static public final byte KERNEL_BINARY = 0;
-	static public final byte KERNEL_VALUE  = 1;
+	static public final byte KERNEL_BINARY  = 0;
+	static public final byte KERNEL_VALUE   = 1;
+	static public final byte KERNEL_PERMUTE = 2;
 	
 	/** Delimiter between index and value (e.g. 3:0.12) */
 	static public final String FTR_DELIM = ":";

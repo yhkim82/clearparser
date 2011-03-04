@@ -1,5 +1,5 @@
 /**
-* Copyright (c) 2009, Regents of the University of Colorado
+* Copyright (c) 2010, Regents of the University of Colorado
 * All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -21,77 +21,90 @@
 * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 * POSSIBILITY OF SUCH DAMAGE.
 */
-package clear.reader;
-
-import java.io.IOException;
+package clear.dep.srl;
 
 import clear.dep.DepLib;
-import clear.dep.DepNode;
-import clear.dep.DepTree;
-import clear.dep.feat.FeatCzech;
-import clear.dep.feat.FeatEnglish;
+import clear.ftr.FtrLib;
 
 /**
- * Dependency reader.
+ * Semantic role labeling head.
  * @author Jinho D. Choi
- * <b>Last update:</b> 6/26/2010
+ * <b>Last update:</b> 1/26/2011
  */
-public class DepReader extends AbstractReader<DepNode,DepTree>
+public class SRLHead implements Comparable<SRLHead>
 {
-	private boolean b_train;
+	static final public String DELIM = ":";
 	
-	/**
-	 * Initializes the dependency reader for <code>filename</code>.
-	 * @param filename name of the file containing dependency trees
-	 * @param isTrain  true if the reader is for training
-	 */
-	public DepReader(String filename, boolean isTrain)
+	public int    headId;
+	public String label;
+	
+	public SRLHead()
 	{
-		super(filename);
-		b_train = isTrain;
+		set(DepLib.NULL_HEAD_ID, FtrLib.TAG_NULL);
 	}
-	
-	/** 
-	 * Returns the next dependency tree.
-	 * If there is no more tree, returns null.
-	 */
-	public DepTree nextTree()
-	{
-		DepTree tree   = new DepTree();
-		boolean isNext = false;
-		
-		try
-		{
-			isNext = appendNextTree(tree);
-		}
-		catch (IOException e) {e.printStackTrace();}
 
-		return isNext ? tree : null;
+	/** @param head "headId:label" */
+	public SRLHead(String head)
+	{
+		String[] tmp = head.split(DELIM);
+		set(Integer.parseInt(tmp[0]), tmp[1]);
 	}
 	
-	protected DepNode toNode(String line, int id)
+	public SRLHead(int headId, String label)
 	{
-		DepNode node = new DepNode();
-		String[] str = line.split(FIELD_DELIM);
-		node.id      = Integer.parseInt(str[0]);
-		node.form    = str[1];
-		node.lemma   = str[2];
-		node.pos     = str[3];
+		set(headId, label);
+	}
+
+	public void set(int headId, String label)
+	{
+		this.headId = headId;
+		this.label  = label; 
+	}
+	
+	public boolean equals(int headId)
+	{
+		return this.headId == headId; 
+	}
+	
+	public boolean equals(String label)
+	{
+		return this.label.equals(label);
+	}
+	
+	public boolean equals(int headId, String label)
+	{
+		return this.headId == headId && this.label.equals(label); 
+	}
+	
+	public void copy(SRLHead head)
+	{
+		set(head.headId, head.label);
+	}
+	
+	public SRLHead clone()
+	{
+		return new SRLHead(headId, label);
+	}
+	
+	public String toString()
+	{
+		StringBuilder build = new StringBuilder();
 		
-		if (!str[4].equals(DepLib.FIELD_BLANK))
-		{
-			if      (s_language.equals(LANG_EN))
-				node.feats = new FeatEnglish(str[4]);
-			else if (s_language.equals(LANG_CZ))
-				node.feats = new FeatCzech(str[4]);			
-		}
+		build.append(headId);
+		build.append(DELIM);
+		build.append(label);
 		
-		if (b_train)
-		{
-			node.headId = Integer.parseInt(str[5]);
-			node.deprel = str[6];
-		}
+		return build.toString();
+	}
+
+	@Override
+	public int compareTo(SRLHead head)
+	{
+		float diff = headId - head.headId;
 		
-		return node;
+		if      (diff < 0)	return -1;
+		else if (diff > 0)	return  1;
+		
+		return  0;
 	}
 }

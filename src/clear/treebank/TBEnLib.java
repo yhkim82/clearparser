@@ -227,26 +227,27 @@ public class TBEnLib extends TBLib
 	
 	static public boolean isBe(String form)
 	{
-		return form.equals("be") || form.equals("been") || form.equals("being") ||
-			   form.equals("am") || form.equals("is") || form.equals("was") ||
-			   form.equals("are") || form.equals("were") || 
-			   form.equals("'m") || form.equals("'s") || form.equals("'re");
+		return form.matches("be|been|being|am|is|was|are|were|'m|'s|'re");
 	}
 	
 	static public boolean isHave(String form)
 	{
-		return form.equals("have") || form.equals("has") || form.equals("had") || form.equals("having") ||
-			   form.equals("'ve") || form.equals("'d");
+		return form.matches("have|has|had|having|'ve|'d");
 	}
 	
 	static public boolean isDo(String form)
 	{
-		return form.equals("do") || form.equals("does") || form.equals("did") || form.equals("done") || form.equals("doing");
+		return form.matches("do|does|did|done|doing");
 	}
 	
 	static public boolean isGet(String form)
 	{
 		return form.equals("get") || form.equals("gets") || form.equals("got") || form.equals("gotten") || form.equals("getting");
+	}
+	
+	static public boolean isBecome(String form)
+	{
+		return form.matches("become|becomes|became");
 	}
 	
 	static public boolean isAux(String form)

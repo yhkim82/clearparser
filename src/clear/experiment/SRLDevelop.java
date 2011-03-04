@@ -35,15 +35,14 @@ import clear.decode.OneVsAllDecoder;
 import clear.dep.DepNode;
 import clear.dep.DepTree;
 import clear.engine.AbstractTrain;
-import clear.engine.DepEvaluate;
-import clear.ftr.map.DepFtrMap;
-import clear.ftr.xml.DepFtrXml;
+import clear.engine.SRLEvaluate;
+import clear.ftr.map.SRLFtrMap;
+import clear.ftr.xml.SRLFtrXml;
 import clear.model.OneVsAllModel;
-import clear.parse.AbstractDepParser;
-import clear.parse.ShiftEagerParser;
-import clear.parse.ShiftPopParser;
+import clear.parse.AbstractSRLParser;
+import clear.parse.SRLParser;
 import clear.reader.AbstractReader;
-import clear.reader.CoNLLXReader;
+import clear.reader.SRLReader;
 import clear.util.IOUtil;
 
 /**
@@ -51,7 +50,7 @@ import clear.util.IOUtil;
  * <b>Last update:</b> 11/19/2010
  * @author Jinho D. Choi
  */
-public class DepDevelop extends AbstractTrain
+public class SRLDevelop extends AbstractTrain
 {
 	private final int MAX_ITER = 5;
 	
@@ -62,10 +61,10 @@ public class DepDevelop extends AbstractTrain
 	@Option(name="-d", usage="development file", required=true, metaVar="REQUIRED")
 	private String s_devFile    = null; 
 	
-	private StringBuilder s_build = null;
-	private DepFtrXml     t_xml   = null;
-	private DepFtrMap     t_map   = null;
-	private OneVsAllModel m_model = null;
+	private StringBuilder   s_build = null;
+	private SRLFtrXml       t_xml   = null;
+	private SRLFtrMap[]     t_map   = null;
+	private OneVsAllModel[] m_model = null;
 	
 	public void initElements() {}
 	
@@ -74,93 +73,98 @@ public class DepDevelop extends AbstractTrain
 		printConfig();
 		
 		int    i = 0;
-		String instanceFile = "instaces.ftr";
+		String instanceFile[] = {"instaces0.ftr", "instaces1.ftr"};
 		String log          = "\n== Bootstrapping: "+i+" ==\n";
 		
 		s_build = new StringBuilder();
+		t_map   = new SRLFtrMap[instanceFile.length];
+		m_model = new OneVsAllModel[instanceFile.length];
 		s_build.append(log);
 		System.out.print(log);
 		
-		trainDepParser(ShiftPopParser.FLAG_PRINT_LEXICON , null, null);
-		trainDepParser(ShiftPopParser.FLAG_PRINT_INSTANCE, instanceFile, null);
-		m_model = (OneVsAllModel)trainModel(instanceFile, null);
+		trainDepParser(SRLParser.FLAG_TRAIN_LEXICON , null, null);
+		trainDepParser(SRLParser.FLAG_TRAIN_INSTANCE, instanceFile, null);
 		
-		double prevAcc = 0, currAcc;
+		for (int j=0; j<instanceFile.length; j++)
+			m_model[j] = (OneVsAllModel)trainModel(instanceFile[j], null);
+		
+		double prevAcc = 100, currAcc;
 		
 		do
 		{
-			currAcc = trainDepParser(ShiftPopParser.FLAG_PREDICT, s_devFile+".parse."+i, null);
+			String[] labelFile = {s_devFile+".label."+i};
+			currAcc = trainDepParser(SRLParser.FLAG_PREDICT, labelFile, null);
+			if (currAcc >= 84)	System.out.println("== BINGO ==");
 			if (currAcc <= prevAcc)	break;
 			
 			prevAcc = currAcc;
-			trainDepParser(ShiftPopParser.FLAG_TRAIN_CONDITIONAL, instanceFile, null);
+			trainDepParser(SRLParser.FLAG_TRAIN_CONDITIONAL, instanceFile, null);
 			
 			log = "\n== Bootstrapping: "+(++i)+" ==\n";
 			s_build.append(log);
 			System.out.print(log);
 
-			m_model = null;
-			m_model = (OneVsAllModel)trainModel(instanceFile, null);
+			m_model = new OneVsAllModel[instanceFile.length];
+			for (int j=0; j<instanceFile.length; j++)
+				m_model[j] = (OneVsAllModel)trainModel(instanceFile[j], null);
 		}
 		while (i < MAX_ITER);
 		
-		new File(ENTRY_LEXICA).delete();
-		new File(instanceFile).delete();
+		new File(ENTRY_LEXICA+".0").delete();
+		new File(ENTRY_LEXICA+".1").delete();
+		for (String filename : instanceFile)	new File(filename).delete();
 		System.out.println(s_build.toString());
 	}
 	
 	/** Trains the dependency parser. */
-	private double trainDepParser(byte flag, String outputFile, JarArchiveOutputStream zout) throws Exception
+	private double trainDepParser(byte flag, String[] outputFile, JarArchiveOutputStream zout) throws Exception
 	{
-		AbstractDepParser parser  = null;
-		OneVsAllDecoder   decoder = null;
-		PrintStream       fout    = null;
+		AbstractSRLParser labeler = null;
+		OneVsAllDecoder[] decoder = null;
+		PrintStream[]     fout    = null;
+		String[] lexiconFile = {ENTRY_LEXICA+".0", ENTRY_LEXICA+".1"};
 		
-		if (flag == ShiftPopParser.FLAG_PRINT_LEXICON)
+		if (flag == SRLParser.FLAG_TRAIN_LEXICON)
 		{
 			System.out.println("\n* Save lexica");
-			
-			if (s_depParser.equals(AbstractDepParser.ALG_SHIFT_EAGER))
-				parser = new ShiftEagerParser(flag, s_featureXml);
-			else if (s_depParser.equals(AbstractDepParser.ALG_SHIFT_POP))
-				parser = new ShiftPopParser  (flag, s_featureXml);
+			labeler = new SRLParser(flag, s_featureXml);
 		}
-		else if (flag == ShiftPopParser.FLAG_PRINT_INSTANCE)
+		else if (flag == SRLParser.FLAG_TRAIN_INSTANCE)
 		{
 			System.out.println("\n* Print training instances");
 			System.out.println("- loading lexica");
 			
-			if (s_depParser.equals(AbstractDepParser.ALG_SHIFT_EAGER))
-				parser = new ShiftEagerParser(flag, t_xml, ENTRY_LEXICA, outputFile);
-			else if (s_depParser.equals(AbstractDepParser.ALG_SHIFT_POP))
-				parser = new ShiftPopParser  (flag, t_xml, ENTRY_LEXICA, outputFile);
+			labeler = new SRLParser(flag, t_xml, lexiconFile, outputFile);
 		}
-		else if (flag == ShiftPopParser.FLAG_PREDICT)
+		else if (flag == SRLParser.FLAG_PREDICT)
 		{
 			System.out.println("\n* Predict");
-			decoder = new OneVsAllDecoder(m_model);
-			fout    = IOUtil.createPrintFileStream(outputFile);
 			
-			if (s_depParser.equals(AbstractDepParser.ALG_SHIFT_EAGER))
-				parser = new ShiftEagerParser(AbstractDepParser.FLAG_PREDICT, t_xml, t_map, decoder);
-			else if (s_depParser.equals(AbstractDepParser.ALG_SHIFT_POP))
-				parser = new ShiftPopParser  (AbstractDepParser.FLAG_PREDICT, t_xml, t_map, decoder);
+			decoder = new OneVsAllDecoder[m_model.length];
+			for (int i=0; i<decoder.length; i++)
+				decoder[i] = new OneVsAllDecoder(m_model[i]);
+			
+			fout = new PrintStream[outputFile.length];
+			for (int i=0; i<fout.length; i++)
+				fout[i] = IOUtil.createPrintFileStream(outputFile[i]);
+			
+			labeler = new SRLParser(SRLParser.FLAG_PREDICT, t_xml, t_map, decoder);
 		}
-		else if (flag == ShiftPopParser.FLAG_TRAIN_CONDITIONAL)
+		else if (flag == SRLParser.FLAG_TRAIN_CONDITIONAL)
 		{
 			System.out.println("\n* Train conditional");
-			decoder = new OneVsAllDecoder(m_model);
 			
-			if (s_depParser.equals(AbstractDepParser.ALG_SHIFT_EAGER))
-				parser = new ShiftEagerParser(flag, t_xml, t_map, decoder, outputFile);
-			else if (s_depParser.equals(AbstractDepParser.ALG_SHIFT_POP))
-				parser = new ShiftPopParser  (flag, t_xml, t_map, decoder, outputFile);
+			decoder = new OneVsAllDecoder[m_model.length];
+			for (int i=0; i<decoder.length; i++)
+				decoder[i] = new OneVsAllDecoder(m_model[i]);
+			
+			labeler = new SRLParser(flag, t_xml, t_map, decoder, outputFile);
 		}
 		
 		String  inputFile;
 		boolean isTrain;
 		
-		if (flag == ShiftPopParser.FLAG_PREDICT)
+		if (flag == SRLParser.FLAG_PREDICT)
 		{
 			inputFile = s_devFile;
 			isTrain   = false;
@@ -171,55 +175,54 @@ public class DepDevelop extends AbstractTrain
 			isTrain   = true;
 		}
 		
-		AbstractReader<DepNode, DepTree> reader = new CoNLLXReader(inputFile, isTrain);
+		AbstractReader<DepNode, DepTree> reader = new SRLReader(inputFile, isTrain);
 		DepTree tree;	int n;
 		
-		parser.setLanguage(s_language);
+		labeler.setLanguage(s_language);
 		reader.setLanguage(s_language);
 		
 		for (n=0; (tree = reader.nextTree()) != null; n++)
 		{
-			parser.parse(tree);
+			labeler.parse(tree);
 			
-			if (flag == ShiftPopParser.FLAG_PREDICT)
-				fout.println(tree+"\n");
+			if (flag == SRLParser.FLAG_PREDICT)
+				fout[0].println(tree+"\n");
 			if (n % 1000 == 0)
 				System.out.printf("\r- parsing: %dK", n/1000);
 		}
 		
 		System.out.println("\r- parsing: "+n);
 		
-		if (flag == ShiftPopParser.FLAG_PRINT_LEXICON)
+		if (flag == SRLParser.FLAG_TRAIN_LEXICON)
 		{
 			System.out.println("- saving");
-			parser.saveTags(ENTRY_LEXICA);
-			t_xml = parser.getDepFtrXml();
+			labeler.saveTags(lexiconFile);
+			t_xml = labeler.getFtrXml();
 		}
-		else if (flag == ShiftPopParser.FLAG_PRINT_INSTANCE)
+		else if (flag == SRLParser.FLAG_TRAIN_INSTANCE)
 		{
-			parser.closeOutputStream();
-			t_map = parser.getDepFtrMap();
+			labeler.closeOutputStream();
+			t_map = labeler.getFtrMap();
 		}
-		else if (flag == ShiftPopParser.FLAG_PREDICT)
+		else if (flag == SRLParser.FLAG_PREDICT)
 		{
-			fout.close();
+			for (int i=0; i<fout.length; i++)
+				fout[i].close();
 			
-			String[] args = {"-g", s_devFile, "-s", outputFile};
+			String[] args = {"-g", s_devFile, "-s", outputFile[0]};
 			String   log  = "\n* Development accuracy\n";
 			
 			System.out.print(log);
-			DepEvaluate eval = new DepEvaluate(args);
+			SRLEvaluate eval = new SRLEvaluate(args);
 			
 			s_build.append(log);
-			s_build.append("- LAS: "+eval.getLas()+"\n");
-			s_build.append("- UAS: "+eval.getUas()+"\n");
-			s_build.append("- LS : "+eval.getLs()+"\n");
+			s_build.append("- F1: "+eval.getF1()+"\n");
 			
-			return eval.getLas();
+			return eval.getF1();
 		}
-		else if (flag == ShiftPopParser.FLAG_TRAIN_CONDITIONAL)
+		else if (flag == SRLParser.FLAG_TRAIN_CONDITIONAL)
 		{
-			parser.closeOutputStream();
+			labeler.closeOutputStream();
 		}
 		
 		return 0;
@@ -238,7 +241,7 @@ public class DepDevelop extends AbstractTrain
 	
 	static public void main(String[] args)
 	{
-		DepDevelop developer = new DepDevelop();
+		SRLDevelop developer = new SRLDevelop();
 		CmdLineParser    cmd = new CmdLineParser(developer);
 		
 		try

@@ -4,23 +4,21 @@ import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
 
-import clear.dep.DepEval;
 import clear.dep.DepNode;
 import clear.dep.DepTree;
+import clear.dep.srl.SRLEval;
 import clear.reader.AbstractReader;
-import clear.reader.CoNLLXReader;
+import clear.reader.SRLReader;
 
-public class DepEvaluate
+public class SRLEvaluate
 {
 	@Option(name="-g", usage="gold-standard file", required=true, metaVar="REQUIRED")
 	private String s_goldFile;
 	@Option(name="-s", usage="system file", required=true, metaVar="REQUIRED")
 	private String s_sysFile;
-	@Option(name="-b", usage="1: skip unclassified dependencies (default = 0)", metaVar="OPTIONAL")
-	private byte   b_skip = 0;
-	private DepEval d_eval;
+	private SRLEval d_eval;
 	
-	public DepEvaluate(String args[])
+	public SRLEvaluate(String args[])
 	{
 		CmdLineParser cmd  = new CmdLineParser(this);
 		
@@ -28,14 +26,15 @@ public class DepEvaluate
 		{
 			cmd.parseArgument(args);
 			
-			AbstractReader<DepNode,DepTree> gReader = new CoNLLXReader(s_goldFile, true);
-			AbstractReader<DepNode,DepTree> sReader = new CoNLLXReader(s_sysFile , true);
-			DepTree   gTree, sTree;
-			d_eval = new DepEval(b_skip);
+			AbstractReader<DepNode,DepTree> gReader = new SRLReader(s_goldFile, true);
+			AbstractReader<DepNode,DepTree> sReader = new SRLReader(s_sysFile , true);
+			DepTree gTree, sTree;
+			d_eval = new SRLEval();
 			
 			while ((gTree = gReader.nextTree()) != null)
 			{
 				sTree = sReader.nextTree();
+				
 				if (sTree == null)
 				{
 					System.err.println("More tree needed in '"+s_sysFile+"'");
@@ -45,7 +44,7 @@ public class DepEvaluate
 				d_eval.evaluate(gTree, sTree);
 			}
 			
-			d_eval.printTotal();
+			d_eval.print();
 		}
 		catch (CmdLineException e)
 		{
@@ -54,23 +53,13 @@ public class DepEvaluate
 		}
 	}
 	
-	public double getLas()
+	public double getF1()
 	{
-		return d_eval.getLas();
+		return d_eval.getF1();
 	}
 	
-	public double getUas()
-	{
-		return d_eval.getUas();
-	}
-	
-	public double getLs()
-	{
-		return d_eval.getLs();
-	}
-
 	static public void main(String[] args)
 	{
-		new DepEvaluate(args);
+		new SRLEvaluate(args);
 	}
 }

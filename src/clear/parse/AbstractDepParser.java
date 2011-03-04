@@ -263,8 +263,8 @@ abstract public class AbstractDepParser
 			{
 				coord.leftMostDep  = bestPair.object1;
 				coord.rightMostDep = bestPair.object2;
-				bestPair.object1.coordHeadId = coordId;
-				bestPair.object2.coordHeadId = coordId;
+				bestPair.object1.coordHead = coord;
+				bestPair.object2.coordHead = coord;
 			}
 		}
 	}
@@ -540,9 +540,9 @@ abstract public class AbstractDepParser
 		DepNode lambda = d_tree.get(i_lambda);
 		DepNode beta   = d_tree.get(i_beta);
 		
-		if      (lambda.coordHeadId == i_beta)	arr.add(beginIndex[0]);
-		else if (lambda.coordHeadId > 0)		arr.add(beginIndex[0]+1);
-		if      (beta.coordHeadId == i_lambda)	arr.add(beginIndex[0]+2);
+		if      (lambda.coordHead.id == i_beta)	arr.add(beginIndex[0]);
+		else if (lambda.coordHead.id > 0)		arr.add(beginIndex[0]+1);
+		if      (beta.coordHead.id == i_lambda)	arr.add(beginIndex[0]+2);
 
 		beginIndex[0] += 3;
 	}
@@ -601,12 +601,12 @@ abstract public class AbstractDepParser
 		{
 			return node.getDeprel();
 		}
-		else if ((m = DepFtrXml.FEAT.matcher(token.field)).find())
+		else if ((m = DepFtrXml.P_FEAT.matcher(token.field)).find())
 		{
 			int idx = Integer.parseInt(m.group(1));
 			return node.getFeat(idx);
 		}
-		else if ((m = DepFtrXml.TRANS.matcher(token.field)).find())
+		else if ((m = DepFtrXml.P_TRANS.matcher(token.field)).find())
 		{
 			int idx = prev_transitions.size() - Integer.parseInt(m.group(1)) - 1;
 			return (idx >= 0) ? prev_transitions.get(idx) : null;

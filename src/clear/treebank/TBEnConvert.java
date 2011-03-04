@@ -564,7 +564,7 @@ public class TBEnConvert
 			int coIndex = Integer.parseInt(tmp[1]);
 			TBNode antecedent = p_tree.getAntecedent(coIndex);
 			if (antecedent == null)	continue;
-						
+			
 			DepNode ante = d_tree.get(antecedent.headId+1);
 			if (ante.isPos(TBLib.POS_NONE))	continue;
 			if (ante.id == ec.headId)		continue;
@@ -598,11 +598,8 @@ public class TBEnConvert
 				{
 					DepNode head = d_tree.get(ec.headId);
 					
-					if (p_tree.isUnder(ec.headId-1, TBEnLib.POS_PRN))
-					{
-						while (!head.isDeprel(DepLib.DEPREL_PRN))
-							head = d_tree.get(head.headId);						
-					}
+					while (head.headId != ante.id)
+						head = d_tree.get(head.headId);
 					
 					head.setHead(ante.headId, ante.deprel, 1);
 				}

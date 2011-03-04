@@ -24,10 +24,12 @@
 package clear.dep;
 
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashSet;
 
 import clear.ftr.map.DepFtrMap;
+import clear.ftr.xml.SRLFtrXml;
 
 /**
  * Dependency tree.
@@ -49,7 +51,10 @@ public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
 	 */
 	public DepTree()
 	{
-		add(new DepNode(true));
+		DepNode root = new DepNode();
+		root.toRoot();
+
+		add(root);
 		init(0, 0d);
 	}
 	
@@ -104,12 +109,6 @@ public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
 		curr.setHead(headId, deprel, score);
 	}
 	
-	public void unhead()
-	{
-		for (int i=1; i<size(); i++)
-			get(i).unhead();
-	}
-	
 	/**
 	 * Returns the head of the <code>currId</code>'th node.
 	 * If there is no such head, returns a null node.
@@ -134,6 +133,11 @@ public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
 		return get(currId).leftMostDep;
 	}
 	
+	public DepNode getLeftSibling(int currId)
+	{
+		return get(currId).leftSibling;
+	}
+	
 	/**
      * Returns the index of the left-nearest punctuation of the <code>currId</code>'th node.
      * Punctuation is defined in <code>lib</code> and the index can be retrieved from it. 
@@ -153,6 +157,11 @@ public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
 		}
 		
 		return -1;
+	}
+	
+	public DepNode getRightSibling(int currId)
+	{
+		return get(currId).rightSibling;
 	}
 	
 	/** @return the rightmost dependent of the <code>currId</code>'th node. */
@@ -248,6 +257,123 @@ public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
 		return set;
 	}
 	
+	public String getPath(int fromId, int toId)
+	{
+		DepNode fNode = get(fromId);
+		DepNode tNode = get(toId);
+		
+		if      (isAncestor(fNode, tNode))	return getPathDown(fNode, tNode);
+		else if (isAncestor(tNode, fNode))	return getPathUp  (fNode, tNode);
+
+		DepNode head = tNode;
+		
+		while (head.headId >= 0)
+		{
+			head = get(head.headId);
+			
+			if (isAncestor(head, fNode))
+			{
+				StringBuilder build = new StringBuilder();
+				
+				build.append(getPathUp  (fNode, head));
+				build.append(getPathDown(head , tNode));
+				
+				return build.toString();
+			}
+		}
+		
+		return "NO_PATH";
+	}
+	
+	private String getPathDown(DepNode fNode, DepNode tNode)
+	{
+		ArrayDeque<String> deq = new ArrayDeque<String>();
+		
+		while (tNode != fNode)
+		{
+			deq.push(tNode.deprel);
+			tNode = get(tNode.headId);
+		}
+		
+		StringBuilder build = new StringBuilder();
+		
+		while (!deq.isEmpty())
+		{
+			build.append("|");
+			build.append(deq.pop());
+		}
+		
+		return build.toString();
+	}
+	
+	private String getPathUp(DepNode fNode, DepNode tNode)
+	{
+		StringBuilder build = new StringBuilder();
+		
+		while (fNode != tNode)
+		{
+			build.append("^");
+			build.append(fNode.deprel);
+			
+			fNode = get(fNode.headId);
+		}
+		
+		return build.toString();
+	}
+	
+	public String getSubcat(String field, int currId)
+	{
+		StringBuilder build = new StringBuilder();
+		
+		for (DepNode node : getDependents(currId))
+		{
+			if (!node.isDeprel(DepLib.DEPREL_P))
+			{
+				if (field.equals(SRLFtrXml.F_SC_DEP))
+					build.append(node.deprel);
+				else if (field.equals(SRLFtrXml.F_SC_POS))
+					build.append(node.pos);
+				
+				build.append("_");
+			}
+		}
+		
+		return build.toString();
+	}
+	
+	public String getReducedSubcat(String field, int currId)
+	{
+		StringBuilder build = new StringBuilder();
+		String last = "";
+		
+		for (DepNode node : getDependents(currId))
+		{
+			if (!node.isDeprel(DepLib.DEPREL_P))
+			{
+				if (field.equals(SRLFtrXml.F_SC_DEP))
+				{
+					if (!node.isDeprel(last))
+					{
+						build.append(node.deprel);
+						last = node.deprel;
+					}
+				}
+				else if (field.equals(SRLFtrXml.F_SC_POS))
+				{
+					if (!node.isPos(last))
+					{
+						build.append(node.pos);
+						last = node.pos;
+					}					
+				}
+			
+				build.append("_");				
+			}
+		}
+		
+		return build.toString();
+	}
+	
 	/** @return the score of the tree. */
 	public double getScore()
 	{
@@ -304,6 +430,51 @@ public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
 		return false;
 	}
 	
+	public void setSubcat()
+	{
+		DepNode node, head, prev, next;
+		int i, j;
+		
+		for (i=1; i<size(); i++)
+		{
+			node = get(i);
+			
+			if (node.headId >= 0)
+			{
+				head = get(node.headId);
+				
+				if (node.id < head.id)
+				{
+					if (head.leftMostDep == null || head.leftMostDep.id > node.id)
+						head.leftMostDep = node;
+				}
+				else
+				{
+					if (head.rightMostDep == null || head.rightMostDep.id < node.id)
+						head.rightMostDep = node;
+				}
+			}
+			
+			ArrayList<DepNode> children = getDependents(node.id);
+
+			for (j=1; j<children.size(); j++)
+			{
+				prev = children.get(j-1);
+				next = children.get(j);
+				
+				next.leftSibling = prev;
+			}
+			
+			for (j=0; j<children.size()-1; j++)
+			{
+				prev = children.get(j);
+				next = children.get(j+1);
+				
+				prev.rightSibling = next;
+			}
+		}
+	}
+	
 	/**
 	 * Prints errors if not unique-root, single-headed, connected, acyclic.
 	 * @return true if there is no error.
@@ -335,6 +506,7 @@ public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
 		if (countRoot != 1)
 		{
 			System.err.println("Not single-rooted: "+countRoot);
+		//	System.err.println(this.toString());
 			return false;
 		}
 		
