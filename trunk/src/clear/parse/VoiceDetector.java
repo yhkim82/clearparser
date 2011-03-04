@@ -7,33 +7,33 @@ import clear.treebank.TBNode;
 
 public class VoiceDetector
 {
-	static public int getPassive(TBNode predicate)
+	static public int getPassive(TBNode pred)
 	{
-		if (!predicate.pos.matches("VBN"))
+		if (!pred.pos.matches("VBN"))
 			return 0;
        
 		// Ordinary passive:
 		// 1. Parent is VP, closest verb sibling of any VP ancestor is passive auxiliary (be verb)
 		{
-			TBNode currNode = predicate;
+			TBNode parent = pred.getParent();
 			
-			while (currNode.getParent() != null && currNode.getParent().isPos("VP"))
+			while (parent != null && parent.isPos("VP"))
 			{
-				if (findAux(currNode))	return 1;
-				currNode = currNode.getParent();
+				if (findAux(parent))	return 1;
+				parent = parent.getParent();
 			}
 		}
 		
 		// 2. ancestor path is (ADVP->)*VP, closest verb sibling of the VP is passive auxiliary (be verb)
 		{
-			TBNode currNode = predicate;
+			TBNode curr = pred;
 			
-			while (currNode.getParent() != null && currNode.getParent().isPos("ADJP"))
-				currNode = currNode.getParent();
+			while (curr.getParent() != null && curr.getParent().isPos("ADJP|UCP"))
+				curr = curr.getParent();
 			
-			if (currNode != predicate && currNode.isPos("VP"))
+			if (curr != pred && curr.getParent().isPos("VP"))
 			{
-				if (findAux(currNode))	return 2;
+				if (findAux(curr))	return 2;
 			}
 		}
 		
@@ -41,36 +41,28 @@ public class VoiceDetector
 		//1. Parent and nested ancestors are VP,
 		//   none of VP ancestor's preceding siblings is verb
 		//   parent of oldest VP ancestor is NP
-		{
-			TBNode currNode = predicate;
-			boolean   found = true;
+		outer: {
+			TBNode curr = pred;
 			
-			while (currNode.getParent() != null && currNode.getParent().isPos("VP"))
+			while (curr.getParent() != null && curr.getParent().isPos("VP"))
 			{
-				ArrayList<TBNode> siblings = currNode.getParent().getChildren();
+				curr = curr.getParent();
+				ArrayList<TBNode> siblings = curr.getParent().getChildren();
 				
-				for (int i=currNode.childId-1; i>=0; --i)
+				for (int i=curr.childId-1; i>=0; --i)
 				{
-					if (!siblings.get(i).isToken()) continue;
-					
-					if (siblings.get(i).pos.matches("VB.*|AUX|MD"))
-					{
-						found = false;
-						break;
-					}
+					if (siblings.get(i).isPos("VB.*|AUX|MD"))
+						break outer;
 				}
-				
-				if (!found) break;
-				currNode = currNode.getParent();
 			}
 			
-			if (found && currNode != predicate && currNode.getParent() != null && currNode.getParent().isPos("NP"))
+			if (curr != pred && curr.getParent() != null && curr.getParent().isPos("NP"))
 				return 3;
 		}
 		
 		//2. Parent is PP
 		{
-			TBNode parent = predicate.getParent();
+			TBNode parent = pred.getParent();
 			
 			if (parent != null && parent.isPos("PP"))
 				return 4;
@@ -78,7 +70,7 @@ public class VoiceDetector
 		
 		//3. Parent is VP, grandparent is clause, and great grandparent is clause, NP, VP or PP
 		{
-			TBNode parent = predicate.getParent();
+			TBNode parent = pred.getParent();
 			TBNode grandParent = (parent != null) ? parent.getParent() : null;
 			TBNode greatParent = (grandParent != null) ? grandParent.getParent() : null;
 			
@@ -89,57 +81,49 @@ public class VoiceDetector
 		}
 		
 		//4. ancestors are ADVP, no preceding siblings of oldest ancestor is DET, no following siblings is a noun or NP
-		{
-			TBNode currNode = predicate;
+		outer: {
+			TBNode curr = pred;
 			
-			while (currNode.getParent() != null && currNode.getParent().isPos("ADJP"))
-				currNode = currNode.getParent();
+			while (curr.getParent() != null && curr.getParent().isPos("ADJP"))
+				curr = curr.getParent();
 			
-			if (currNode != predicate)
+			if (curr != pred)
 			{
-				boolean found = true;
-				ArrayList<TBNode> siblings = currNode.getParent().getChildren();
+				ArrayList<TBNode> siblings = curr.getParent().getChildren();
 				
-				for (int i=currNode.childId-1; i>=0; i--)
+				for (int i=curr.childId-1; i>=0; i--)
 				{
 					if (siblings.get(i).isPos("DT"))
-					{
-						found = false;
-						break;
-					}
+						break outer;
 				}
 				
-				for (int i=currNode.childId+1; i<siblings.size(); ++i)
+				for (int i=curr.childId+1; i<siblings.size(); ++i)
 				{
 					if (siblings.get(i).isPos("N.*"))
-					{
-						found = false;
-						break;
-					}
+						break outer;
 				}
 				
-				if (found) return 6;
+				return 6;
 			}
 		}
 		
 		return 0;
     }
 	
-	static private boolean findAux(TBNode currNode)
+	static private boolean findAux(TBNode curr)
 	{
-		ArrayList<TBNode> siblings = currNode.getParent().getChildren();
+		ArrayList<TBNode> siblings = curr.getParent().getChildren();
 		TBNode node;
 		
-		for (int i=currNode.childId-1; i>=0; --i)
+		for (int i=curr.childId-1; i>=0; --i)
 		{
 			node = siblings.get(i);
-			if (!node.isToken()) continue;
 			
 			// find auxiliary verb if verb, if not, stop
 			if (node.isPos("VB.*|AUX"))
 			{
 				String form = node.form.toLowerCase();
-				return TBEnLib.isBe(form) || TBEnLib.isGet(form);
+				return TBEnLib.isBe(form) || TBEnLib.isGet(form) || TBEnLib.isBecome(form);
 			}
 		}
 		

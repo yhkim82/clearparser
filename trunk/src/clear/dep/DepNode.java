@@ -24,6 +24,7 @@
 package clear.dep;
 
 import clear.dep.feat.AbstractFeat;
+import clear.dep.srl.SRLInfo;
 import clear.ftr.FtrLib;
 import clear.reader.AbstractReader;
 
@@ -56,55 +57,66 @@ public class DepNode
 	public DepNode leftMostDep;
 	/** Rightmost dependent */
 	public DepNode rightMostDep;
+	/** Left sibling */
+	public DepNode leftSibling;
+	/** Right sibling */
+	public DepNode rightSibling;
+	/** For Czech: conjunction head */
+	public DepNode coordHead;
 	/** Skip this node if it is true */
 	public boolean isSkip;
+	/** SRL information */
+	public SRLInfo srlInfo;
 	/** 1 if the node is non-projective (experimental) */
 	public byte    nonProj = 0;
-	public int coordHeadId;
 	
 	/** Initializes the node as a null node. */
 	public DepNode()
 	{
-		init(DepLib.NULL_ID, FtrLib.TAG_NULL, FtrLib.TAG_NULL, FtrLib.TAG_NULL, null, DepLib.NULL_HEAD_ID, FtrLib.TAG_NULL);
+		init(DepLib.NULL_ID, FtrLib.TAG_NULL, FtrLib.TAG_NULL, FtrLib.TAG_NULL, null, DepLib.NULL_HEAD_ID, FtrLib.TAG_NULL, 0, false, null, null, null, null, null, false, null);
 	}
 	
-	/**
-	 * If (<code>isRoot</code> is true ), initializes the node as the root.
-	 * If (<code>isRoot</code> is false), initializes the node as a null node.
-	 */
-	public DepNode(boolean isRoot)
+	public void toRoot()
 	{
-		if (isRoot)	init(DepLib.ROOT_ID, DepLib.ROOT_TAG, DepLib.ROOT_TAG, DepLib.ROOT_TAG, null, DepLib.NULL_HEAD_ID, DepLib.ROOT_TAG);
-		else		init(DepLib.NULL_ID, FtrLib.TAG_NULL, FtrLib.TAG_NULL, FtrLib.TAG_NULL, null, DepLib.NULL_HEAD_ID, FtrLib.TAG_NULL);
+		id     = DepLib.ROOT_ID;
+		form   = DepLib.ROOT_TAG;
+		lemma  = DepLib.ROOT_TAG;
+		pos    = DepLib.ROOT_TAG;
+		deprel = DepLib.ROOT_TAG;
 	}
-	
-	/** Calls {@link DepNode#init(int, String, String, String, int, String)}. */
-	public DepNode(int id, String form, String lemma, String pos, AbstractFeat feats, int headId, String deprel)
+		
+	private void init(int id, String form, String lemma, String pos, AbstractFeat feats, int headId, String deprel, double score, boolean hasHead, DepNode leftMostDep, DepNode rightMostDep, DepNode leftSibling, DepNode rightSibling, DepNode coordHead, boolean isSkip, SRLInfo srlInfo)
 	{
-		init(id, form, lemma, pos, feats, headId, deprel);
-	}
-	
-	/** Initializes the node with parameter values. */
-	public void init(int id, String form, String lemma, String pos, AbstractFeat feats, int headId, String deprel)
-	{
-		init(id, form, lemma, pos, feats, headId, deprel, 0, false, null, null, false, -1);
-	}
-	
-	public void init(int id, String form, String lemma, String pos, AbstractFeat feats, int headId, String deprel, double score, boolean hasHead, DepNode leftMostDep, DepNode rightMostDep, boolean isSkip, int coordHeadId)
-	{
-		this.id           = id;
-		this.form         = form;
-		this.lemma        = lemma;
-		this.pos          = pos;
-		this.feats        = feats;
-		this.headId       = headId;
-		this.deprel       = deprel;
+		this.id     = id;
+		this.form   = form;
+		this.lemma  = lemma;
+		this.pos    = pos;
+		this.feats  = feats;
+		this.headId = headId;
+		this.deprel = deprel;
+		
 		this.score        = score;
 		this.hasHead      = hasHead;
 		this.leftMostDep  = leftMostDep;
 		this.rightMostDep = rightMostDep;
+		this.leftSibling  = leftSibling;
+		this.rightSibling = rightSibling;
+		this.coordHead    = coordHead;
 		this.isSkip       = isSkip;
-		this.coordHeadId  = coordHeadId;
+		
+		this.srlInfo = (srlInfo != null) ? srlInfo.clone() : null;
+	}
+	
+	/** @return ({@link DepNode#hasHead}) ? {@link DepNode#headId} : {@link DepLib#NULL_HEAD_ID}. */
+	public int getHeadId()
+	{
+		return hasHead ? headId : DepLib.NULL_HEAD_ID;
+	}
+		
+	/** @return ({@link DepNode#hasHead}) ? {@link DepNode#deprel} : {@link FtrLib#TAG_NULL}. */
+	public String getDeprel()
+	{
+		return hasHead ? deprel : null;
 	}
 	
 	/**
@@ -121,23 +133,9 @@ public class DepNode
 		this.hasHead = true;
 	}
 	
-	public void unhead()
+	public void addSRLHead(int headId, String label)
 	{
-		headId  = DepLib.NULL_HEAD_ID;
-		deprel  = FtrLib.TAG_NULL;
-		hasHead = false;
-	}
-		
-	/** @return ({@link DepNode#hasHead}) ? {@link DepNode#headId} : {@link DepLib#NULL_HEAD_ID}. */
-	public int getHeadId()
-	{
-		return hasHead ? headId : DepLib.NULL_HEAD_ID;
-	}
-		
-	/** @return ({@link DepNode#hasHead}) ? {@link DepNode#deprel} : {@link FtrLib#TAG_NULL}. */
-	public String getDeprel()
-	{
-		return hasHead ? deprel : null;
+		srlInfo.addHead(headId, label);
 	}
 	
 	/** @return true if the node is a null node. */
@@ -150,6 +148,11 @@ public class DepNode
 	public boolean isRoot()
 	{
 		return id == DepLib.ROOT_ID;
+	}
+	
+	public boolean isPredicate()
+	{
+		return srlInfo != null && srlInfo.isPredicate();
 	}
 	
 	/** @return true if the form of the node is <code>form</code>. */
@@ -182,6 +185,16 @@ public class DepNode
 		return this.deprel.equals(deprel);
 	}
 	
+	public boolean isSRLHead(int headId)
+	{
+		return srlInfo.isHead(headId);
+	}
+	
+	public String getSRLLabel(int headId)
+	{
+		return srlInfo.getLabel(headId);
+	}
+	
 	public String getFeat(int index)
 	{
 		if (feats != null)	return feats.get(index);
@@ -190,7 +203,7 @@ public class DepNode
 	
 	public void copy(DepNode node)
 	{
-		init(node.id, node.form, node.lemma, node.pos, node.feats, node.headId, node.deprel, node.score, node.hasHead, node.leftMostDep, node.rightMostDep, node.isSkip, node.coordHeadId);
+		init(node.id, node.form, node.lemma, node.pos, node.feats, node.headId, node.deprel, node.score, node.hasHead, node.leftMostDep, node.rightMostDep, node.leftSibling, node.rightSibling, node.coordHead, node.isSkip, node.srlInfo);
 	}
 	
 	public DepNode clone()
@@ -213,11 +226,18 @@ public class DepNode
 		buff.append(form);		buff.append(AbstractReader.FIELD_DELIM);
 		buff.append(lemma);		buff.append(AbstractReader.FIELD_DELIM);
 		buff.append(pos);		buff.append(AbstractReader.FIELD_DELIM);
+	//	buff.append(pos);		buff.append(AbstractReader.FIELD_DELIM);
 		if (feats == null)		buff.append(DepLib.FIELD_BLANK);
 		else					buff.append(feats.toString());
 		buff.append(AbstractReader.FIELD_DELIM);
 		buff.append(headId);	buff.append(AbstractReader.FIELD_DELIM);
 		buff.append(deprel);
+		
+		if (srlInfo != null)
+		{
+			buff.append(AbstractReader.FIELD_DELIM);
+			buff.append(srlInfo.toString());
+		}
 		
 		return buff.toString();
 	}

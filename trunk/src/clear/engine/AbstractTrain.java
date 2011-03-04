@@ -38,6 +38,7 @@ import clear.train.algorithm.LibLinearL2;
 import clear.train.algorithm.RRM;
 import clear.train.kernel.AbstractKernel;
 import clear.train.kernel.BinaryKernel;
+import clear.train.kernel.PermuteKernel;
 import clear.train.kernel.ValueKernel;
 
 /**
@@ -138,7 +139,10 @@ abstract public class AbstractTrain extends AbstractCommon
 		}
 		
 		long st = System.currentTimeMillis();
-		AbstractKernel  kernel  = (kernel_type == AbstractKernel.KERNEL_BINARY) ? new BinaryKernel(instanceFile) : new ValueKernel(instanceFile);
+		AbstractKernel  kernel  = null;
+		if      (kernel_type == AbstractKernel.KERNEL_BINARY)	kernel = new BinaryKernel (instanceFile);
+		else if (kernel_type == AbstractKernel.KERNEL_VALUE)	kernel = new ValueKernel  (instanceFile);
+		else if (kernel_type == AbstractKernel.KERNEL_PERMUTE)	kernel = new PermuteKernel(instanceFile, 0);
 		AbstractTrainer trainer = (trainer_type == AbstractTrainer.ST_BINARY) ? new BinaryTrainer(fout, algorithm, kernel, numThreads) : new OneVsAllTrainer(fout, algorithm, kernel, numThreads);
 		long time = System.currentTimeMillis() - st;
 		System.out.printf("- duration: %d hours, %d minutes\n", time/(1000*3600), time/(1000*60));

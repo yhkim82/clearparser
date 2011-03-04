@@ -35,33 +35,36 @@ import org.w3c.dom.NodeList;
  * @author Jinho D. Choi
  * <b>Last update:</b> 11/6/2010
  */
-public class DepFtrXml extends AbstractFtrXml
+public class SRLFtrXml extends AbstractFtrXml
 {
-	static public final char    LAMBDA	= 'l';
-	static public final char    BETA	= 'b';
-	static public final String  R_HD	= "hd";
-	static public final String  R_LM	= "lm";
-	static public final String  R_RM	= "rm";
+	static public final char   LAMBDA	= 'l';
+	static public final char   BETA		= 'b';
+	static public final String R_HD		= "hd";
+	static public final String R_LM		= "lm";		// leftmost dependent
+	static public final String R_RM		= "rm";		// rightmost dependent
+	static public final String R_LS		= "ls";		// left sibling
+	static public final String R_RS		= "rs";		// right sibling
 	
-	static public final String F_FORM		= "f";
-	static public final String F_LEMMA		= "m";
-	static public final String F_POS		= "p";
-	static public final String F_DEPREL		= "d";
-	static public final String PUNCTUATION	= "punctuation";
-	
-	static public final Pattern P_FEAT  = Pattern.compile("^ft(\\d+)$");
-	static public final Pattern P_TRANS = Pattern.compile("^tr(\\d+)$");	// transition
-	static public final Pattern P_REL	= Pattern.compile(R_HD+"|"+R_LM+"|"+R_RM);
-	static public final Pattern P_FIELD = Pattern.compile(F_FORM+"|"+F_LEMMA+"|"+F_POS+"|"+F_DEPREL); 
+	static public final String F_FORM	= "f";
+	static public final String F_LEMMA	= "m";
+	static public final String F_POS	= "p";
+	static public final String F_DEPREL	= "d";
+	static public final String F_PATH	= "path";
+	static public final String F_SC_POS	= "scp";	// POS subcat
+	static public final String F_SC_DEP	= "scd";	// deprel subcat
+	static public final String F_RSC_POS = "rscp";	// reduced POS subcat
+	static public final String F_RSC_DEP = "rscd";	// reduced deprel subcat
 
-	public int n_cutoff_punctuation;
+	static public final Pattern P_FEAT	= Pattern.compile("^ft(\\d+)$");
+	static public final Pattern P_REL	= Pattern.compile(R_HD+"|"+R_LM+"|"+R_RM+"|"+R_LS+"|"+R_RS);
+	static public final Pattern P_FIELD = Pattern.compile(F_FORM+"|"+F_LEMMA+"|"+F_POS+"|"+F_DEPREL+"|"+F_PATH+"|"+F_SC_POS+"|"+F_SC_DEP+"|"+F_RSC_POS+"|"+F_RSC_DEP); 
 	
-	public DepFtrXml(String featureXml)
+	public SRLFtrXml(String featureXml)
 	{
 		super(featureXml);
 	}
 	
-	public DepFtrXml(InputStream fin)
+	public SRLFtrXml(InputStream fin)
 	{
 		super(fin);
 	}
@@ -74,7 +77,6 @@ public class DepFtrXml extends AbstractFtrXml
 		Element eCutoff = (Element)eList.item(0);
 		n_cutoff_label  = (eCutoff.hasAttribute(LABEL)) ? Integer.parseInt(eCutoff.getAttribute(LABEL)) : 0;
 		n_cutoff_ngram  = (eCutoff.hasAttribute(NGRAM)) ? Integer.parseInt(eCutoff.getAttribute(NGRAM)) : 0;
-		n_cutoff_punctuation = (eCutoff.hasAttribute(PUNCTUATION)) ? Integer.parseInt(eCutoff.getAttribute(PUNCTUATION)) : 0;
 	}
 	
 	protected void initFeatures(Document doc) throws Exception {}
@@ -92,14 +94,6 @@ public class DepFtrXml extends AbstractFtrXml
 	protected boolean validField(String field)
 	{
 		return P_FIELD.matcher(field).matches() ||  
-			   P_FEAT .matcher(field).matches() ||
-			   P_TRANS.matcher(field).matches();
+		       P_FEAT .matcher(field).matches();
 	}
-	
-/*	static public void main(String[] args)
-	{
-		DepFtrXml xml = new DepFtrXml(args[0]);
-		
-		System.out.println(xml.toString());
-	}*/
 }

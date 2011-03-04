@@ -25,8 +25,11 @@ package clear.reader;
 
 import java.io.IOException;
 
+import clear.dep.DepLib;
 import clear.dep.DepNode;
 import clear.dep.DepTree;
+import clear.dep.feat.FeatCzech;
+import clear.dep.feat.FeatEnglish;
 
 /**
  * CoNLL dependency reader.
@@ -70,10 +73,18 @@ public class CoNLLXReader extends AbstractReader<DepNode,DepTree>
 	{
 		DepNode node = new DepNode();
 		String[] str = line.split(FIELD_DELIM);
-		node.id      = id;
+		node.id      = Integer.parseInt(str[0]);
 		node.form    = str[1];
 		node.lemma   = str[2];
 		node.pos     = str[4];
+		
+		if (!str[5].equals(DepLib.FIELD_BLANK))
+		{
+			if      (s_language.equals(LANG_EN))
+				node.feats = new FeatEnglish(str[5]);
+			else if (s_language.equals(LANG_CZ))
+				node.feats = new FeatCzech(str[5]);			
+		}
 
 		if (b_train)
 		{
