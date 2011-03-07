@@ -88,7 +88,7 @@ public class LibLinearL2 implements IAlgorithm
 			aY   [i] = (kernel.a_ys.get(i) == currLabel) ? (byte)1 : (byte)-1;
 			QD   [i] = diag[GETI(aY, i)];
 			
-			if (kernel.type == AbstractKernel.KERNEL_BINARY)
+			if (kernel.kernel_type == AbstractKernel.KERNEL_BINARY)
 				QD[i] += kernel.a_xs.get(i).length;
 			else
 			{
@@ -115,13 +115,13 @@ public class LibLinearL2 implements IAlgorithm
 				i  = index[s];
 				yi = aY[i];
 				xi = kernel.a_xs.get(i);
-				if (kernel.type == AbstractKernel.KERNEL_VALUE)
+				if (kernel.kernel_type == AbstractKernel.KERNEL_VALUE)
 					vi = kernel.a_vs.get(i);
 
 				G = (d_bias > 0) ? weight[0] * d_bias : 0;
 				for (j=0; j<xi.length; j++)
 				{
-					if (kernel.type == AbstractKernel.KERNEL_BINARY)
+					if (kernel.kernel_type == AbstractKernel.KERNEL_BINARY)
 						G += weight[xi[j]];
 					else
 						G += (weight[xi[j]] * vi[j]);
@@ -173,7 +173,7 @@ public class LibLinearL2 implements IAlgorithm
 					
 					for (j=0; j<xi.length; j++)
 					{
-						if (kernel.type == AbstractKernel.KERNEL_BINARY)
+						if (kernel.kernel_type == AbstractKernel.KERNEL_BINARY)
 							weight[xi[j]] += d;
 						else
 							weight[xi[j]] += (d * vi[j]);
@@ -200,15 +200,10 @@ public class LibLinearL2 implements IAlgorithm
 			if (PGmin_old >= 0) PGmin_old = Double.NEGATIVE_INFINITY;
 		}
 		
-		double v = 0;
-		int  nSV = 0;
+		int nSV = 0;
 		
-		for (double w : weight)	v += w * w;
 		for (i = 0; i < kernel.N; i++)
-		{
-			v += alpha[i] * (alpha[i] * diag[GETI(aY, i)] - 2);
 			if (alpha[i] > 0) ++nSV;
-		}
 		
 		StringBuilder build = new StringBuilder();
 		

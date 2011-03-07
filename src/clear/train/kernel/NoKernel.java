@@ -38,9 +38,9 @@ import com.carrotsearch.hppc.IntOpenHashSet;
  * @author Jinho D. Choi
  * <b>Last update:</b> 11/5/2010
  */
-public class BinaryKernel extends AbstractKernel
+public class NoKernel extends AbstractKernel
 {
-	public BinaryKernel(String instanceFile)
+	public NoKernel(String instanceFile)
 	{
 		super(KERNEL_BINARY, instanceFile);
 	}

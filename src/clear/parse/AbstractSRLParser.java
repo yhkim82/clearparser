@@ -33,6 +33,7 @@ import clear.dep.DepTree;
 import clear.dep.srl.SRLArg;
 import clear.ftr.FtrLib;
 import clear.ftr.map.SRLFtrMap;
+import clear.ftr.xml.DepFtrXml;
 import clear.ftr.xml.FtrTemplate;
 import clear.ftr.xml.FtrToken;
 import clear.ftr.xml.SRLFtrXml;
@@ -391,17 +392,25 @@ abstract public class AbstractSRLParser
 			int idx = Integer.parseInt(m.group(1));
 			return node.getFeat(idx);
 		}
-		else if (token.isField(SRLFtrXml.F_PATH))
+		else if ((m = SRLFtrXml.P_SUBCAT_D.matcher(token.field)).find())
 		{
-			return d_tree.getPath(node.id, i_beta);
+			byte idx = Byte.parseByte(m.group(1));
+			return d_tree.getSubcat(DepFtrXml.F_DEPREL, node.id, idx);
 		}
-		else if (token.isField(SRLFtrXml.F_SC_POS) || token.isField(SRLFtrXml.F_SC_DEP))
+		else if ((m = SRLFtrXml.P_SUBCAT_P.matcher(token.field)).find())
 		{
-			return d_tree.getSubcat(token.field, node.id);
+			byte idx = Byte.parseByte(m.group(1));
+			return d_tree.getSubcat(DepFtrXml.F_POS, node.id, idx);
 		}
-		else if (token.isField(SRLFtrXml.F_RSC_POS) || token.isField(SRLFtrXml.F_RSC_DEP))
+		else if ((m = SRLFtrXml.P_PATH_D.matcher(token.field)).find())
 		{
-			return d_tree.getReducedSubcat(token.field, node.id);
+			byte idx = Byte.parseByte(m.group(1));
+			return d_tree.getPath(DepFtrXml.F_DEPREL, node.id, i_beta, idx);
+		}
+		else if ((m = SRLFtrXml.P_PATH_P.matcher(token.field)).find())
+		{
+			byte idx = Byte.parseByte(m.group(1));
+			return d_tree.getPath(DepFtrXml.F_POS, node.id, i_beta, idx);
 		}
 		
 	//	System.err.println("Error: unspecified feature '"+token.field+"'");

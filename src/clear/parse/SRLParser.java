@@ -266,7 +266,20 @@ public class SRLParser extends AbstractSRLParser
 		int idx[] = {1};
 		
 		addNgramFeatures(arr, idx);
+		addPathFeatures (arr, idx);
+		
 		return arr;
+	}
+	
+	protected void addPathFeatures(IntArrayList arr, int[] idx)
+	{
+		DepNode lambda = d_tree.get(i_lambda);
+		DepNode beta   = d_tree.get(i_beta);
+		
+		if      (lambda.headId == beta.id)	arr.add(idx[0]);	// +0.05
+		else if (beta.headId == lambda.id)	arr.add(idx[0]+1);	// +0.00
+		
+		idx[0] += 2;
 	}
 	
 	protected ArrayList<JIntDoubleTuple> getValueFeatureArray()

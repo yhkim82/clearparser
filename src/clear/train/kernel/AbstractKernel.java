@@ -58,7 +58,9 @@ abstract public class AbstractKernel
 	/** Training feature values */
 	public ArrayList<double[]> a_vs;
 	/** Kernel type */
-	public byte type;
+	public byte kernel_type;
+	/** true if binary features only */
+	public boolean b_binary;
 		
 	/**
 	 * Calls {@link AbstractKernel#init(String)}
@@ -68,7 +70,7 @@ abstract public class AbstractKernel
 	{
 		try
 		{
-			type = kernelType;
+			kernel_type = kernelType;
 			init(instanceFile);
 		}
 		catch (Exception e) {e.printStackTrace();}
