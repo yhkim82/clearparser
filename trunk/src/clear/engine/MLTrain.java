@@ -33,7 +33,7 @@ import clear.train.OneVsAllTrainer;
 import clear.train.algorithm.IAlgorithm;
 import clear.train.algorithm.LibLinearL2;
 import clear.train.algorithm.RRM;
-import clear.train.kernel.BinaryKernel;
+import clear.train.kernel.NoKernel;
 
 /**
  * Trains a classifier.
@@ -88,9 +88,9 @@ public class MLTrain
 			}
 			
 			if (i_strategy == AbstractTrainer.ST_BINARY)
-				new BinaryTrainer(s_modelFile, algorithm, new BinaryKernel(s_instanceFile));
+				new BinaryTrainer(s_modelFile, algorithm, new NoKernel(s_instanceFile));
 			else	// One-vs-all
-				new OneVsAllTrainer(s_modelFile, algorithm, new BinaryKernel(s_instanceFile), i_numThreads);
+				new OneVsAllTrainer(s_modelFile, algorithm, new NoKernel(s_instanceFile), i_numThreads);
 			
 			long time = System.currentTimeMillis() - st;
 			System.out.printf("\n* Training time: %d hours, %d minutes\n", time/(1000*3600), time/(1000*60));

@@ -29,7 +29,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 
 import clear.ftr.map.DepFtrMap;
-import clear.ftr.xml.SRLFtrXml;
+import clear.ftr.xml.DepFtrXml;
 
 /**
  * Dependency tree.
@@ -257,13 +257,13 @@ public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
 		return set;
 	}
 	
-	public String getPath(int fromId, int toId)
+	public String getPath(String field, int fromId, int toId, byte flag)
 	{
 		DepNode fNode = get(fromId);
 		DepNode tNode = get(toId);
 		
-		if      (isAncestor(fNode, tNode))	return getPathDown(fNode, tNode);
-		else if (isAncestor(tNode, fNode))	return getPathUp  (fNode, tNode);
+		if      (isAncestor(fNode, tNode))	return getPathDown(field, fNode, tNode);
+		else if (isAncestor(tNode, fNode))	return getPathUp  (field, fNode, tNode);
 
 		DepNode head = tNode;
 		
@@ -275,8 +275,19 @@ public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
 			{
 				StringBuilder build = new StringBuilder();
 				
-				build.append(getPathUp  (fNode, head));
-				build.append(getPathDown(head , tNode));
+				if (flag == 0)
+				{
+					build.append(getPathUp  (field, fNode, head));
+					build.append(getPathDown(field, head , tNode));
+				}
+				else if (flag == 1)
+				{
+					build.append(getPathUp  (field, fNode, head));
+				}
+				else if (flag == 2)
+				{
+					build.append(getPathDown(field, head , tNode));
+				}
 				
 				return build.toString();
 			}
@@ -285,13 +296,16 @@ public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
 		return "NO_PATH";
 	}
 	
-	private String getPathDown(DepNode fNode, DepNode tNode)
+	private String getPathDown(String field, DepNode fNode, DepNode tNode)
 	{
 		ArrayDeque<String> deq = new ArrayDeque<String>();
+		String curr;
 		
 		while (tNode != fNode)
 		{
-			deq.push(tNode.deprel);
+			curr = field.equals(DepFtrXml.F_DEPREL) ? tNode.deprel : tNode.pos;
+			
+			deq.push(curr);
 			tNode = get(tNode.headId);
 		}
 		
@@ -306,14 +320,17 @@ public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
 		return build.toString();
 	}
 	
-	private String getPathUp(DepNode fNode, DepNode tNode)
+	private String getPathUp(String field, DepNode fNode, DepNode tNode)
 	{
 		StringBuilder build = new StringBuilder();
+		String curr;
 		
 		while (fNode != tNode)
 		{
+			curr = field.equals(DepFtrXml.F_DEPREL) ? fNode.deprel : fNode.pos;
+			
 			build.append("^");
-			build.append(fNode.deprel);
+			build.append(curr);
 			
 			fNode = get(fNode.headId);
 		}
@@ -321,53 +338,23 @@ public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
 		return build.toString();
 	}
 	
-	public String getSubcat(String field, int currId)
+	// flag: 0 - whole, 1 - left-side, 2 - right-side 
+	public String getSubcat(String field, int currId, byte flag)
 	{
 		StringBuilder build = new StringBuilder();
+		String curr;
 		
 		for (DepNode node : getDependents(currId))
 		{
 			if (!node.isDeprel(DepLib.DEPREL_P))
 			{
-				if (field.equals(SRLFtrXml.F_SC_DEP))
-					build.append(node.deprel);
-				else if (field.equals(SRLFtrXml.F_SC_POS))
-					build.append(node.pos);
+				curr = field.equals(DepFtrXml.F_DEPREL) ? node.deprel : node.pos;
 				
-				build.append("_");
-			}
-		}
-		
-		return build.toString();
-	}
-	
-	public String getReducedSubcat(String field, int currId)
-	{
-		StringBuilder build = new StringBuilder();
-		String last = "";
-		
-		for (DepNode node : getDependents(currId))
-		{
-			if (!node.isDeprel(DepLib.DEPREL_P))
-			{
-				if (field.equals(SRLFtrXml.F_SC_DEP))
+				if ((flag == 0) || (flag == 1 && node.id < currId) || (flag == 2 && node.id > currId))
 				{
-					if (!node.isDeprel(last))
-					{
-						build.append(node.deprel);
-						last = node.deprel;
-					}
-				}
-				else if (field.equals(SRLFtrXml.F_SC_POS))
-				{
-					if (!node.isPos(last))
-					{
-						build.append(node.pos);
-						last = node.pos;
-					}					
-				}
-			
-				build.append("_");				
+					build.append(curr);
+					build.append("_");	
+				}				
 			}
 		}
 		
