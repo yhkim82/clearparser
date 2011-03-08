@@ -24,6 +24,7 @@
 package clear.parse;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import clear.decode.AbstractMultiDecoder;
 import clear.decode.OneVsAllDecoder;
@@ -178,8 +179,8 @@ public class SRLParser extends AbstractSRLParser
 		
 		if      (label.equals(LB_NO_ARC))
 			noArc();
-		else if (label.equals(LB_SHIFT))
-			shift(false);
+	//	else if (label.equals(LB_SHIFT))
+	//		shift(false);
 		else
 			yesArc(lambda, label, res.d);
 		
@@ -256,7 +257,14 @@ public class SRLParser extends AbstractSRLParser
 	
 	protected void addLexica(SRLFtrMap map)
 	{
-		addNgramLexica(map);
+		addNgramLexica (map);
+		addDepSetLexica(map);
+	}
+	
+	protected void addDepSetLexica(SRLFtrMap map)
+	{
+		for (String deprel : d_tree.getDeprelDepSet(i_beta))
+			map.addFtr(0, deprel);
 	}
 	
 	protected IntArrayList getBinaryFeatureArray()
@@ -265,8 +273,9 @@ public class SRLParser extends AbstractSRLParser
 		IntArrayList arr = new IntArrayList();
 		int idx[] = {1};
 		
-		addNgramFeatures(arr, idx);
-		addPathFeatures (arr, idx);
+		addNgramFeatures (arr, idx);
+		addPathFeatures  (arr, idx);
+		addDepSetFeatures(arr, idx);
 		
 		return arr;
 	}
@@ -280,6 +289,24 @@ public class SRLParser extends AbstractSRLParser
 		else if (beta.headId == lambda.id)	arr.add(idx[0]+1);	// +0.00
 		
 		idx[0] += 2;
+	}
+	
+	protected void addDepSetFeatures(IntArrayList arr, int[] idx)
+	{
+		SRLFtrMap    map  = getIdxFtrMap();
+		IntArrayList list = new IntArrayList();
+		int i;
+		
+		for (String deprel : d_tree.getDeprelDepSet(i_beta))
+		{
+			if ((i = map.ftrToIndex(0, deprel)) >= 0)
+				list.add(idx[0]+i);
+		}
+		
+		int[] tmp = list.toArray();
+		Arrays.sort(tmp);
+		arr.add(tmp, 0, tmp.length);
+		idx[0] += map.n_ftr[0];
 	}
 	
 	protected ArrayList<JIntDoubleTuple> getValueFeatureArray()

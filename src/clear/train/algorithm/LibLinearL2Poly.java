@@ -23,36 +23,38 @@
 */
 package clear.train.algorithm;
 
+import clear.model.SupportVectorModel;
 import clear.train.kernel.AbstractKernel;
+import clear.train.kernel.PolynomialKernel;
+
+import com.carrotsearch.hppc.IntArrayList;
 
 /**
  * LibLinear L2-SVM algorithm.
  * @author Jinho D. Choi
  * <b>Last update:</b> 11/4/2010
  */
-public class LibLinearL2 implements IAlgorithm
+public class LibLinearL2Poly implements IAlgorithm
 {
 	private byte   i_lossType;
 	private double d_c;
 	private double d_eps;
-	private double d_bias;
 	
-	public LibLinearL2(byte lossType, double c, double eps, double bias)
+	public LibLinearL2Poly(byte lossType, double c, double eps)
 	{
 		i_lossType = lossType;
 		d_c        = c;
 		d_eps      = eps;
-		d_bias     = bias;
 	}
 	
-	public double[] getWeight(AbstractKernel kernel, int currLabel)
+	public SupportVectorModel getSupportVectors(PolynomialKernel kernel, int currLabel)
 	{
 		final int MAX_ITER = 1000;
 		
 	//	Random   rand   = new Random(0);
 		double[] QD     = new double[kernel.N];
 		double[] alpha  = new double[kernel.N];
-		double[] weight = new double[kernel.D];
+		double[] weight = new double[kernel.N];
 		double U, G, d, alpha_old;
 		
 		int [] index = new int [kernel.N];
@@ -61,8 +63,7 @@ public class LibLinearL2 implements IAlgorithm
 		int active_size = kernel.N;
 		int i, j, s, iter;
 		byte     yi;
-		int[]    xi;
-		double[] vi = null;
+		double[] vi;
 		
 		// PG: projected gradient, for shrinking and stopping
 		double PG;
@@ -88,15 +89,8 @@ public class LibLinearL2 implements IAlgorithm
 			aY   [i] = (kernel.a_ys.get(i) == currLabel) ? (byte)1 : (byte)-1;
 			QD   [i] = diag[GETI(aY, i)];
 			
-			if (kernel.b_binary)
-				QD[i] += kernel.a_xs.get(i).length;
-			else
-			{
-				for (double value : kernel.a_vs.get(i))
-					QD[i] += (value * value);
-			}
-			
-			if (d_bias > 0)	QD[i] += (d_bias * d_bias);
+			for (double value : kernel.d_kernel[i])
+				QD[i] += (value * value);
 		}
 		
 		for (iter=0; iter<MAX_ITER; iter++)
@@ -114,17 +108,11 @@ public class LibLinearL2 implements IAlgorithm
 			{
 				i  = index[s];
 				yi = aY[i];
-				xi = kernel.a_xs.get(i);
-				if (!kernel.b_binary)	vi = kernel.a_vs.get(i);
+				vi = kernel.d_kernel[i];
 
-				G = (d_bias > 0) ? weight[0] * d_bias : 0;
-				for (j=0; j<xi.length; j++)
-				{
-					if (kernel.b_binary)
-						G += weight[xi[j]];
-					else
-						G += (weight[xi[j]] * vi[j]);
-				}
+				G = 0;
+				for (j=0; j<kernel.N; j++)
+					G += (weight[j] * vi[j]);
 				
 				G = G * yi - 1;
 				G += alpha[i] * diag[GETI(aY, i)];
@@ -168,15 +156,8 @@ public class LibLinearL2 implements IAlgorithm
 					alpha[i] = Math.min(Math.max(alpha[i] - G / QD[i], 0.0), U);
 					d = (alpha[i] - alpha_old) * yi;
 					
-					if (d_bias > 0)	weight[0] += d * d_bias;
-					
-					for (j=0; j<xi.length; j++)
-					{
-						if (kernel.b_binary)
-							weight[xi[j]] += d;
-						else
-							weight[xi[j]] += (d * vi[j]);
-					}
+					for (j=0; j<kernel.N; j++)
+						weight[j] += (d * vi[j]);
 				}
 			}
 			
@@ -199,10 +180,30 @@ public class LibLinearL2 implements IAlgorithm
 			if (PGmin_old >= 0) PGmin_old = Double.NEGATIVE_INFINITY;
 		}
 		
+		IntArrayList tmp = new IntArrayList();
 		int nSV = 0;
 		
-		for (i = 0; i < kernel.N; i++)
-			if (alpha[i] > 0) ++nSV;
+		for (i=0; i<kernel.N; i++)
+		{
+			if (alpha[i] > 0)
+			{
+				tmp.add(i);
+				nSV++;
+			}
+		}
+		
+		double[]   alphas = new double[nSV];
+		int[][]    iSVs   = new int[nSV][];
+		double[][] dSVs   = kernel.b_binary ? null : new double[nSV][];
+		
+		for (i=0; i<nSV; i++)
+		{
+			j = tmp.get(i);
+			
+			alphas[i] = alpha[j];
+			iSVs[i] = kernel.a_xs.get(j);
+			if (!kernel.b_binary)	dSVs[i] = kernel.a_vs.get(j);
+		}
 		
 		StringBuilder build = new StringBuilder();
 		
@@ -215,7 +216,7 @@ public class LibLinearL2 implements IAlgorithm
 
 		System.out.println(build.toString());
 		
-		return weight;
+		return new SupportVectorModel(alphas, iSVs, dSVs);
 	}
 	
 	private int GETI(byte[] y, int i)
@@ -228,6 +229,12 @@ public class LibLinearL2 implements IAlgorithm
 		int temp    = array[idxA];
 		array[idxA] = array[idxB];
 		array[idxB] = temp;
+	}
+
+	@Override
+	public double[] getWeight(AbstractKernel kernel, int currLabel) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }
 	

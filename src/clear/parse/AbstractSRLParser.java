@@ -190,7 +190,7 @@ abstract public class AbstractSRLParser
 		SRLFtrMap map = getIdxFtrMap();
 		
 		map.addLabel(label);
-		addLexica(map);
+		addLexica(map);	
 	}
 	
 	/** Saves tags from {@link AbstractSRLParser#t_map} to <code>lexiconFile</code>. */

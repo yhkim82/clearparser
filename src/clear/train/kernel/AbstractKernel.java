@@ -24,6 +24,9 @@
 package clear.train.kernel;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+
+import clear.util.tuple.JIntDoubleTuple;
 
 import com.carrotsearch.hppc.IntArrayList;
 
@@ -34,9 +37,8 @@ import com.carrotsearch.hppc.IntArrayList;
  */
 abstract public class AbstractKernel
 {
-	static public final byte KERNEL_BINARY  = 0;
-	static public final byte KERNEL_VALUE   = 1;
-	static public final byte KERNEL_PERMUTE = 2;
+	static public final byte KERNEL_NONE       = 0;
+	static public final byte KERNEL_POLYNOMIAL = 1;
 	
 	/** Delimiter between index and value (e.g. 3:0.12) */
 	static public final String FTR_DELIM = ":";
@@ -71,9 +73,64 @@ abstract public class AbstractKernel
 		try
 		{
 			kernel_type = kernelType;
+			b_binary    = true;
 			init(instanceFile);
 		}
 		catch (Exception e) {e.printStackTrace();}
+	}
+	
+	static public int getScala(int[] xi, int[] xj)
+	{
+		int scala = 0, i;
+		
+		for (i=0; i<xi.length; i++)
+		{
+			if (Arrays.binarySearch(xj, xi[i]) >= 0)
+				scala++;
+		}
+		
+		return scala;
+	}
+	
+	static public int getScala(IntArrayList xi, int[] xj)
+	{
+		int scala = 0, i;
+		
+		for (i=0; i<xi.size(); i++)
+		{
+			if (Arrays.binarySearch(xj, xi.get(i)) >= 0)
+				scala++;
+		}
+		
+		return scala;
+	}
+	
+	static public double getScala(int[] xi, int[] xj, double[] vi, double[] vj)
+	{
+		double scala = 0;
+		int i, j;
+		
+		for (i=0; i<xi.length; i++)
+		{
+			if ((j = Arrays.binarySearch(xj, xi[i])) >= 0)
+				scala += vi[i] * vj[j];
+		}
+		
+		return scala;
+	}
+	
+	static public double getScala(ArrayList<JIntDoubleTuple> xvi, int[] xj,  double[] vj)
+	{
+		double scala = 0;
+		int j;
+		
+		for (JIntDoubleTuple tup : xvi)
+		{
+			if ((j = Arrays.binarySearch(xj, tup.i)) >= 0)
+				scala += tup.d * vj[j];
+		}
+		
+		return scala;
 	}
 	
 	/** Normalizes a weight vector. */

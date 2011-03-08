@@ -27,6 +27,7 @@ import java.io.BufferedReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import clear.util.DSUtil;
 import clear.util.IOUtil;
 
 import com.carrotsearch.hppc.IntArrayList;
@@ -37,11 +38,11 @@ import com.carrotsearch.hppc.IntOpenHashSet;
  * @author Jinho D. Choi
  * <b>Last update:</b> 11/5/2010
  */
-public class ValueKernel extends AbstractKernel
+public class NoneKernel extends AbstractKernel
 {
-	public ValueKernel(String instanceFile)
+	public NoneKernel(String instanceFile)
 	{
-		super(KERNEL_VALUE, instanceFile);
+		super(KERNEL_NONE, instanceFile);
 	}
 	
 	/**
@@ -55,33 +56,46 @@ public class ValueKernel extends AbstractKernel
 		
 		BufferedReader fin = IOUtil.createBufferedFileReader(instanceFile);
 		
-		a_ys = new IntArrayList       (NUM);
-		a_xs = new ArrayList<int[]>   (NUM);
-		a_vs = new ArrayList<double[]>(NUM);
-
+		a_ys = new IntArrayList    (NUM);
+		a_xs = new ArrayList<int[]>(NUM);
+		
 		IntOpenHashSet sLabels = new IntOpenHashSet();
-		String line;	String[] tok, tmp;
-		int y, i;	int[] x;	double[] v;
+		String line;
+		String[] tok, tmp;	int y, i;	int[] x;	double[] v;
 		
 		for (N=0; (line = fin.readLine()) != null; N++)
 		{
-			tok = line.split(COL_DELIM);
-			y   = Integer.parseInt (tok[0]);
-			x   = new int   [tok.length-1];
-			v   = new double[tok.length-1];
-			
-			for (i=1; i<tok.length; i++)
+			if (N == 0 && line.contains(AbstractKernel.FTR_DELIM))
 			{
-				tmp = tok[i].split(FTR_DELIM);
-				x[i-1] = Integer.parseInt  (tmp[0]);
-				v[i-1] = Double.parseDouble(tmp[1]);
+				b_binary = false;
+				a_vs     = new ArrayList<double[]>(NUM);
 			}
 			
-			// add label and feature
+			tok = line.split(COL_DELIM);
+			y   = Integer.parseInt (tok[0]);
 			a_ys.add(y);
-			a_xs.add(x);
-			a_vs.add(v);
-
+			
+			if (b_binary)
+			{
+				x = DSUtil.toIntArray(tok, 1);
+				a_xs.add(x);
+			}
+			else
+			{
+				x = new int   [tok.length-1];
+				v = new double[tok.length-1];
+				
+				for (i=1; i<tok.length; i++)
+				{
+					tmp    = tok[i].split(FTR_DELIM);
+					x[i-1] = Integer.parseInt  (tmp[0]);
+					v[i-1] = Double.parseDouble(tmp[1]);
+				}
+				
+				a_xs.add(x);
+				a_vs.add(v);
+			}
+			
 			// indices in feature are in ascending order
 			D = Math.max(D, x[x.length-1]);
 			sLabels.add(y);

@@ -37,9 +37,7 @@ import clear.train.algorithm.IAlgorithm;
 import clear.train.algorithm.LibLinearL2;
 import clear.train.algorithm.RRM;
 import clear.train.kernel.AbstractKernel;
-import clear.train.kernel.NoKernel;
-import clear.train.kernel.PermuteKernel;
-import clear.train.kernel.ValueKernel;
+import clear.train.kernel.NoneKernel;
 
 /**
  * Trains dependency parser.
@@ -51,7 +49,7 @@ abstract public class AbstractTrain extends AbstractCommon
 	protected final String TAG_CLASSIFY           = "classify";
 	protected final String TAG_CLASSIFY_ALGORITHM = "algorithm";
 
-	protected byte kernel_type  = AbstractKernel.KERNEL_BINARY;
+	protected byte kernel_type  = AbstractKernel.KERNEL_NONE;
 	protected byte trainer_type = AbstractTrainer.ST_ONE_VS_ALL;
 	
 	/** Trains the LibLinear classifier. */
@@ -83,6 +81,7 @@ abstract public class AbstractTrain extends AbstractCommon
 				bias = Double.parseDouble(tmp);
 			
 			algorithm = new LibLinearL2(lossType, c, eps, bias);
+		//	algorithm = new LibLinearL2Poly(lossType, c, eps);
 			
 			options.append("loss_type = ");	options.append(lossType);
 			options.append(", c = ");		options.append(c);
@@ -139,11 +138,14 @@ abstract public class AbstractTrain extends AbstractCommon
 		}
 		
 		long st = System.currentTimeMillis();
+		
 		AbstractKernel  kernel  = null;
-		if      (kernel_type == AbstractKernel.KERNEL_BINARY)	kernel = new NoKernel (instanceFile);
-		else if (kernel_type == AbstractKernel.KERNEL_VALUE)	kernel = new ValueKernel  (instanceFile);
-		else if (kernel_type == AbstractKernel.KERNEL_PERMUTE)	kernel = new PermuteKernel(instanceFile, 0);
+		if      (kernel_type == AbstractKernel.KERNEL_NONE)	kernel = new NoneKernel (instanceFile);
 		AbstractTrainer trainer = (trainer_type == AbstractTrainer.ST_BINARY) ? new BinaryTrainer(fout, algorithm, kernel, numThreads) : new OneVsAllTrainer(fout, algorithm, kernel, numThreads);
+		
+	//	AbstractKernel kernel = new PolynomialKernel(instanceFile, 2, 0.2, 0);
+	//	AbstractTrainer trainer = new OneVsAllTrainer(fout, algorithm, kernel, numThreads);
+		
 		long time = System.currentTimeMillis() - st;
 		System.out.printf("- duration: %d hours, %d minutes\n", time/(1000*3600), time/(1000*60));
 		

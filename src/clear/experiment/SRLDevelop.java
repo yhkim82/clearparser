@@ -94,7 +94,6 @@ public class SRLDevelop extends AbstractTrain
 		{
 			String[] labelFile = {s_devFile+".label."+i};
 			currAcc = trainDepParser(SRLParser.FLAG_PREDICT, labelFile, null);
-			if (currAcc >= 84)	System.out.println("== BINGO ==");
 			if (currAcc <= prevAcc)	break;
 			
 			prevAcc = currAcc;

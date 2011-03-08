@@ -205,6 +205,19 @@ public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
 		return list;
 	}
 	
+	public HashSet<String> getDeprelDepSet(int currId)
+	{
+		HashSet<String> set = new HashSet<String>();
+		
+		for (int i=1; i<size(); i++)
+		{
+			DepNode node = get(i);
+			if (node.headId == currId)	set.add(node.deprel);
+		}
+		
+		return set;
+	}
+	
 	public ArrayList<DepNode> getLeftDependents(int currId)
 	{
 		ArrayList<DepNode> list = new ArrayList<DepNode>();

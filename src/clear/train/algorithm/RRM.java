@@ -72,7 +72,7 @@ public class RRM implements IAlgorithm
 				y_i = aY[i];
 				
 				// calculate p
-				if (kernel.kernel_type == AbstractKernel.KERNEL_BINARY)
+				if (kernel.b_binary)
 					p = getScore(pWeight, nWeight, x_i) * y_i;
 				else
 					p = getScore(pWeight, nWeight, x_i, kernel.a_vs.get(i)) * y_i;
@@ -177,7 +177,7 @@ public class RRM implements IAlgorithm
 		{
 			y_i = aY[i];
 			
-			if (kernel.kernel_type == AbstractKernel.KERNEL_BINARY)
+			if (kernel.b_binary)
 				score = getScore(pWeight, nWeight, kernel.a_xs.get(i));
 			else
 				score = getScore(pWeight, nWeight, kernel.a_xs.get(i), kernel.a_vs.get(i));
