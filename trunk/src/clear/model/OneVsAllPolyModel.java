@@ -26,53 +26,52 @@ package clear.model;
 import java.io.BufferedReader;
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 
 import clear.train.kernel.AbstractKernel;
-import clear.train.kernel.PermuteKernel;
+import clear.train.kernel.PolynomialKernel;
 import clear.util.IOUtil;
 import clear.util.tuple.JIntDoubleTuple;
 
 import com.carrotsearch.hppc.IntArrayList;
-import com.carrotsearch.hppc.ObjectIntOpenHashMap;
-import com.carrotsearch.hppc.cursors.ObjectCursor;
 
 /**
  * One-vs-all model.
  * @author Jinho D. Choi
  * <b>Last update:</b> 11/5/2010
  */
-public class PermuteModel extends AbstractMultiModel
+public class OneVsAllPolyModel extends AbstractMultiModel
 {
-	ObjectIntOpenHashMap<String> m_perm;
+	SupportVectorModel[] s_models;
+	int                  i_degree;
+	double               d_gamma;
+	double               d_coef;
 	
-	public PermuteModel(PermuteKernel kernel)
+	public OneVsAllPolyModel(AbstractKernel kernel)
 	{
 		super(kernel);
-		m_perm = kernel.m_perm;
 	}
 	
-	public PermuteModel(String modelFile)
+	public OneVsAllPolyModel(String modelFile)
 	{
 		super(modelFile);
 	}
 	
-	public PermuteModel(BufferedReader fin)
+	public OneVsAllPolyModel(BufferedReader fin)
 	{
 		super(fin);
 	}
-	
-	public PermuteModel(int nLabels, int nFeatures, int[] aLabels, double[] dWeights)
-	{
-		super(nLabels, nFeatures, aLabels, dWeights);
-	}
-	
+		
 	public void init(AbstractKernel kernel)
 	{
-		n_labels   = kernel.L;
-		n_features = kernel.D;
-		a_labels   = kernel.a_labels;
-		d_weights  = new double[n_labels * n_features];
+		PolynomialKernel poly = (PolynomialKernel)kernel;
+		
+		n_labels = kernel.L;
+		i_degree = poly.i_degree;
+		d_gamma  = poly.d_gamma;
+		d_coef   = poly.d_coef;
+		
+		a_labels = kernel.a_labels;
+		s_models = new SupportVectorModel[n_labels];
 	}
 	
 	public void load(String modelFile)
@@ -98,25 +97,20 @@ public class PermuteModel extends AbstractMultiModel
 	
 	public void loadAux(BufferedReader fin) throws Exception
 	{
-		n_labels   = Integer.parseInt(fin.readLine());
-		n_features = Integer.parseInt(fin.readLine());
-		a_labels   = new int[n_labels];
-		d_weights  = new double[n_labels * n_features];
+		n_labels = Integer.parseInt  (fin.readLine());
+		i_degree = Integer.parseInt  (fin.readLine());
+		d_gamma  = Double.parseDouble(fin.readLine());
+		d_coef   = Double.parseDouble(fin.readLine());
+
+		a_labels = new int[n_labels];
+		readLabels(fin);
 		
-		readLabels (fin);
-		readPermMap(fin);
-		readWeights(fin);
-	}
-	
-	protected void readPermMap(BufferedReader fin) throws Exception
-	{
-		String[] tmp = fin.readLine().split(" ");
-		int i, length = tmp.length;
-		
-		m_perm = new ObjectIntOpenHashMap<String>();
-		
-		for (i=0; i<length; i+=2)
-			m_perm.put(tmp[i], Integer.parseInt(tmp[i+1]));
+		s_models = new SupportVectorModel[n_labels];
+		for (int i=0; i<n_labels; i++)
+		{
+			s_models[i] = new SupportVectorModel();
+			s_models[i].load(fin);
+		}
 	}
 	
 	public void save(String modelFile)
@@ -126,7 +120,6 @@ public class PermuteModel extends AbstractMultiModel
 			PrintStream fout = IOUtil.createPrintFileStream(modelFile);
 			
 			saveAux(fout);
-			fout.flush();
 			fout.close();
 		}
 		catch (Exception e) {e.printStackTrace();}
@@ -144,79 +137,53 @@ public class PermuteModel extends AbstractMultiModel
 	private void saveAux(PrintStream fout) throws Exception
 	{
 		fout.println(n_labels);
-		fout.println(n_features);
-		printLabels (fout);
-		printPermMap(fout);
-		printWeights(fout);
+		fout.println(i_degree);
+		fout.println(d_gamma);
+		fout.println(d_coef);
+		
+		printLabels(fout);
+		
+		for (SupportVectorModel model : s_models)
+			model.print(fout);
 	}
 	
-	protected void printPermMap(PrintStream fout) throws Exception
-	{
-		StringBuilder build = new StringBuilder();
-		
-		for (ObjectCursor<String> cur : m_perm.keySet())
-		{
-			build.append(cur.value);
-			build.append(" ");
-			build.append(m_perm.get(cur.value));
-		}
-		
-		fout.println(build.toString());
-	}
+	public void copyWeight(int label, double[] weight) {}
 	
-	private int getBeginIndex(int label, int index)
+	public void copySupportVectors(int label, SupportVectorModel model)
 	{
-		return index * n_labels + label;
-	}
-	
-	public void copyWeight(int label, double[] weight)
-	{
-		int i;
-		
-		for (i=0; i<n_features; i++)
-			d_weights[getBeginIndex(label, i)] = weight[i];
+		s_models[label] = model;
 	}
 	
 	public double[] getScores(int[] x)
 	{
-		double[] scores = Arrays.copyOf(d_weights, n_labels);
-		int      i, idx, label;
+		double[] scores = new double[n_labels];
+		int      label;
 		
-		for (String key : PermuteKernel.getPerm(x))
-		{
-			if ((i = m_perm.get(key)) == 0)	continue;
-			
-			for (label=0; label<n_labels; label++)
-			{
-				if ((idx = getBeginIndex(label, i)) < d_weights.length)
-					scores[label] += d_weights[idx];
-			}
-		}
+		for (label=0; label<n_labels; label++)
+			scores[label] = s_models[label].getScore(x, d_gamma, d_coef, i_degree);
 		
 		return scores;
 	}
 	
 	public double[] getScores(IntArrayList x)
 	{
-		double[] scores = Arrays.copyOf(d_weights, n_labels);
-		int      i, idx, label;
+		double[] scores = new double[n_labels];
+		int      label;
 		
-		for (String key : PermuteKernel.getPerm(x))
-		{
-			if ((i = m_perm.get(key)) == 0)	continue;
-			
-			for (label=0; label<n_labels; label++)
-			{
-				if ((idx = getBeginIndex(label, i)) < d_weights.length)
-					scores[label] += d_weights[idx];
-			}
-		}
+		for (label=0; label<n_labels; label++)
+			scores[label] = s_models[label].getScore(x, d_gamma, d_coef, i_degree);
 		
 		return scores;
 	}
 	
 	public double[] getScores(ArrayList<JIntDoubleTuple> x)
 	{
-		return null;
+		double[] scores = new double[n_labels];
+		int      label;
+		
+		for (label=0; label<n_labels; label++)
+			scores[label] = s_models[label].getScore(x, d_gamma, d_coef, i_degree);
+		
+		return scores;
 	}
 }

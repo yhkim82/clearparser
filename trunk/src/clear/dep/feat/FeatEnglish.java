@@ -1,5 +1,7 @@
 package clear.dep.feat;
 
+import clear.dep.DepLib;
+
 import com.carrotsearch.hppc.ObjectIntOpenHashMap;
 
 
@@ -29,6 +31,14 @@ public class FeatEnglish extends AbstractFeat
 			if (MAP_TITLES.containsKey(key))
 				this.feats[MAP_TITLES.get(key)] = feat.substring(key.length()+1);
 		}
+		
+		reset();
+	}
+	
+	private void reset()
+	{
+		if (feats[0] != null)
+			feats[0] = "1";
 	}
 		
 	public String toString()
@@ -46,6 +56,9 @@ public class FeatEnglish extends AbstractFeat
 			}
 		}
 		
-		return build.toString().substring(1);
+		if (build.length() == 0)
+			return DepLib.FIELD_BLANK;
+		else
+			return build.toString().substring(1);
 	}
 }
