@@ -148,7 +148,7 @@ public class SRLParser extends AbstractSRLParser
 	 * This method is called from {@link SRLParser#train()}.
 	 * @return true if non-deterministic shift needs to be performed 
 	 */
-	private boolean isShift(DepTree tree)
+	protected boolean isShift(DepTree tree)
 	{
 		for (int i=i_lambda+i_dir; 0<i && i<tree.size(); i+=i_dir)
 		{
@@ -203,8 +203,8 @@ public class SRLParser extends AbstractSRLParser
 		
 		if ((label = lambda.getSRLLabel(i_beta)) != null)
 			return label;
-		else if (isShift(d_tree))
-			return LB_SHIFT;
+	//	else if (isShift(d_tree))
+	//		return LB_SHIFT;
 		else
 			return LB_NO_ARC;
 	}

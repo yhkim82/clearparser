@@ -88,7 +88,7 @@ public class SRLDevelop extends AbstractTrain
 		for (int j=0; j<instanceFile.length; j++)
 			m_model[j] = (OneVsAllModel)trainModel(instanceFile[j], null);
 		
-		double prevAcc = 100, currAcc;
+		double prevAcc = 0, currAcc;
 		
 		do
 		{
