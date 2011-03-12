@@ -24,11 +24,12 @@
 package clear.parse;
 
 import java.io.PrintStream;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.regex.Matcher;
 
 import clear.decode.AbstractDecoder;
+import clear.decode.OneVsAllDecoder;
 import clear.dep.DepNode;
 import clear.dep.DepTree;
 import clear.dep.srl.SRLArg;
@@ -38,15 +39,13 @@ import clear.ftr.map.SRLFtrMap;
 import clear.ftr.xml.FtrTemplate;
 import clear.ftr.xml.FtrToken;
 import clear.ftr.xml.SRLFtrXml;
-import clear.reader.DepReader;
+import clear.reader.AbstractReader;
 import clear.train.kernel.AbstractKernel;
+import clear.util.DSUtil;
 import clear.util.IOUtil;
-import clear.util.tuple.JIntDoubleTuple;
-import clear.util.tuple.JObjectDoubleTuple;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.ObjectIntOpenHashMap;
-import com.carrotsearch.hppc.cursors.IntCursor;
 
 /**
  * Shift-eager dependency parser.
@@ -55,79 +54,76 @@ import com.carrotsearch.hppc.cursors.IntCursor;
  */
 abstract public class AbstractSRLParser
 {
-	/** Flag to print lexicons */
-	static public final byte FLAG_TRAIN_LEXICON  = 0;
-	/** Flag to print training instances */
-	static public final byte FLAG_TRAIN_INSTANCE = 1;
-	/** Flag to train automatic dependencies */
-	static public final byte FLAG_TRAIN_BOOST    = 2;
-	/** Flag to predict dependencies */
-	static public final byte FLAG_PREDICT        = 3;
+	/** Print lexicons */
+	static public final byte FLAG_TRAIN_LEXICON     = 0;
+	/** Print training instances */
+	static public final byte FLAG_TRAIN_INSTANCE    = 1;
+	/** Train automatic dependencies */
+	static public final byte FLAG_TRAIN_BOOST       = 2;
+	/** Train probabilities */
+	static public final byte FLAG_TRAIN_PROBABILITY = 3;
+	/** Predict dependencies */
+	static public final byte FLAG_PREDICT           = 4;
 	
-	static public final byte FLAG_TRAIN_PROBABILITY = 4;
+	static public final byte FLAG_TRAIN_SHIFT       = 5;
+	/** Parse from predicate to the left */
+	static public final byte DIR_LEFT  = -1;
+	/** Parse from predicate to the right */
+	static public final byte DIR_RIGHT = +1;
 	
-	protected final byte DIR_LEFT  = -1;
-	protected final byte DIR_RIGHT =  1;
-	
-	protected final byte IDX_LEFT  = 0;
-	protected final byte IDX_RIGHT = 1;
-	
-	/** {@link AbstractDepParser#FLAG_*} */
+	/** Flags */
 	protected byte              i_flag;
-	/** Feature templates */
+	/** Feature template */
 	protected SRLFtrXml         t_xml;
 	/** Feature mappings */
 	protected SRLFtrMap[]       t_map;
-	/** Machine learning decoder */
-	protected AbstractDecoder[] c_dec;
-	/** Prints training instances */
+	/** Print training instances */
 	protected PrintStream[]     f_out;
+	/** Argument classification decoder */
+	protected OneVsAllDecoder[] c_dec;
 	
 	/** Current dependency tree */
 	protected DepTree d_tree;
-	/** Index of lambda_1 */
+	/** Index of argument */
 	protected int     i_lambda;
-	/** Index of beta */
+	/** Index of predicate */
 	protected int     i_beta;
-	/** Direction: -1 to the left, +1 to the right */
+	/** {@link AbstractSRLParser#DIR_LEFT} or {@link AbstractSRLParser#DIR_RIGHT} */
 	protected byte    i_dir;
 	/** Language */
-	protected String  s_language = DepReader.LANG_EN;
+	protected String  s_language = AbstractReader.LANG_EN;
 	
 	/** List of all arguments sequence */
 	protected ArrayList<SRLArg> ls_args;
 	/** List of core arguments sequence */
 	protected ArrayList<SRLArg> ls_argn;
-	/** List of core arguments sequence in order */
-	protected ArrayDeque<String> dq_argn;
+	/** Set of argument labels */
+	protected HashSet<String>              s_argn;
+	protected ObjectIntOpenHashMap<String> m_argm;
+	/** Argument probabilities */
+	protected SRLProb           p_prob;
 	
-	protected boolean b_binary_feature = true;
-	
-	public SRLProb s_prob;
-	
-	/** Initializes this parser for {@link AbstractSRLParser#FLAG_TRAIN_PROBABILITY}. */
+	/** {@link AbstractSRLParser#FLAG_TRAIN_PROBABILITY}. */
 	public AbstractSRLParser(byte flag)
 	{
 		i_flag = flag;
-		s_prob = new SRLProb();
+		
+		if (flag == SRLParser.FLAG_TRAIN_PROBABILITY)
+			p_prob = new SRLProb();
 	}
 	
-	/** Initializes this parser for {@link AbstractSRLParser#FLAG_TRAIN_LEXICON}. */
-	public AbstractSRLParser(byte flag, String filename)
+	/** {@link AbstractSRLParser#FLAG_TRAIN_LEXICON}. */
+	public AbstractSRLParser(byte flag, String xmlFile)
 	{
 		i_flag = flag;
+		t_xml  = new SRLFtrXml(xmlFile);
+		t_map  = new SRLFtrMap[2];
 		
-		if (flag == FLAG_TRAIN_LEXICON)
-		{
-			t_xml = new SRLFtrXml(filename);
-			t_map = new SRLFtrMap[2];
-			
-			for (int i=0; i<t_map.length; i++)
-				t_map[i] = new SRLFtrMap(t_xml);
-		}
+		for (int i=0; i<t_map.length; i++)
+			t_map[i] = new SRLFtrMap(t_xml);
 	}
 	
-	/** Initializes this parser for {@link AbstractSRLParser#FLAG_TRAIN_INSTANCE}. */
+	/** {@link AbstractSRLParser#FLAG_TRAIN_INSTANCE}. */
 	public AbstractSRLParser(byte flag, SRLFtrXml xml, String[] lexiconFile, String[] instanceFile)
 	{
 		i_flag = flag;
@@ -142,23 +138,23 @@ abstract public class AbstractSRLParser
 			f_out[i] = IOUtil.createPrintFileStream(instanceFile[i]);
 	}
 	
-	/** Initializes this parser for {@link AbstractSRLParser#FLAG_PREDICT}. */
+	/** {@link AbstractSRLParser#FLAG_PREDICT}. */
 	public AbstractSRLParser(byte flag, SRLFtrXml xml, SRLFtrMap[] map, AbstractDecoder[] decoder)
 	{
-		i_flag = flag;
-		t_xml  = xml;
-		t_map  = map;
-		c_dec  = decoder;
+		i_flag   = flag;
+		t_xml    = xml;
+		t_map    = map;
+		c_dec    = new OneVsAllDecoder[decoder.length];
+		
+		for (int i=0; i<c_dec.length; i++)
+			c_dec[i] = (OneVsAllDecoder)decoder[i];
 	}
 	
-	/** Initializes this parser for {@link AbstractSRLParser#FLAG_TRAIN_BOOST}. */
+	/** {@link AbstractSRLParser#FLAG_TRAIN_BOOST}. */
 	public AbstractSRLParser(byte flag, SRLFtrXml xml, SRLFtrMap[] map, AbstractDecoder[] decoder, String[] instanceFile)
 	{
-		i_flag = flag;
-		t_xml  = xml;
-		t_map  = map;
-		c_dec  = decoder;
-		f_out  = new PrintStream[instanceFile.length];
+		this(flag, xml, map, decoder);
+		f_out = new PrintStream[instanceFile.length];
 		
 		for (int i=0; i<f_out.length; i++)
 			f_out[i] = IOUtil.createPrintFileStream(instanceFile[i]);
@@ -168,12 +164,16 @@ abstract public class AbstractSRLParser
 	{
 		s_language = language;
 	}
-		
-	/** Parses <code>tree</code>. */
-	abstract public    void parse(DepTree tree);
-	abstract protected void addLexica(SRLFtrMap map);
-	abstract protected IntArrayList getBinaryFeatureArray();
-	abstract protected ArrayList<JIntDoubleTuple> getValueFeatureArray();
+	
+	public void setArgProb(SRLProb prob)
+	{
+		p_prob = prob;
+	}
+	
+	public SRLProb getArgProb()
+	{
+		return p_prob;
+	}
 	
 	public SRLFtrXml getFtrXml()
 	{
@@ -184,32 +184,32 @@ abstract public class AbstractSRLParser
 	{
 		return t_map;
 	}
+		
+	abstract public    void parse(DepTree tree);
+	abstract protected void addLexica(SRLFtrMap map);
 	
-	protected SRLFtrMap getIdxFtrMap()
+	protected SRLFtrMap getDirFtrMap()
 	{
-		return (i_dir == DIR_LEFT) ? t_map[IDX_LEFT] : t_map[IDX_RIGHT];
+		return (i_dir == DIR_LEFT) ? t_map[0] : t_map[1];	
 	}
 	
-	protected PrintStream getIdxPrintStream()
+	protected PrintStream getDirPrintStream()
 	{
-		return (i_dir == DIR_LEFT) ? f_out[IDX_LEFT] : f_out[IDX_RIGHT];
+		return (i_dir == DIR_LEFT) ? f_out[0] : f_out[1];
 	}
 	
-	protected AbstractDecoder getIdxDecoder()
+	protected OneVsAllDecoder getDirDecoder()
 	{
-		return (i_dir == DIR_LEFT) ? c_dec[IDX_LEFT] : c_dec[IDX_RIGHT];
+		return (i_dir == DIR_LEFT) ? c_dec[0] : c_dec[1];
 	}
 	
-	/**
-	 * Adds tags to {@link ShiftEagerParser#t_map}.
-	 * @param label <trainsition>[-<dependency label>]
-	 */
+	/** Adds a label and lexica. */
 	protected void addTags(String label)
 	{
-		SRLFtrMap map = getIdxFtrMap();
+		SRLFtrMap map = getDirFtrMap();
 		
+		addLexica(map);
 		map.addLabel(label);
-		addLexica(map);	
 	}
 	
 	/** Saves tags from {@link AbstractSRLParser#t_map} to <code>lexiconFile</code>. */
@@ -221,13 +221,8 @@ abstract public class AbstractSRLParser
 	
 	public void closeOutputStream()
 	{
-		for (int i=0; i<f_out.length; i++)
-			f_out[i].close();
+		for (PrintStream fout : f_out)	fout.close();
 	}
-	
-	
-	
-//	================================== Methods For General Features ==================================
 	
 	/** Add n-gram lexica to the feature map. */
 	protected void addNgramLexica(SRLFtrMap map)
@@ -244,11 +239,61 @@ abstract public class AbstractSRLParser
 			
 			for (i=0; i<n; i++)
 			{
-				if ((ftr = getBinaryFeature(template[i])) != null)
+				if ((ftr = getFeature(template[i])) != null)
 					map.addNgram(j, ftr);
 			}
 		}
 	}
+	
+	/** Adds n-gram features (binary). */
+	protected void addNgramFeatures(IntArrayList arr, int[] idx)
+	{
+		FtrTemplate[][] templates = t_xml.a_ngram_templates;
+		FtrTemplate[]   template;
+		SRLFtrMap       tmap = getDirFtrMap();
+		int i, j, n, m = templates.length, size, value;
+		ObjectIntOpenHashMap<String> map;
+		String                       ftr;
+		
+		for (j=0; j<m; j++)
+		{
+			map  = tmap.getNgramHashMap(j);
+			size = tmap.n_ngram[j];
+			
+			template = templates[j];
+			n        = template.length;
+			
+			for (i=0; i<n; i++)
+			{
+				if ((ftr = getFeature(template[i])) != null)
+				{
+					value = map.get(ftr);
+					if (value > 0)	arr.add(idx[0]+value-1);
+				}
+				
+				idx[0] += size;
+			}
+		}
+	}
+	
+	/** @return feature value. */
+	protected String getFeature(FtrTemplate ftr)
+	{
+		StringBuilder build = new StringBuilder();
+		int i, n = ftr.tokens.length;
+		String field;
+		
+		for (i=0; i<n; i++)
+		{
+			field = getField(ftr.tokens[i]);
+			if (field == null)	return null;
+			
+			if (i > 0)	build.append(FtrLib.TAG_DELIM);
+			build.append(field);
+		}
+		
+		return build.toString();
+    }
 	
 	/** @return field retrieved from <code>token</code> */
 	protected String getField(FtrToken token)
@@ -319,142 +364,12 @@ abstract public class AbstractSRLParser
 		return null;
 	}
 	
-	
-//	================================== Methods For Binary Features ==================================
-
 	/** Prints a training instance (binary). */
 	protected void printInstance(String label, IntArrayList arr)
 	{
-		int index = getIdxFtrMap().labelToIndex(label);
+		String fv = AbstractKernel.COL_DELIM + DSUtil.toString(arr, AbstractKernel.COL_DELIM);
+		int index = getDirFtrMap().labelToIndex(label);
 		
-		if (index >= 0)
-		{
-			PrintStream   fout  = getIdxPrintStream();
-			StringBuilder build = new StringBuilder();
-			
-			build.append(index);
-			for (IntCursor idx : arr)
-			{
-				build.append(AbstractKernel.COL_DELIM);
-				build.append(idx.value);
-			}
-			
-			fout.println(build.toString());				
-		}
-	}
-	
-	/** Adds n-gram features (binary). */
-	protected void addNgramFeatures(IntArrayList arr, int[] idx)
-	{
-		FtrTemplate[][] templates = t_xml.a_ngram_templates;
-		FtrTemplate[]   template;
-		int i, j, n, m = templates.length, size, value;
-		SRLFtrMap tmap = getIdxFtrMap();
-		ObjectIntOpenHashMap<String> map;
-		String                       ftr;
-		
-		for (j=0; j<m; j++)
-		{
-			map  = tmap.getNgramHashMap(j);
-			size = tmap.n_ngram[j];
-			
-			template = templates[j];
-			n        = template.length;
-			
-			for (i=0; i<n; i++)
-			{
-				if ((ftr = getBinaryFeature(template[i])) != null)
-				{
-					value = map.get(ftr);
-					if (value > 0)	arr.add(idx[0]+value-1);
-				}
-				
-				idx[0] += size;
-			}
-		}
-	}
-	
-	/** @return feature value. */
-	protected String getBinaryFeature(FtrTemplate ftr)
-	{
-		StringBuilder build = new StringBuilder();
-		int i, n = ftr.tokens.length;
-		String field;
-		
-		for (i=0; i<n; i++)
-		{
-			field = getField(ftr.tokens[i]);
-			if (field == null)	return null;
-			
-			if (i > 0)	build.append(FtrLib.TAG_DELIM);
-			build.append(field);
-		}
-		
-		return build.toString();
-    }
-	
-//	================================== Methods For Double Features ==================================
-
-	/** Prints a training instance (double). */
-	protected void printInstance(String label, ArrayList<JIntDoubleTuple> arr)
-	{
-		int index = getIdxFtrMap().labelToIndex(label);
-		
-		if (index >= 0)
-		{
-			PrintStream   fout  = getIdxPrintStream();
-			StringBuilder build = new StringBuilder();
-			
-			build.append(index);
-			
-			for (JIntDoubleTuple tup : arr)
-			{
-				build.append(AbstractKernel.COL_DELIM);
-				build.append(tup.i);
-				build.append(AbstractKernel.FTR_DELIM);
-				build.append(tup.d);
-			}
-			
-			fout.println(build.toString());
-		}
-	}
-	
-	/** Adds n-gram features (double). */
-	protected void addNgramFeatures(ArrayList<JIntDoubleTuple> arr, int[] idx)
-	{
-		FtrTemplate[][] templates = t_xml.a_ngram_templates;
-		FtrTemplate[]   template;
-		int i, j, n, m = templates.length, size, value;
-		SRLFtrMap tmap = getIdxFtrMap();
-		ObjectIntOpenHashMap<String> map;
-		JObjectDoubleTuple<String>   ftr;
-		
-		for (j=0; j<m; j++)
-		{
-			map  = tmap.getNgramHashMap(j);
-			size = tmap.n_ngram[j];
-			
-			template = templates[j];
-			n        = template.length;
-			
-			for (i=0; i<n; i++)
-			{
-				if ((ftr = getValueFeature(template[i])) != null)
-				{
-					value = map.get(ftr.object);
-					if (value > 0)	arr.add(new JIntDoubleTuple(idx[0]+value-1, ftr.value));
-				}
-
-				idx[0] += size;
-			}
-		}
-	}
-	
-	/** @return feature value and weight. */
-	protected JObjectDoubleTuple<String> getValueFeature(FtrTemplate ftr)
-	{
-		String binary = getBinaryFeature(ftr);
-		
-		return (binary == null)	? null : new JObjectDoubleTuple<String>(binary, 1d);
+		if (index >= 0)	getDirPrintStream().println(index + fv);
 	}
 }
