@@ -7,6 +7,7 @@ import java.util.HashMap;
 
 import clear.dep.DepNode;
 import clear.dep.DepTree;
+import clear.parse.AbstractSRLParser;
 import clear.util.IOUtil;
 import clear.util.tuple.JObjectDoubleTuple;
 
@@ -15,12 +16,14 @@ import com.carrotsearch.hppc.cursors.ObjectCursor;
 
 public class SRLProb
 {
-	private final String TOTAL = "TOTAL";
+	static public final String TOTAL = "TOTAL";
+	static public final String SHIFT = "SHIFT";
 	
 	private HashMap<String, ObjectDoubleOpenHashMap<String>> m_prevProb1d;
 	private HashMap<String, ObjectDoubleOpenHashMap<String>> m_nextProb1d;
 	
-	public double d_smooth = 0;
+	public double d_smooth = Double.MIN_VALUE;
+	public double d_shift  = 0.15;
 	
 	public SRLProb()
 	{
@@ -103,6 +106,7 @@ public class SRLProb
 		computeConditionalProb(m_nextProb1d);
 	}
 	
+	/** Called from {@link SRLProb#computeConditionalProb(HashMap)}. */
 	void computeConditionalProb(HashMap<String, ObjectDoubleOpenHashMap<String>> mPred)
 	{
 		ObjectDoubleOpenHashMap<String> mArg;
@@ -123,19 +127,23 @@ public class SRLProb
 		}
 	}
 	
-	public ObjectDoubleOpenHashMap<String> getPrevProb1d(DepNode pred)
+	public ObjectDoubleOpenHashMap<String> getProb1d(DepNode pred, byte dir)
+	{
+		if (dir == AbstractSRLParser.DIR_LEFT)
+			return getPrevProb1d(pred);
+		else
+			return getNextProb1d(pred);
+	}
+	
+	private ObjectDoubleOpenHashMap<String> getPrevProb1d(DepNode pred)
 	{
 		return m_prevProb1d.get(getKey(pred));
 	}
 	
-	public ObjectDoubleOpenHashMap<String> getNextProb1d(DepNode pred)
+	private ObjectDoubleOpenHashMap<String> getNextProb1d(DepNode pred)
 	{
 		return m_nextProb1d.get(getKey(pred));
 	}
-	
-	
-	
-	
 	
 	
 	

@@ -167,6 +167,11 @@ abstract public class AbstractFtrMap<FtrXmlType>
 		return count;
 	}
 	
+	public int getLabelSize()
+	{
+		return a_label.size();
+	}
+	
 	/** Adds the class label. */
 	public void addLabel(String label)
 	{

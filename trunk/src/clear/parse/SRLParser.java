@@ -24,21 +24,27 @@
 package clear.parse;
 
 import java.util.AbstractCollection;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 
-import clear.decode.AbstractMultiDecoder;
+import clear.decode.AbstractDecoder;
 import clear.decode.OneVsAllDecoder;
 import clear.dep.DepLib;
 import clear.dep.DepNode;
 import clear.dep.DepTree;
 import clear.dep.srl.SRLArg;
+import clear.dep.srl.SRLProb;
 import clear.ftr.map.SRLFtrMap;
 import clear.ftr.xml.SRLFtrXml;
 import clear.util.tuple.JIntDoubleTuple;
+import clear.util.tuple.JObjectDoubleTuple;
 
 import com.carrotsearch.hppc.IntArrayList;
+import com.carrotsearch.hppc.ObjectDoubleOpenHashMap;
+import com.carrotsearch.hppc.ObjectIntOpenHashMap;
+import com.carrotsearch.hppc.cursors.ObjectCursor;
 
 /**
  * Shift-eager dependency parser.
@@ -51,8 +57,6 @@ public class SRLParser extends AbstractSRLParser
 	static public final String LB_SHIFT    = "SH";
 	/** Label of NoArc transition */
 	static public final String LB_NO_ARC   = "NA";
-	
-	static public final String LB_NO_SHIFT = "SH";
 	
 	/** For {@link SRLParser#FLAG_TRAIN_BOOST} only. */
 	protected DepTree d_copy = null;
@@ -75,13 +79,13 @@ public class SRLParser extends AbstractSRLParser
 	}
 	
 	/** Initializes this parser for {@link SRLParser#FLAG_PREDICT}. */
-	public SRLParser(byte flag, SRLFtrXml xml, SRLFtrMap[] map, AbstractMultiDecoder[] decoder)
+	public SRLParser(byte flag, SRLFtrXml xml, SRLFtrMap[] map, AbstractDecoder[] decoder)
 	{
 		super(flag, xml, map, decoder);
 	}
 	
 	/** Initializes this parser for {@link SRLParser#FLAG_TRAIN_BOOST}. */
-	public SRLParser(byte flag, SRLFtrXml xml, SRLFtrMap[] map, AbstractMultiDecoder[] decoder, String[] instanceFile)
+	public SRLParser(byte flag, SRLFtrXml xml, SRLFtrMap[] map, AbstractDecoder[] decoder, String[] instanceFile)
 	{
 		super(flag, xml, map, decoder, instanceFile);
 	}
@@ -97,8 +101,8 @@ public class SRLParser extends AbstractSRLParser
 		i_dir    = DIR_LEFT;
 		ls_args  = new ArrayList<SRLArg>();
 		ls_argn  = new ArrayList<SRLArg>();
-		dq_argn  = new ArrayDeque<String>();
-		dq_argn.add("V");
+		s_argn   = new HashSet<String>();
+		m_argm   = new ObjectIntOpenHashMap<String>();
 		
 		if (i_flag == FLAG_TRAIN_BOOST)
 		{
@@ -107,8 +111,8 @@ public class SRLParser extends AbstractSRLParser
 		}
 		else if (i_flag == FLAG_TRAIN_PROBABILITY)
 		{
-			s_prob.countPred(tree);
-			s_prob.countArgs(tree);
+			p_prob.countPred(tree);
+			p_prob.countArgs(tree);
 		}
 	}
 	
@@ -119,8 +123,8 @@ public class SRLParser extends AbstractSRLParser
 		
 		while (i_beta < tree.size())
 		{
-			if (i_lambda <= 0 || i_lambda >= tree.size())
-				shift(true);
+			if (i_lambda <= 0 || i_lambda >= tree.size())// || isShift())
+				shift();
 			else if (i_flag == FLAG_PREDICT)
 				predict();
 			else if (i_flag == FLAG_TRAIN_BOOST)
@@ -128,6 +132,58 @@ public class SRLParser extends AbstractSRLParser
 			else
 				train();
 		}
+	}
+	
+	protected boolean isShift()
+	{
+		DepNode pred = d_tree.get(i_beta);
+		
+		if (i_flag == FLAG_PREDICT)
+		{
+			return isShiftProb(pred);
+		}
+		else
+		{
+			DepTree tree = (i_flag == FLAG_TRAIN_BOOST) ? d_copy : d_tree;
+			return isShift(tree) && isShiftProb(pred);
+		}
+	}
+	
+	protected boolean isShiftProb(DepNode pred)
+	{
+		ObjectDoubleOpenHashMap<String> prob1d = p_prob.getProb1d(pred, i_dir);
+		if (prob1d == null)	return false;
+		
+		return getScore(prob1d) <= p_prob.d_shift;
+	}
+	
+	public double getScore(ObjectDoubleOpenHashMap<String> prob1d)
+	{
+		double score = 0;
+		String label;
+		
+		for (ObjectCursor<String> key : prob1d.keySet())
+		{
+			if ((label = key.value).equals(SRLProb.SHIFT))	continue;
+			score += prob1d.get(label);
+		}
+		
+		return score;
+	}
+	
+	/**
+	 * This method is called from {@link SRLParser#train()}.
+	 * @return true if non-deterministic shift needs to be performed 
+	 */
+	protected boolean isShift(DepTree tree)
+	{
+		for (int i=i_lambda; 0<i && i<tree.size(); i+=i_dir)
+		{
+			if (tree.get(i).isSRLHead(i_beta))
+				return false;
+		}
+
+		return true;
 	}
 	
 	/** Trains the dependency tree ({@link SRLParser#d_tree}). */
@@ -138,54 +194,33 @@ public class SRLParser extends AbstractSRLParser
 		
 		if ((label = lambda.getSRLLabel(i_beta)) != null)
 			yesArc(lambda, label, 1d);
-	//	else if (isShift(d_tree))
-	//		shift(false);
 		else
 			noArc();
 	}
-
-	/**
-	 * This method is called from {@link SRLParser#train()}.
-	 * @return true if non-deterministic shift needs to be performed 
-	 */
-	protected boolean isShift(DepTree tree)
-	{
-		for (int i=i_lambda+i_dir; 0<i && i<tree.size(); i+=i_dir)
-		{
-			if (tree.get(i).isSRLHead(i_beta))
-				return false;
-		}
-
-		return true;
-	}
 	
-	
-	
-	
-	
-	
-	
-	
-		
 	/** Predicts dependencies. */
 	private void predict()
 	{
-		predictAux(getBinaryFeatureArray());	
+		predictAux(getFeatureArray());
 	}
 	
 	private void predictAux(IntArrayList ftr)
 	{
-		SRLFtrMap       map = getIdxFtrMap();
-		OneVsAllDecoder dec = (OneVsAllDecoder)getIdxDecoder();
-		
+		OneVsAllDecoder dec = getDirDecoder();
 		JIntDoubleTuple res = dec.predict(ftr);
+		SRLFtrMap       map = getDirFtrMap();
+		
+		if (res == null)
+		{
+			shift();
+			return;
+		}
+		
 		String  label  = (res.i < 0) ? LB_NO_ARC : map.indexToLabel(res.i);
 		DepNode lambda = d_tree.get(i_lambda);
 		
 		if (label.equals(LB_NO_ARC))
 			noArc();
-	//	else if (label.equals(LB_SHIFT))
-	//		shift(false);
 		else
 			yesArc(lambda, label, res.d);
 	}
@@ -193,7 +228,7 @@ public class SRLParser extends AbstractSRLParser
 	private void trainConditional()
 	{
 		String    gLabel = getGoldLabel(d_copy);
-		IntArrayList ftr = getBinaryFeatureArray();
+		IntArrayList ftr = getFeatureArray();
 		
 		printInstance(gLabel, ftr);
 		predictAux(ftr);
@@ -206,8 +241,6 @@ public class SRLParser extends AbstractSRLParser
 		
 		if ((label = lambda.getSRLLabel(i_beta)) != null)
 			return label;
-	//	else if (isShift(tree))
-	//		return LB_SHIFT;
 		else
 			return LB_NO_ARC;
 	}
@@ -216,10 +249,8 @@ public class SRLParser extends AbstractSRLParser
 	 * Performs a shift transition.
 	 * @param isDeterministic true if this is called for a deterministic-shift.
 	 */
-	private void shift(boolean isDeterministic)
+	private void shift()
 	{
-		if (!isDeterministic)	trainInstance(LB_SHIFT);
-		
 		if (i_dir == DIR_RIGHT)
 		{
 			if (i_flag == FLAG_PREDICT || i_flag == FLAG_TRAIN_BOOST)
@@ -231,7 +262,8 @@ public class SRLParser extends AbstractSRLParser
 			i_beta = d_tree.nextPredicateId(i_beta);
 			ls_args.clear();
 			ls_argn.clear();
-			dq_argn.clear();
+			s_argn .clear();
+			m_argm .clear();
 		}
 		
 		i_dir *= -1;
@@ -247,18 +279,21 @@ public class SRLParser extends AbstractSRLParser
 	}
 	
 	private void yesArc(DepNode lambda, String label, double score)
-	{label = "Y";
+	{
 		trainInstance(label);
 		
 		SRLArg arg = new SRLArg(i_lambda, label, score);
 
 		ls_args.add(arg);
 		
-		if (label.matches("A\\d"))	
+		if (label.matches("A\\d"))
 		{
 			ls_argn.add(arg);
-			if (i_dir == DIR_LEFT)	dq_argn.addFirst(arg.label);
-			else					dq_argn.addLast (arg.label);
+			s_argn .add(arg.label);
+		}
+		else if (label.startsWith("AM-"))
+		{
+			m_argm.put(arg.label, m_argm.get(arg.label)+1);
 		}
 		
 		i_lambda += i_dir;
@@ -266,14 +301,10 @@ public class SRLParser extends AbstractSRLParser
 	
 	private void trainInstance(String label)
 	{
-		if (i_flag == FLAG_TRAIN_LEXICON)
+		if      (i_flag == FLAG_TRAIN_LEXICON)
 			addTags(label);
 		else if (i_flag == FLAG_TRAIN_INSTANCE)
-		{
-			if (b_binary_feature)	printInstance(label, getBinaryFeatureArray());
-			else					printInstance(label, getValueFeatureArray());
-		}
-			
+			printInstance(label, getFeatureArray());
 	}
 		
 	// ---------------------------- getFtr*() ----------------------------
@@ -282,6 +313,7 @@ public class SRLParser extends AbstractSRLParser
 	{
 		addNgramLexica(map);
 		addSetLexica  (map, 0, d_tree.getDeprelDepSet(i_beta));
+	//	addStrLexica  (map, 1, getPredictSeq());
 	}
 	
 	protected void addSetLexica(SRLFtrMap map, int ftrId, AbstractCollection<String> ftrs)
@@ -290,33 +322,22 @@ public class SRLParser extends AbstractSRLParser
 			map.addFtr(ftrId, ftr);
 	}
 	
-	protected String getArgSeq()
+	protected void addStrLexica(SRLFtrMap map, int ftrId, String ftr)
 	{
-		int beginId = 0;
-		if (ls_argn.size() > beginId)	return null;
-		StringBuilder build = new StringBuilder();
-		
-		build.append(d_tree.get(i_beta).lemma);
-		
-		for (int i=beginId; i<ls_argn.size(); i++)
-		{
-			SRLArg arg = ls_argn.get(i);
-			build.append("_");
-			build.append(arg.label);
-		}
-		
-		return build.toString();
+		if (ftr != null)	map.addFtr(ftrId, ftr);
 	}
-	
-	protected IntArrayList getBinaryFeatureArray()
+
+	protected IntArrayList getFeatureArray()
 	{
 		// add features
 		IntArrayList arr = new IntArrayList();
+		SRLFtrMap    map = getDirFtrMap();
 		int idx[] = {1};
 		
 		addNgramFeatures (arr, idx);
 		addBinaryFeatures(arr, idx);
-		addSetFeatures   (arr, idx, 0, d_tree.getDeprelDepSet(i_beta));
+		addSetFeatures   (arr, idx, map, 0, d_tree.getDeprelDepSet(i_beta));
+//		addStrFeatures   (arr, idx, map, 1, getPredictSeq());
 		
 		return arr;
 	}
@@ -343,9 +364,8 @@ public class SRLParser extends AbstractSRLParser
 		idx[0] += 3;
 	}
 	
-	protected void addSetFeatures(IntArrayList arr, int[] idx, int ftrId, AbstractCollection<String> ftrs)
+	protected void addSetFeatures(IntArrayList arr, int[] idx, SRLFtrMap map, int ftrId, AbstractCollection<String> ftrs)
 	{
-		SRLFtrMap    map  = getIdxFtrMap();
 		IntArrayList list = new IntArrayList();
 		int i;
 		
@@ -361,9 +381,69 @@ public class SRLParser extends AbstractSRLParser
 		idx[0] += map.n_ftr[ftrId];
 	}
 	
-	protected ArrayList<JIntDoubleTuple> getValueFeatureArray()
+	protected void addStrFeatures(IntArrayList arr, int[] idx, SRLFtrMap map, int ftrId, String ftr)
 	{
-		return null;
+		if (ftr != null)
+		{
+			int index = map.ftrToIndex(ftrId, ftr);
+			if (index >= 0)	arr.add(idx[0]+index);	
+		}
+		
+		idx[0] += map.n_ftr[ftrId];
 	}
 	
+	@SuppressWarnings("unchecked")
+	protected String getPredictSeq()
+	{
+		DepNode                         beta = d_tree.get(i_beta);
+		ObjectDoubleOpenHashMap<String> pMap = p_prob.getProb1d(beta, i_dir);
+		if (pMap == null)	return null;
+		
+		ArrayList<JObjectDoubleTuple<String>> list = new ArrayList<JObjectDoubleTuple<String>>();
+		String label;
+		
+		for (ObjectCursor<String> cur : pMap.keySet())
+		{
+			label = cur.value;
+			
+			if (!label.matches("A\\d") || s_argn.contains(label))
+				continue;
+		/*	else if (m_argm.containsKey(label))
+			{
+				if (label.matches("AM-MOD|AM-NEG"))
+					continue;
+				else
+					dev += m_argm.get(label);
+			}*/
+		/*	else if (label.startsWith("C-"))
+			{
+				sub = label.substring(2);
+				
+				if (!s_argn.contains(sub) && !s_argm.contains(sub))
+				{
+					prob[index] = p_prob.d_smooth;
+					continue;
+				}
+			}*/
+			
+			list.add(new JObjectDoubleTuple<String>(label, pMap.get(label)));
+		}
+		
+		if (list.isEmpty())	return null;
+		Collections.sort(list);
+
+		StringBuilder build = new StringBuilder();
+		build.append(beta.lemma);
+		
+		for (int i=0; i<list.size(); i++)
+		{
+			JObjectDoubleTuple<String> tup = list.get(i);
+			if (tup.value <= p_prob.d_smooth)	break;
+			
+			build.append("_");
+			build.append(tup.object);
+		}
+			
+		return build.toString();
+	}
 }

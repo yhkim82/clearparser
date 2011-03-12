@@ -40,7 +40,7 @@ import com.carrotsearch.hppc.cursors.ObjectCursor;
  */
 public class SRLFtrMap extends AbstractFtrMap<SRLFtrXml>
 {
-	final int N_FTR = 1;
+	final int N_FTR = 2;
 	
 	/** Takes "deprel" as a key and its index as a value */
 	protected ArrayList<ObjectIntOpenHashMap<String>> m_ftr;
