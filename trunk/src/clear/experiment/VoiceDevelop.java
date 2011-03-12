@@ -31,18 +31,19 @@ import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
 
-import clear.decode.OneVsAllDecoder;
+import clear.decode.BinaryDecoder;
 import clear.dep.DepNode;
 import clear.dep.DepTree;
+import clear.dep.srl.SRLEval;
 import clear.engine.AbstractTrain;
-import clear.engine.SRLEvaluate;
-import clear.ftr.map.SRLFtrMap;
-import clear.ftr.xml.SRLFtrXml;
-import clear.model.OneVsAllModel;
-import clear.parse.AbstractSRLParser;
-import clear.parse.SRLParser;
+import clear.ftr.map.DepFtrMap;
+import clear.ftr.xml.DepFtrXml;
+import clear.model.BinaryModel;
+import clear.parse.AbstractDepParser;
+import clear.parse.VoiceDetectorDep;
 import clear.reader.AbstractReader;
 import clear.reader.SRLReader;
+import clear.train.AbstractTrainer;
 import clear.util.IOUtil;
 
 /**
@@ -50,10 +51,8 @@ import clear.util.IOUtil;
  * <b>Last update:</b> 11/19/2010
  * @author Jinho D. Choi
  */
-public class SRLDevelop extends AbstractTrain
+public class VoiceDevelop extends AbstractTrain
 {
-	private final int MAX_ITER = 5;
-	
 	@Option(name="-t", usage="feature template file", required=true, metaVar="REQUIRED")
 	private String s_featureXml = null;
 	@Option(name="-i", usage="training file", required=true, metaVar="REQUIRED")
@@ -61,110 +60,84 @@ public class SRLDevelop extends AbstractTrain
 	@Option(name="-d", usage="development file", required=true, metaVar="REQUIRED")
 	private String s_devFile    = null; 
 	
-	private StringBuilder   s_build = null;
-	private SRLFtrXml       t_xml   = null;
-	private SRLFtrMap[]     t_map   = null;
-	private OneVsAllModel[] m_model = null;
+	private DepFtrXml   t_xml   = null;
+	private DepFtrMap   t_map   = null;
+	private BinaryModel m_model = null;
 	
 	public void initElements() {}
 	
 	protected void train() throws Exception
 	{
 		printConfig();
+		String instanceFile = "instaces.ftr";
+		trainer_type = AbstractTrainer.ST_BINARY;
 		
-		int    i = 0;
-		String instanceFile[] = {"instaces0.ftr", "instaces1.ftr"};
-		String log          = "\n== Bootstrapping: "+i+" ==\n";
+		trainDepParser(VoiceDetectorDep.FLAG_PRINT_LEXICON , null, null);
+		trainDepParser(VoiceDetectorDep.FLAG_PRINT_INSTANCE, instanceFile, null);
+		m_model = (BinaryModel)trainModel(instanceFile, null);
+		trainDepParser(VoiceDetectorDep.FLAG_PREDICT, s_devFile+".voice", null);
 		
-		s_build = new StringBuilder();
-		t_map   = new SRLFtrMap[instanceFile.length];
-		m_model = new OneVsAllModel[instanceFile.length];
-		s_build.append(log);
-		System.out.print(log);
-		
-		trainDepParser(SRLParser.FLAG_TRAIN_LEXICON , null, null);
-		trainDepParser(SRLParser.FLAG_TRAIN_INSTANCE, instanceFile, null);
-		
-		for (int j=0; j<instanceFile.length; j++)
-			m_model[j] = (OneVsAllModel)trainModel(instanceFile[j], null);
-		
-		double prevAcc = 0, currAcc;
-		
-		do
-		{
-			String[] labelFile = {s_devFile+".label."+i};
-			currAcc = trainDepParser(SRLParser.FLAG_PREDICT, labelFile, null);
-			if (currAcc > 85.6)	System.out.println("BINGO - "+s_featureXml+": "+currAcc);
-			if (currAcc <= prevAcc)	break;
-			
-			prevAcc = currAcc;
-			trainDepParser(SRLParser.FLAG_TRAIN_BOOST, instanceFile, null);
-			
-			log = "\n== Bootstrapping: "+(++i)+" ==\n";
-			s_build.append(log);
-			System.out.print(log);
-
-			m_model = new OneVsAllModel[instanceFile.length];
-			for (int j=0; j<instanceFile.length; j++)
-				m_model[j] = (OneVsAllModel)trainModel(instanceFile[j], null);
-		}
-		while (i < MAX_ITER);
-		
-		new File(ENTRY_LEXICA+".0").delete();
-		new File(ENTRY_LEXICA+".1").delete();
-		for (String filename : instanceFile)	new File(filename).delete();
-		System.out.println(s_build.toString());
+		new File(ENTRY_LEXICA).delete();
+		new File(instanceFile).delete();
 	}
 	
-	/** Trains the dependency parser. */
-	private double trainDepParser(byte flag, String[] outputFile, JarArchiveOutputStream zout) throws Exception
+/*	private void trainMallet(String instanceFile)
 	{
-		AbstractSRLParser labeler = null;
-		OneVsAllDecoder[] decoder = null;
-		PrintStream[]     fout    = null;
-		String[] lexiconFile = {ENTRY_LEXICA+".0", ENTRY_LEXICA+".1"};
+		ArrayList<String[]> xs = new ArrayList<String[]>();
+		ArrayList<String>   ys = new ArrayList<String>();
 		
-		if (flag == SRLParser.FLAG_TRAIN_LEXICON)
+		BufferedReader fin = IOUtil.createBufferedFileReader(instanceFile);
+		String line;
+		
+		try
+		{
+			while ((line = fin.readLine()) != null)
+			{
+				String[] tmp = line.split(" ");
+				
+				xs.add(Arrays.copyOfRange(tmp, 1, tmp.length));
+				ys.add(tmp[0]);
+			}
+		}
+		catch (IOException e) {e.printStackTrace();}
+		
+		String[][] axs = new String[xs.size()][];
+		String[]   ays = new String[ys.size()];
+		
+		xs.toArray(axs);
+		ys.toArray(ays);
+	}*/
+	
+	/** Trains the dependency parser. */
+	private void trainDepParser(byte flag, String outputFile, JarArchiveOutputStream zout) throws Exception
+	{
+		VoiceDetectorDep parser  = null;
+		BinaryDecoder    decoder = null;
+		PrintStream      fout    = null;
+		
+		if (flag == VoiceDetectorDep.FLAG_PRINT_LEXICON)
 		{
 			System.out.println("\n* Save lexica");
-			labeler = new SRLParser(flag, s_featureXml);
+			parser = new VoiceDetectorDep(flag, s_featureXml);
 		}
-		else if (flag == SRLParser.FLAG_TRAIN_INSTANCE)
+		else if (flag == VoiceDetectorDep.FLAG_PRINT_INSTANCE)
 		{
 			System.out.println("\n* Print training instances");
 			System.out.println("- loading lexica");
-			
-			labeler = new SRLParser(flag, t_xml, lexiconFile, outputFile);
+			parser = new VoiceDetectorDep(flag, t_xml, ENTRY_LEXICA, outputFile);	
 		}
-		else if (flag == SRLParser.FLAG_PREDICT)
+		else if (flag == VoiceDetectorDep.FLAG_PREDICT)
 		{
 			System.out.println("\n* Predict");
-			
-			decoder = new OneVsAllDecoder[m_model.length];
-			for (int i=0; i<decoder.length; i++)
-				decoder[i] = new OneVsAllDecoder(m_model[i]);
-			
-			fout = new PrintStream[outputFile.length];
-			for (int i=0; i<fout.length; i++)
-				fout[i] = IOUtil.createPrintFileStream(outputFile[i]);
-			
-			labeler = new SRLParser(SRLParser.FLAG_PREDICT, t_xml, t_map, decoder);
-		}
-		else if (flag == SRLParser.FLAG_TRAIN_BOOST)
-		{
-			System.out.println("\n* Train conditional");
-			
-			decoder = new OneVsAllDecoder[m_model.length];
-			for (int i=0; i<decoder.length; i++)
-				decoder[i] = new OneVsAllDecoder(m_model[i]);
-			
-			labeler = new SRLParser(flag, t_xml, t_map, decoder, outputFile);
+			decoder = new BinaryDecoder(m_model);
+			fout    = IOUtil.createPrintFileStream(outputFile);
+			parser  = new VoiceDetectorDep(AbstractDepParser.FLAG_PREDICT, t_xml, t_map, decoder);
 		}
 		
 		String  inputFile;
 		boolean isTrain;
 		
-		if (flag == SRLParser.FLAG_PREDICT)
+		if (flag == VoiceDetectorDep.FLAG_PREDICT)
 		{
 			inputFile = s_devFile;
 			isTrain   = false;
@@ -178,53 +151,47 @@ public class SRLDevelop extends AbstractTrain
 		AbstractReader<DepNode, DepTree> reader = new SRLReader(inputFile, isTrain);
 		DepTree tree;	int n;
 		
-		labeler.setLanguage(s_language);
+		parser.setLanguage(s_language);
 		reader.setLanguage(s_language);
 		
 		for (n=0; (tree = reader.nextTree()) != null; n++)
 		{
-			labeler.parse(tree);
+			parser.parse(tree);
 			
-			if (flag == SRLParser.FLAG_PREDICT)
-				fout[0].println(tree+"\n");
+			if (flag == VoiceDetectorDep.FLAG_PREDICT)
+				fout.println(tree+"\n");
 			if (n % 1000 == 0)
 				System.out.printf("\r- parsing: %dK", n/1000);
 		}
 		
 		System.out.println("\r- parsing: "+n);
 		
-		if (flag == SRLParser.FLAG_TRAIN_LEXICON)
+		if (flag == VoiceDetectorDep.FLAG_PRINT_LEXICON)
 		{
 			System.out.println("- saving");
-			labeler.saveTags(lexiconFile);
-			t_xml = labeler.getFtrXml();
+			parser.saveTags(ENTRY_LEXICA);
+			t_xml = parser.getDepFtrXml();
 		}
-		else if (flag == SRLParser.FLAG_TRAIN_INSTANCE)
+		else if (flag == VoiceDetectorDep.FLAG_PRINT_INSTANCE)
 		{
-			labeler.closeOutputStream();
-			t_map = labeler.getFtrMap();
+			parser.closeOutputStream();
+			t_map = parser.getDepFtrMap();
 		}
-		else if (flag == SRLParser.FLAG_PREDICT)
+		else if (flag == VoiceDetectorDep.FLAG_PREDICT)
 		{
-			for (int i=0; i<fout.length; i++)
-				fout[i].close();
+			fout.close();
+			
+			for (int i=0; i<3; i++)
+			{
+				double precision = 100d * parser.correct[i] / parser.precision[i];
+				double recall    = 100d * parser.correct[i] / parser.recall[i];
 				
-			String[] args = {"-g", s_devFile, "-s", outputFile[0]};
-			String   log  = "\n* Development accuracy\n";
-			
-			System.out.print(log);
-			SRLEvaluate eval = new SRLEvaluate(args);
-			
-			s_build.append(log);
-			s_build.append("- F1: "+eval.getF1()+"\n");
-			return eval.getF1();
+				System.out.println("Precision: "+precision);
+				System.out.println("Recall   : "+recall);
+				System.out.println("F1-score : "+SRLEval.getF1(precision, recall));
+				System.out.println();
+			}
 		}
-		else if (flag == SRLParser.FLAG_TRAIN_BOOST)
-		{
-			labeler.closeOutputStream();
-		}
-		
-		return 0;
 	}
 	
 	protected void printConfig()
@@ -240,7 +207,7 @@ public class SRLDevelop extends AbstractTrain
 	
 	static public void main(String[] args)
 	{
-		SRLDevelop developer = new SRLDevelop();
+		VoiceDevelop developer = new VoiceDevelop();
 		CmdLineParser    cmd = new CmdLineParser(developer);
 		
 		try

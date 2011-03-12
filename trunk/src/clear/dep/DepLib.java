@@ -23,6 +23,8 @@
 */
 package clear.dep;
 
+import java.util.regex.Pattern;
+
 /**
  * This class contains constant variables for dependency parsing.
  * @author Jinho D. Choi
@@ -83,4 +85,6 @@ public class DepLib
 	static public final String DEPREL_TMP   = "TMP";
 	static public final String DEPREL_VC    = "VC";
 	static public final String DEPREL_VOC   = "VOC";
+	
+	static public final Pattern M_VC = Pattern.compile("CONJ|COORD|IM|OPRD|VC");
 }

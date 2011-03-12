@@ -190,6 +190,11 @@ public class DepNode
 		return srlInfo.isHead(headId);
 	}
 	
+	public boolean isSRLHeadMatch(String regex)
+	{
+		return srlInfo.isHeadMatch(regex);
+	}
+	
 	public String getSRLLabel(int headId)
 	{
 		return srlInfo.getLabel(headId);
@@ -212,6 +217,11 @@ public class DepNode
 		
 		node.copy(this);
 		return node;
+	}
+	
+	public void clearSRLHeads()
+	{
+		srlInfo.heads.clear();
 	}
 	
 	/**

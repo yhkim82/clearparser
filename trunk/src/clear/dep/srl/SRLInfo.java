@@ -30,6 +30,11 @@ public class SRLInfo
 				heads.add(new SRLHead(arg));
 		}
 	}
+	
+	public SRLHead getHead(int index)
+	{
+		return heads.get(index);
+	}
 
 	public void setRolesetId(String rolesetId)
 	{
@@ -46,10 +51,24 @@ public class SRLInfo
 		return !rolesetId.equals(DepLib.FIELD_BLANK);
 	}
 	
+	public boolean isEmptyHead()
+	{
+		return heads.isEmpty();
+	}
+	
 	public boolean isHead(int headId)
 	{
 		for (SRLHead head : heads)
 			if (head.equals(headId))
+				return true;
+		
+		return false;
+	}
+	
+	public boolean isHeadMatch(String regex)
+	{
+		for (SRLHead head : heads)
+			if (head.label.matches(regex))
 				return true;
 		
 		return false;
