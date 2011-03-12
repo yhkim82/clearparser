@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 
-import clear.parse.VoiceDetector;
+import clear.parse.VoiceDetectorPhrase;
 import clear.propbank.PBArg;
 import clear.propbank.PBInstance;
 import clear.propbank.PBLoc;
@@ -208,7 +208,7 @@ public class AnalyzePBArgs
 	
 	void processVerbPrepPMI(PBInstance instance)
 	{
-		boolean isPassive = VoiceDetector.getPassive(tb_tree.getNode(instance.predicateId, 0)) > 0;
+		boolean isPassive = VoiceDetectorPhrase.getPassive(tb_tree.getNode(instance.predicateId, 0)) > 0;
 		String vLemma = instance.type, pLemma;
 		TBNode node;
 		
@@ -361,7 +361,7 @@ public class AnalyzePBArgs
 	
 	void processRequiredArgument(PBInstance instance)
 	{
-		boolean isPassive = VoiceDetector.getPassive(tb_tree.getNode(instance.predicateId, 0)) > 0;
+		boolean isPassive = VoiceDetectorPhrase.getPassive(tb_tree.getNode(instance.predicateId, 0)) > 0;
 		TBNode  predicate = tb_tree.getNode(instance.predicateId, 0);
 		String  sentence  = predicate.getSentenceGroup();
 		if (!(!isPassive && sentence != null && sentence.equals("SQ")))	return;

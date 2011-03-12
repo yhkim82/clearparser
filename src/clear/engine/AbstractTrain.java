@@ -81,7 +81,6 @@ abstract public class AbstractTrain extends AbstractCommon
 				bias = Double.parseDouble(tmp);
 			
 			algorithm = new LibLinearL2(lossType, c, eps, bias);
-		//	algorithm = new LibLinearL2Poly(lossType, c, eps);
 			
 			options.append("loss_type = ");	options.append(lossType);
 			options.append(", c = ");		options.append(c);
@@ -142,9 +141,6 @@ abstract public class AbstractTrain extends AbstractCommon
 		AbstractKernel  kernel  = null;
 		if      (kernel_type == AbstractKernel.KERNEL_NONE)	kernel = new NoneKernel (instanceFile);
 		AbstractTrainer trainer = (trainer_type == AbstractTrainer.ST_BINARY) ? new BinaryTrainer(fout, algorithm, kernel, numThreads) : new OneVsAllTrainer(fout, algorithm, kernel, numThreads);
-		
-	//	AbstractKernel kernel = new PolynomialKernel(instanceFile, 2, 0.2, 0);
-	//	AbstractTrainer trainer = new OneVsAllTrainer(fout, algorithm, kernel, numThreads);
 		
 		long time = System.currentTimeMillis() - st;
 		System.out.printf("- duration: %d hours, %d minutes\n", time/(1000*3600), time/(1000*60));

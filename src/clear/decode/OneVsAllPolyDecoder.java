@@ -28,7 +28,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 import clear.model.AbstractModel;
-import clear.model.OneVsAllModel;
+import clear.model.OneVsAllPolyModel;
 import clear.util.tuple.JIntDoubleTuple;
 
 import com.carrotsearch.hppc.IntArrayList;
@@ -38,21 +38,21 @@ import com.carrotsearch.hppc.IntArrayList;
  * @author Jinho D. Choi
  * <br><b>Last update:</b> 11/8/2010
  */
-public class OneVsAllDecoder extends AbstractMultiDecoder
+public class OneVsAllPolyDecoder extends AbstractMultiDecoder
 {
-	protected OneVsAllModel m_model;
+	protected OneVsAllPolyModel m_model;
 	
-	public OneVsAllDecoder(String modelFile)
+	public OneVsAllPolyDecoder(String modelFile)
 	{
-		m_model = new OneVsAllModel(modelFile);
+		m_model = new OneVsAllPolyModel(modelFile);
 	}
 	
-	public OneVsAllDecoder(BufferedReader fin)
+	public OneVsAllPolyDecoder(BufferedReader fin)
 	{
-		m_model = new OneVsAllModel(fin);
+		m_model = new OneVsAllPolyModel(fin);
 	}
 	
-	public OneVsAllDecoder(OneVsAllModel model)
+	public OneVsAllPolyDecoder(OneVsAllPolyModel model)
 	{
 		m_model = model;
 	}

@@ -24,6 +24,7 @@
 package clear.parse;
 
 import java.io.PrintStream;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.regex.Matcher;
 
@@ -31,21 +32,21 @@ import clear.decode.AbstractDecoder;
 import clear.dep.DepNode;
 import clear.dep.DepTree;
 import clear.dep.srl.SRLArg;
+import clear.dep.srl.SRLProb;
 import clear.ftr.FtrLib;
 import clear.ftr.map.SRLFtrMap;
-import clear.ftr.xml.DepFtrXml;
 import clear.ftr.xml.FtrTemplate;
 import clear.ftr.xml.FtrToken;
 import clear.ftr.xml.SRLFtrXml;
 import clear.reader.DepReader;
 import clear.train.kernel.AbstractKernel;
-import clear.util.DSUtil;
 import clear.util.IOUtil;
 import clear.util.tuple.JIntDoubleTuple;
 import clear.util.tuple.JObjectDoubleTuple;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.ObjectIntOpenHashMap;
+import com.carrotsearch.hppc.cursors.IntCursor;
 
 /**
  * Shift-eager dependency parser.
@@ -55,13 +56,15 @@ import com.carrotsearch.hppc.ObjectIntOpenHashMap;
 abstract public class AbstractSRLParser
 {
 	/** Flag to print lexicons */
-	static public final byte FLAG_TRAIN_LEXICON     = 0;
+	static public final byte FLAG_TRAIN_LEXICON  = 0;
 	/** Flag to print training instances */
-	static public final byte FLAG_TRAIN_INSTANCE    = 1;
+	static public final byte FLAG_TRAIN_INSTANCE = 1;
 	/** Flag to train automatic dependencies */
-	static public final byte FLAG_TRAIN_CONDITIONAL = 2;
+	static public final byte FLAG_TRAIN_BOOST    = 2;
 	/** Flag to predict dependencies */
-	static public final byte FLAG_PREDICT           = 3;
+	static public final byte FLAG_PREDICT        = 3;
+	
+	static public final byte FLAG_TRAIN_PROBABILITY = 4;
 	
 	protected final byte DIR_LEFT  = -1;
 	protected final byte DIR_RIGHT =  1;
@@ -72,7 +75,7 @@ abstract public class AbstractSRLParser
 	/** {@link AbstractDepParser#FLAG_*} */
 	protected byte              i_flag;
 	/** Feature templates */
-	protected SRLFtrXml            t_xml;
+	protected SRLFtrXml         t_xml;
 	/** Feature mappings */
 	protected SRLFtrMap[]       t_map;
 	/** Machine learning decoder */
@@ -90,10 +93,26 @@ abstract public class AbstractSRLParser
 	protected byte    i_dir;
 	/** Language */
 	protected String  s_language = DepReader.LANG_EN;
-	/** List of arguments for the current predicate */
-	protected ArrayList<SRLArg> ls_args;
 	
-	/** Initializes this parser for {@link AbstractSRLParser#FLAG_TRAIN_LEXICON} or {@link AbstractSRLParser#FLAG_PRINT_TRANSITION}. */
+	/** List of all arguments sequence */
+	protected ArrayList<SRLArg> ls_args;
+	/** List of core arguments sequence */
+	protected ArrayList<SRLArg> ls_argn;
+	/** List of core arguments sequence in order */
+	protected ArrayDeque<String> dq_argn;
+	
+	protected boolean b_binary_feature = true;
+	
+	public SRLProb s_prob;
+	
+	/** Initializes this parser for {@link AbstractSRLParser#FLAG_TRAIN_PROBABILITY}. */
+	public AbstractSRLParser(byte flag)
+	{
+		i_flag = flag;
+		s_prob = new SRLProb();
+	}
+	
+	/** Initializes this parser for {@link AbstractSRLParser#FLAG_TRAIN_LEXICON}. */
 	public AbstractSRLParser(byte flag, String filename)
 	{
 		i_flag = flag;
@@ -132,7 +151,7 @@ abstract public class AbstractSRLParser
 		c_dec  = decoder;
 	}
 	
-	/** Initializes this parser for {@link AbstractSRLParser#FLAG_TRAIN_CONDITIONAL}. */
+	/** Initializes this parser for {@link AbstractSRLParser#FLAG_TRAIN_BOOST}. */
 	public AbstractSRLParser(byte flag, SRLFtrXml xml, SRLFtrMap[] map, AbstractDecoder[] decoder, String[] instanceFile)
 	{
 		i_flag = flag;
@@ -206,38 +225,11 @@ abstract public class AbstractSRLParser
 			f_out[i].close();
 	}
 	
-	/**
-	 * Prints the current training instance.
-	 * @param label <trainsition>[-<dependency label>]
-	 */
-	protected void printInstance(String label, IntArrayList ftr)
-	{
-		int index = getIdxFtrMap().labelToIndex(label);
-		
-		if (index >= 0)
-		{
-			PrintStream fout = getIdxPrintStream();
-			fout.println(index + AbstractKernel.COL_DELIM + DSUtil.toString(ftr, AbstractKernel.COL_DELIM));
-			
-		/*	{
-				StringBuilder build = new StringBuilder();
-				build.append(index);
-				
-				for (JIntDoubleTuple tup : getValueFeatureArray())
-				{
-					build.append(AbstractKernel.COL_DELIM);
-					build.append(tup.i);
-					build.append(AbstractKernel.FTR_DELIM);
-					build.append(tup.d);
-				}
-				
-				f_out.println(build.toString());
-			}*/
-		}
-	}
 	
-	// ---------------------------- getFtr*() ----------------------------
 	
+//	================================== Methods For General Features ==================================
+	
+	/** Add n-gram lexica to the feature map. */
 	protected void addNgramLexica(SRLFtrMap map)
 	{
 		FtrTemplate[][] templates = t_xml.a_ngram_templates;
@@ -252,102 +244,10 @@ abstract public class AbstractSRLParser
 			
 			for (i=0; i<n; i++)
 			{
-				if ((ftr = getBinaryFeatures(template[i])) != null)
+				if ((ftr = getBinaryFeature(template[i])) != null)
 					map.addNgram(j, ftr);
 			}
-			
-		/*	{
-				for (i=0; i<n; i++)
-				{
-					for (JObjectDoubleTuple<String> oFtr : getValueFeatures(template[i]))
-						t_map.addNgram(j, oFtr.object);
-				}
-			}*/
 		}
-	}
-	
-	protected void addNgramFeatures(IntArrayList arr, int[] beginIndex)
-	{
-		FtrTemplate[][] templates = t_xml.a_ngram_templates;
-		FtrTemplate[]   template;
-		int i, j, n, m = templates.length, size, value;
-		SRLFtrMap tmap = getIdxFtrMap();
-		String ftr;
-		ObjectIntOpenHashMap<String> map;
-		
-		for (j=0; j<m; j++)
-		{
-			map  = tmap.getNgramHashMap(j);
-			size = tmap.n_ngram[j];
-			
-			template = templates[j];
-			n        = template.length;
-			
-			for (i=0; i<n; i++)
-			{
-				if ((ftr = getBinaryFeatures(template[i])) != null)
-				{
-					value = map.get(ftr);
-					if (value > 0)	arr.add(beginIndex[0]+value-1);
-				}
-				
-				beginIndex[0] += size;
-			}
-		}
-	}
-	
-	protected void addNgramFeatures(SRLFtrMap tmap, ArrayList<JIntDoubleTuple> arr, int[] beginIndex)
-	{
-		FtrTemplate[][] templates = t_xml.a_ngram_templates;
-		FtrTemplate[]   template;
-		int i, j, n, m = templates.length, size, value;
-		ObjectIntOpenHashMap<String> map;
-		
-		for (j=0; j<m; j++)
-		{
-			map  = tmap.getNgramHashMap(j);
-			size = tmap.n_ngram[j];
-			
-			template = templates[j];
-			n        = template.length;
-			
-			for (i=0; i<n; i++)
-			{
-				for (JObjectDoubleTuple<String> ftr : getValueFeatures(template[i]))
-				{
-					value = map.get(ftr.object);
-					
-					if (value > 0)
-						arr.add(new JIntDoubleTuple(beginIndex[0]+value-1, ftr.value));
-				}
-
-				beginIndex[0] += size;
-			}
-		}
-	}
-		
-	/** @return feature retrieved from <code>ftr</code>. */
-	protected String getBinaryFeatures(FtrTemplate ftr)
-	{
-		StringBuilder build = new StringBuilder();
-		int i, n = ftr.tokens.length;
-		String field;
-		
-		for (i=0; i<n; i++)
-		{
-			field = getField(ftr.tokens[i]);
-			if (field == null)	return null;
-			
-			if (i > 0)	build.append(FtrLib.TAG_DELIM);
-			build.append(field);
-		}
-		
-		return build.toString();
-    }
-	
-	protected ArrayList<JObjectDoubleTuple<String>> getValueFeatures(FtrTemplate ftr)
-	{
-		return null;
 	}
 	
 	/** @return field retrieved from <code>token</code> */
@@ -367,6 +267,7 @@ abstract public class AbstractSRLParser
 		else if (token.isRelation(SRLFtrXml.R_RM))	node = d_tree.getRightMostDependent(index);
 		else if (token.isRelation(SRLFtrXml.R_LS))	node = d_tree.getLeftSibling(index);
 		else if (token.isRelation(SRLFtrXml.R_RS))	node = d_tree.getRightSibling(index);
+		else if (token.isRelation(SRLFtrXml.R_VC))	node = d_tree.getHighestVC(index);
 		
 		if (node == null)	return null;
 		Matcher m;
@@ -392,28 +293,168 @@ abstract public class AbstractSRLParser
 			int idx = Integer.parseInt(m.group(1));
 			return node.getFeat(idx);
 		}
-		else if ((m = SRLFtrXml.P_SUBCAT_D.matcher(token.field)).find())
+		else if ((m = SRLFtrXml.P_SUBCAT.matcher(token.field)).find())
 		{
-			byte idx = Byte.parseByte(m.group(1));
-			return d_tree.getSubcat(DepFtrXml.F_DEPREL, node.id, idx);
+			byte idx = Byte.parseByte(m.group(2));
+			return d_tree.getSubcat(m.group(1), node.id, idx);
 		}
-		else if ((m = SRLFtrXml.P_SUBCAT_P.matcher(token.field)).find())
+		else if ((m = SRLFtrXml.P_PATH.matcher(token.field)).find())
 		{
-			byte idx = Byte.parseByte(m.group(1));
-			return d_tree.getSubcat(DepFtrXml.F_POS, node.id, idx);
+			byte idx  = Byte.parseByte(m.group(2));
+			return d_tree.getPath(m.group(1), node.id, i_beta, idx);
 		}
-		else if ((m = SRLFtrXml.P_PATH_D.matcher(token.field)).find())
+		else if ((m = SRLFtrXml.P_ARG.matcher(token.field)).find())
 		{
-			byte idx = Byte.parseByte(m.group(1));
-			return d_tree.getPath(DepFtrXml.F_DEPREL, node.id, i_beta, idx);
-		}
-		else if ((m = SRLFtrXml.P_PATH_P.matcher(token.field)).find())
-		{
-			byte idx = Byte.parseByte(m.group(1));
-			return d_tree.getPath(DepFtrXml.F_POS, node.id, i_beta, idx);
+			String type = m.group(1);
+			ArrayList<SRLArg> list = null;
+			
+			if      (type.equals("s"))	list = ls_args;
+			else if (type.equals("n"))	list = ls_argn;
+			
+			int idx = list.size() - Integer.parseInt(m.group(2)) - 1;
+			return (idx < 0) ? null : list.get(idx).label;
 		}
 		
 	//	System.err.println("Error: unspecified feature '"+token.field+"'");
 		return null;
+	}
+	
+	
+//	================================== Methods For Binary Features ==================================
+
+	/** Prints a training instance (binary). */
+	protected void printInstance(String label, IntArrayList arr)
+	{
+		int index = getIdxFtrMap().labelToIndex(label);
+		
+		if (index >= 0)
+		{
+			PrintStream   fout  = getIdxPrintStream();
+			StringBuilder build = new StringBuilder();
+			
+			build.append(index);
+			for (IntCursor idx : arr)
+			{
+				build.append(AbstractKernel.COL_DELIM);
+				build.append(idx.value);
+			}
+			
+			fout.println(build.toString());				
+		}
+	}
+	
+	/** Adds n-gram features (binary). */
+	protected void addNgramFeatures(IntArrayList arr, int[] idx)
+	{
+		FtrTemplate[][] templates = t_xml.a_ngram_templates;
+		FtrTemplate[]   template;
+		int i, j, n, m = templates.length, size, value;
+		SRLFtrMap tmap = getIdxFtrMap();
+		ObjectIntOpenHashMap<String> map;
+		String                       ftr;
+		
+		for (j=0; j<m; j++)
+		{
+			map  = tmap.getNgramHashMap(j);
+			size = tmap.n_ngram[j];
+			
+			template = templates[j];
+			n        = template.length;
+			
+			for (i=0; i<n; i++)
+			{
+				if ((ftr = getBinaryFeature(template[i])) != null)
+				{
+					value = map.get(ftr);
+					if (value > 0)	arr.add(idx[0]+value-1);
+				}
+				
+				idx[0] += size;
+			}
+		}
+	}
+	
+	/** @return feature value. */
+	protected String getBinaryFeature(FtrTemplate ftr)
+	{
+		StringBuilder build = new StringBuilder();
+		int i, n = ftr.tokens.length;
+		String field;
+		
+		for (i=0; i<n; i++)
+		{
+			field = getField(ftr.tokens[i]);
+			if (field == null)	return null;
+			
+			if (i > 0)	build.append(FtrLib.TAG_DELIM);
+			build.append(field);
+		}
+		
+		return build.toString();
+    }
+	
+//	================================== Methods For Double Features ==================================
+
+	/** Prints a training instance (double). */
+	protected void printInstance(String label, ArrayList<JIntDoubleTuple> arr)
+	{
+		int index = getIdxFtrMap().labelToIndex(label);
+		
+		if (index >= 0)
+		{
+			PrintStream   fout  = getIdxPrintStream();
+			StringBuilder build = new StringBuilder();
+			
+			build.append(index);
+			
+			for (JIntDoubleTuple tup : arr)
+			{
+				build.append(AbstractKernel.COL_DELIM);
+				build.append(tup.i);
+				build.append(AbstractKernel.FTR_DELIM);
+				build.append(tup.d);
+			}
+			
+			fout.println(build.toString());
+		}
+	}
+	
+	/** Adds n-gram features (double). */
+	protected void addNgramFeatures(ArrayList<JIntDoubleTuple> arr, int[] idx)
+	{
+		FtrTemplate[][] templates = t_xml.a_ngram_templates;
+		FtrTemplate[]   template;
+		int i, j, n, m = templates.length, size, value;
+		SRLFtrMap tmap = getIdxFtrMap();
+		ObjectIntOpenHashMap<String> map;
+		JObjectDoubleTuple<String>   ftr;
+		
+		for (j=0; j<m; j++)
+		{
+			map  = tmap.getNgramHashMap(j);
+			size = tmap.n_ngram[j];
+			
+			template = templates[j];
+			n        = template.length;
+			
+			for (i=0; i<n; i++)
+			{
+				if ((ftr = getValueFeature(template[i])) != null)
+				{
+					value = map.get(ftr.object);
+					if (value > 0)	arr.add(new JIntDoubleTuple(idx[0]+value-1, ftr.value));
+				}
+
+				idx[0] += size;
+			}
+		}
+	}
+	
+	/** @return feature value and weight. */
+	protected JObjectDoubleTuple<String> getValueFeature(FtrTemplate ftr)
+	{
+		String binary = getBinaryFeature(ftr);
+		
+		return (binary == null)	? null : new JObjectDoubleTuple<String>(binary, 1d);
 	}
 }

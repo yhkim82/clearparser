@@ -8,13 +8,18 @@ import com.carrotsearch.hppc.ObjectIntOpenHashMap;
 public class FeatEnglish extends AbstractFeat
 {
 	// vo=voice, ca=case, vn=verbnet 
-	static public final String[] STR_TITLES = {"vo","ca","vn"};
+	static public final String[] STR_TITLES = {"vo"};
 	
 	static public final ObjectIntOpenHashMap<String> MAP_TITLES = new ObjectIntOpenHashMap<String>()
 	{{
 		for (int i=0; i<STR_TITLES.length; i++)
 			put(STR_TITLES[i], i);
 	}};
+	
+	public FeatEnglish()
+	{
+		this.feats = new String[STR_TITLES.length];
+	}
 	
 	public FeatEnglish(String feats)
 	{
@@ -31,14 +36,6 @@ public class FeatEnglish extends AbstractFeat
 			if (MAP_TITLES.containsKey(key))
 				this.feats[MAP_TITLES.get(key)] = feat.substring(key.length()+1);
 		}
-		
-		reset();
-	}
-	
-	private void reset()
-	{
-		if (feats[0] != null)
-			feats[0] = "1";
 	}
 		
 	public String toString()

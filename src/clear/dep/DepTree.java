@@ -301,6 +301,16 @@ public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
 				{
 					build.append(getPathDown(field, head , tNode));
 				}
+				else if (flag == 10)
+				{
+					String up   = getPathUp  (field, fNode, head);
+					String down = getPathDown(field, head , tNode);
+					
+					build.append("u");
+					build.append(up.split("^").length);
+					build.append("d");
+					build.append(down.split("|").length);
+				}
 				
 				return build.toString();
 			}
@@ -373,7 +383,7 @@ public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
 		
 		return build.toString();
 	}
-	
+		
 	/** @return the score of the tree. */
 	public double getScore()
 	{
@@ -381,6 +391,28 @@ public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
 		for (int i=1; i<size(); i++)	score += get(i).score;
 
 		return score;
+	}
+	
+	public int prevPredicateId(int currId)
+	{
+		for (int id = currId-1; id > 0; id--)
+		{
+			if (get(id).isPredicate())
+				return id;
+		}
+		
+		return -1;
+	}
+	
+	public int nextPredicateId(int currId)
+	{
+		for (int id = currId+1; id < size(); id++)
+		{
+			if (get(id).isPredicate())
+				return id;
+		}
+		
+		return size();
 	}
 	
 	public void copy(DepTree tree)
@@ -428,6 +460,22 @@ public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
 		}
 		
 		return false;
+	}
+	
+	public void clearSRLHeads()
+	{
+		for (int i=1; i<size(); i++)
+			get(i).clearSRLHeads();
+	}
+	
+	public DepNode getHighestVC(int currId)
+	{
+		DepNode node = get(currId);
+		
+		while (DepLib.M_VC.matcher(node.deprel).matches())
+			node = get(node.headId);
+		
+		return (node.id == currId) ? null : node;
 	}
 	
 	public void setSubcat()

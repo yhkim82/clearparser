@@ -44,19 +44,21 @@ public class SRLFtrXml extends AbstractFtrXml
 	static public final String R_RM		= "rm";		// rightmost dependent
 	static public final String R_LS		= "ls";		// left sibling
 	static public final String R_RS		= "rs";		// right sibling
+	static public final String R_VC		= "vc";		// highest verb chain
 	
 	static public final String F_FORM	= "f";
 	static public final String F_LEMMA	= "m";
 	static public final String F_POS	= "p";
 	static public final String F_DEPREL	= "d";
 
+	static public final Pattern P_REL	= Pattern.compile(R_HD+"|"+R_LM+"|"+R_RM+"|"+R_LS+"|"+R_RS+"|"+R_VC);
+	static public final Pattern P_FIELD	= Pattern.compile(F_FORM+"|"+F_LEMMA+"|"+F_POS+"|"+F_DEPREL); 
+	
 	static public final Pattern P_FEAT 		= Pattern.compile("^ft(\\d+)$");
-	static public final Pattern P_SUBCAT_D	= Pattern.compile("^scd(\\d+)$");
-	static public final Pattern P_SUBCAT_P	= Pattern.compile("^scp(\\d+)$");
-	static public final Pattern P_PATH_D	= Pattern.compile("^ptd(\\d+)$");
-	static public final Pattern P_PATH_P	= Pattern.compile("^ptp(\\d+)$");
-	static public final Pattern P_REL		= Pattern.compile(R_HD+"|"+R_LM+"|"+R_RM+"|"+R_LS+"|"+R_RS);
-	static public final Pattern P_FIELD		= Pattern.compile(F_FORM+"|"+F_LEMMA+"|"+F_POS+"|"+F_DEPREL); 
+	static public final Pattern P_SUBCAT	= Pattern.compile("^sc(["+F_POS+F_DEPREL+"])(\\d+)$");
+	static public final Pattern P_PATH		= Pattern.compile("^pt(["+F_POS+F_DEPREL+"])(\\d+)$");
+	static public final Pattern P_ARG 		= Pattern.compile("^arg([sn])(\\d+)$");
+
 	
 	public SRLFtrXml(String featureXml)
 	{
@@ -92,11 +94,10 @@ public class SRLFtrXml extends AbstractFtrXml
 	
 	protected boolean validField(String field)
 	{
-		return P_FIELD   .matcher(field).matches() ||  
-		       P_FEAT    .matcher(field).matches() ||
-		       P_SUBCAT_D.matcher(field).matches() ||
-		       P_SUBCAT_P.matcher(field).matches() ||
-		       P_PATH_D  .matcher(field).matches() ||
-		       P_PATH_P  .matcher(field).matches();
+		return P_FIELD .matcher(field).matches() ||  
+		       P_FEAT  .matcher(field).matches() ||
+		       P_SUBCAT.matcher(field).matches() ||
+		       P_PATH  .matcher(field).matches() ||
+		       P_ARG   .matcher(field).matches();
 	}
 }

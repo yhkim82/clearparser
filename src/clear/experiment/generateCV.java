@@ -4,7 +4,7 @@ import java.io.File;
 import java.io.PrintStream;
 
 import clear.dep.DepTree;
-import clear.reader.DepReader;
+import clear.reader.SRLReader;
 import clear.util.IOUtil;
 
 public class generateCV
@@ -16,7 +16,7 @@ public class generateCV
 		int n  = Integer.parseInt(args[2]);
 		int cv = Integer.parseInt(args[3]);
 		
-		DepReader reader = new DepReader(inputFile, true);
+		SRLReader reader = new SRLReader(inputFile, true);
 		DepTree   tree;
 		
 		PrintStream[] ftrn = new PrintStream[cv];
