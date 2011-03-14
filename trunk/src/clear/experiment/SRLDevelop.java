@@ -69,7 +69,7 @@ public class SRLDevelop extends AbstractTrain
 	private SRLFtrXml       t_xml   = null;
 	private SRLFtrMap[]     t_map   = null;
 	private AbstractModel[] m_model = null;
-	private String[]        s_lexiconFiles = {ENTRY_LEXICA+".0", ENTRY_LEXICA+".1"};
+	private String[]        s_lexiconFiles = {ENTRY_LEXICA+".0",ENTRY_LEXICA+".1"};
 	public void initElements() {}
 	
 	protected void train() throws Exception
@@ -77,23 +77,20 @@ public class SRLDevelop extends AbstractTrain
 		printConfig();
 		
 		int    i = 0;
-		String instanceFile[] = {"instaces0.ftr", "instaces1.ftr"};
-		String log          = "\n== Bootstrapping: "+i+" ==\n";
+		String log = "\n== Bootstrapping: "+i+" ==\n";
 		
 		s_build = new StringBuilder();
-		t_map   = new SRLFtrMap[instanceFile.length];
-		m_model = new AbstractModel[instanceFile.length];
+		t_map   = new SRLFtrMap[s_lexiconFiles.length];
+		m_model = new AbstractModel[s_lexiconFiles.length];
 		s_build.append(log);
 		System.out.print(log);
 		
 		trainDepParser(SRLParser.FLAG_TRAIN_PROBABILITY, null, null);
-//		trainDepParser(SRLParser.FLAG_TRAIN_SHIFT      , null, null);
-		
-		trainDepParser(SRLParser.FLAG_TRAIN_LEXICON , null, null);
-		trainDepParser(SRLParser.FLAG_TRAIN_INSTANCE, instanceFile, null);
+		trainDepParser(SRLParser.FLAG_TRAIN_LEXICON    , null, null);
+		trainDepParser(SRLParser.FLAG_TRAIN_INSTANCE   , null, null);
 
-		for (int j=0; j<instanceFile.length; j++)
-			m_model[j] = trainModel(instanceFile[j], null);
+		for (int j=0; j<m_model.length; j++)
+			m_model[j] = trainModel(j, null);
 
 		double prevAcc = 0, currAcc;
 		
@@ -101,24 +98,24 @@ public class SRLDevelop extends AbstractTrain
 		{
 			String[] labelFile = {s_devFile+".label."+i};
 			currAcc = trainDepParser(SRLParser.FLAG_PREDICT, labelFile, null);
-			if (currAcc > 85.55)	System.out.println("BINGO: "+s_featureXml+": "+currAcc);
+			if (currAcc > 85.60)	System.out.println("BINGO: "+s_featureXml+": "+currAcc);
 			if (currAcc <= prevAcc)	break;
 			
 			prevAcc = currAcc;
-			trainDepParser(SRLParser.FLAG_TRAIN_BOOST, instanceFile, null);
+			trainDepParser(SRLParser.FLAG_TRAIN_BOOST, null, null);
 			
 			log = "\n== Bootstrapping: "+(++i)+" ==\n";
 			s_build.append(log);
 			System.out.print(log);
 
-			m_model = new AbstractModel[instanceFile.length];
-			for (int j=0; j<instanceFile.length; j++)
-				m_model[j] = trainModel(instanceFile[j], null);
+			m_model = new AbstractModel[m_model.length];
+			
+			for (int j=0; j<m_model.length; j++)
+				m_model[j] = trainModel(j, null);
 		}
 		while (i < MAX_ITER);
 		
 		for (String filename : s_lexiconFiles)	new File(filename).delete();
-		for (String filename : instanceFile)	new File(filename).delete();
 		System.out.println(s_build.toString());
 	}
 	
@@ -129,7 +126,7 @@ public class SRLDevelop extends AbstractTrain
 		AbstractDecoder[] decoder = null;
 		PrintStream[]     fout    = null;
 		
-		if (flag == SRLParser.FLAG_TRAIN_PROBABILITY || flag == SRLParser.FLAG_TRAIN_SHIFT)
+		if (flag == SRLParser.FLAG_TRAIN_PROBABILITY)
 		{
 			System.out.println("\n* Compute probability");
 			labeler = new SRLParser(flag);
@@ -144,7 +141,7 @@ public class SRLDevelop extends AbstractTrain
 			System.out.println("\n* Print training instances");
 			System.out.println("- loading lexica");
 			
-			labeler = new SRLParser(flag, t_xml, s_lexiconFiles, outputFile);
+			labeler = new SRLParser(flag, t_xml, s_lexiconFiles);
 		}
 		else if (flag == SRLParser.FLAG_PREDICT)
 		{
@@ -168,11 +165,11 @@ public class SRLDevelop extends AbstractTrain
 			for (int i=0; i<decoder.length; i++)
 				decoder[i] = new OneVsAllDecoder((OneVsAllModel)m_model[i]);
 			
-			labeler = new SRLParser(flag, t_xml, t_map, decoder, outputFile);
+			labeler = new SRLParser(flag, t_xml, t_map, decoder);
 		}
 		
 		if (flag != SRLParser.FLAG_TRAIN_PROBABILITY)
-			labeler.setArgProb(p_prob);
+			labeler.setSRLProb(p_prob);
 		
 		String  inputFile;
 		boolean isTrain;
@@ -208,19 +205,20 @@ public class SRLDevelop extends AbstractTrain
 		
 		if (flag == SRLParser.FLAG_TRAIN_PROBABILITY)
 		{
-			p_prob = labeler.getArgProb();
+			p_prob = labeler.getSRLProb();
 			p_prob.computeProb();
 		}
 		else if (flag == SRLParser.FLAG_TRAIN_LEXICON)
 		{
 			System.out.println("- saving");
 			labeler.saveTags(s_lexiconFiles);
-			t_xml = labeler.getFtrXml();
+			t_xml = labeler.getSRLFtrXml();
 		}
 		else if (flag == SRLParser.FLAG_TRAIN_INSTANCE)
 		{
-			labeler.closeOutputStream();
-			t_map = labeler.getFtrMap();
+			t_map = labeler.getSRLFtrMap();
+			a_ys  = labeler.getLabelArrays();
+			a_xs  = labeler.getFeatureArrays();
 		}
 		else if (flag == SRLParser.FLAG_PREDICT)
 		{
@@ -239,7 +237,8 @@ public class SRLDevelop extends AbstractTrain
 		}
 		else if (flag == SRLParser.FLAG_TRAIN_BOOST)
 		{
-			labeler.closeOutputStream();
+			a_ys  = labeler.getLabelArrays();
+			a_xs  = labeler.getFeatureArrays();
 		}
 		
 		return 0;
