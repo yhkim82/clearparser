@@ -64,16 +64,22 @@ abstract public class AbstractKernel
 	/** true if binary features only */
 	public boolean b_binary;
 		
+	public AbstractKernel(byte kernelType)
+	{
+		kernel_type = kernelType;
+		b_binary    = true;
+	}
+	
 	/**
 	 * Calls {@link AbstractKernel#init(String)}
 	 * @param instanceFile name of a file containing training instances
 	 */
 	public AbstractKernel(byte kernelType, String instanceFile)
 	{
+		this(kernelType);
+		
 		try
 		{
-			kernel_type = kernelType;
-			b_binary    = true;
 			init(instanceFile);
 		}
 		catch (Exception e) {e.printStackTrace();}

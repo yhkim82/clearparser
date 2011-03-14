@@ -4,10 +4,10 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 
 import clear.dep.DepNode;
-import clear.dep.DepTree;
-import clear.parse.AbstractSRLParser;
+import clear.parse.SRLParser;
 import clear.util.IOUtil;
 import clear.util.tuple.JObjectDoubleTuple;
 
@@ -16,85 +16,130 @@ import com.carrotsearch.hppc.cursors.ObjectCursor;
 
 public class SRLProb
 {
-	static public final String TOTAL = "TOTAL";
-	static public final String SHIFT = "SHIFT";
+	static public String SYM_PREV    = "<";
+	static public String SYM_NEXT    = ">";
+	static public String SYM_ACTIVE  = "a";
+	static public String SYM_PASSIVE = "p";
 	
-	private HashMap<String, ObjectDoubleOpenHashMap<String>> m_prevProb1d;
-	private HashMap<String, ObjectDoubleOpenHashMap<String>> m_nextProb1d;
+	private final String TOTAL = "TOTAL";
+	private final String NONE  = "NONE";
+	private final String END   = "END";
+	
+	private HashMap<String, ObjectDoubleOpenHashMap<String>> m_prob1d;
+	private HashMap<String, ObjectDoubleOpenHashMap<String>> m_prob2d;
 	
 	public double d_smooth = Double.MIN_VALUE;
 	public double d_shift  = 0.15;
 	
 	public SRLProb()
 	{
-		m_prevProb1d = new HashMap<String, ObjectDoubleOpenHashMap<String>>();
-		m_nextProb1d = new HashMap<String, ObjectDoubleOpenHashMap<String>>();
+		m_prob1d = new HashMap<String, ObjectDoubleOpenHashMap<String>>();
+		m_prob2d = new HashMap<String, ObjectDoubleOpenHashMap<String>>();
 	}
 	
-	public String getKey(DepNode pred)
+//	============================= Retrieve Key =============================
+	
+	public String getKey(DepNode pred, byte dir)
 	{
-		String key = pred.lemma, feat;
+		String postfix, feat;
+		
+		if (dir == SRLParser.DIR_LEFT)	postfix = SYM_PREV;
+		else							postfix = SYM_NEXT;
 		
 		if ((feat = pred.getFeat(0)) != null && feat.equals("1"))
-			return "-"+key;		// passive
+			postfix += SYM_PASSIVE;
 		else
-			return key;			// active
+			postfix += SYM_ACTIVE;
+		
+		return pred.lemma + postfix;
+	}
+	
+	public String getKey(DepNode pred, String prevArg, byte dir)
+	{
+		return getKey(pred, dir) + "|" + prevArg;
+	}
+	
+	public boolean isPrevArg(String label)
+	{
+		return (label.startsWith(SYM_PREV));
 	}
 	
 //	============================= Count 1st-degree =============================
 	
-	public void countPred(DepTree tree)
+	/** For training. */
+	public void add1dArgs(DepNode pred, HashSet<String> sArgs)
 	{
-		int predId = 0;
-		String key;
-		
-		while ((predId = tree.nextPredicateId(predId)) < tree.size())
+		ObjectDoubleOpenHashMap<String> lArg = increment1dPred(m_prob1d, getKey(pred, SRLParser.DIR_LEFT));
+		ObjectDoubleOpenHashMap<String> rArg = increment1dPred(m_prob1d, getKey(pred, SRLParser.DIR_RIGHT));
+
+		for (String label : sArgs)
 		{
-			key = getKey(tree.get(predId));
-			
-			incrementPred(m_prevProb1d, key);
-			incrementPred(m_nextProb1d, key);
+			if (isPrevArg(label))	lArg.put(label, lArg.get(label)+1);
+			else					rArg.put(label, rArg.get(label)+1);
 		}
 	}
 	
-	public void countArgs(DepTree tree)
-	{
-		DepNode arg, pred;	String key;
-		HashMap<String, ObjectDoubleOpenHashMap<String>> mPred;
-		ObjectDoubleOpenHashMap<String>                  mArg;
-		
-		for (int i=1; i<tree.size(); i++)
-		{
-			arg = tree.get(i);
-			if (arg.srlInfo.heads.isEmpty())	continue;
-			
-			for (SRLHead head : arg.srlInfo.heads)
-			{
-				pred  = tree.get(head.headId);
-				key   = getKey(pred);
-				mPred = (arg.id < pred.id) ? m_prevProb1d : m_nextProb1d;
-				mArg  = mPred.get(key);
-				mArg.put(head.label, mArg.get(head.label)+1);
-			}
-		}
-	}
-	
-	/** Called from {@link SRLProb#countPred(DepTree)}. */
-	private void incrementPred(HashMap<String, ObjectDoubleOpenHashMap<String>> mPred, String key)
+	/** Called from {@link SRLProb#add1dArgs(DepNode, HashSet)}. */
+	private ObjectDoubleOpenHashMap<String> increment1dPred(HashMap<String, ObjectDoubleOpenHashMap<String>> mPred, String key)
 	{
 		ObjectDoubleOpenHashMap<String> mArg;
 		
-		if (!mPred.containsKey(key))
-		{
-			mArg = new ObjectDoubleOpenHashMap<String>();
-			mArg .put(TOTAL, 1);
-			mPred.put(key, mArg);
-		}
-		else
+		if (mPred.containsKey(key))
 		{
 			mArg = mPred.get(key);
 			mArg.put(TOTAL, mArg.get(TOTAL)+1);
+			
 		}
+		else
+		{
+			mArg = new ObjectDoubleOpenHashMap<String>();
+			mArg .put(TOTAL, 1);
+			mPred.put(key, mArg);	
+		}
+		
+		return mArg;
+	}
+
+//	============================= Count 2nd-degree =============================
+	
+	/** For training. */
+	public void add2dArgs(DepNode pred, ArrayList<SRLArg> lsArgs)
+	{
+		ArrayList<String> prevArgs = new ArrayList<String>();
+		ArrayList<String> nextArgs = new ArrayList<String>();
+		
+		for (SRLArg arg : lsArgs)
+		{
+			if (isPrevArg(arg.label))	prevArgs.add(arg.label);
+			else						nextArgs.add(arg.label);
+		}
+		
+		String prevArg = NONE;
+		
+		for (String currArg : prevArgs)
+		{
+			add2dArgsAux(pred, prevArg, currArg, SRLParser.DIR_LEFT);
+			prevArg = currArg;
+		}
+		
+		add2dArgsAux(pred, prevArg, END, SRLParser.DIR_LEFT);
+		prevArg = NONE;
+		
+		for (String currArg : nextArgs)
+		{
+			add2dArgsAux(pred, prevArg, currArg, SRLParser.DIR_RIGHT);
+			prevArg = currArg;
+		}
+		
+		add2dArgsAux(pred, prevArg, END, SRLParser.DIR_RIGHT);
+	}
+	
+	/** Called from {@link SRLProb#add1dArgs(DepNode, HashSet)}. */
+	private void add2dArgsAux(DepNode pred, String prevArg, String currArg, byte dir)
+	{
+		ObjectDoubleOpenHashMap<String> mArg = increment1dPred(m_prob2d, getKey(pred, prevArg, dir));
+		
+		mArg.put(currArg, mArg.get(currArg)+1);
 	}
 	
 //	============================= Compute Probabilities =============================
@@ -102,8 +147,8 @@ public class SRLProb
 	/** Must be called before any probability is used. */
 	public void computeProb()
 	{
-		computeConditionalProb(m_prevProb1d);
-		computeConditionalProb(m_nextProb1d);
+		computeConditionalProb(m_prob1d);
+		computeConditionalProb(m_prob2d);
 	}
 	
 	/** Called from {@link SRLProb#computeConditionalProb(HashMap)}. */
@@ -127,34 +172,16 @@ public class SRLProb
 		}
 	}
 	
-	public ObjectDoubleOpenHashMap<String> getProb1d(DepNode pred, byte dir)
+//	============================= Print =============================
+	
+	public void printAll(String filename)
 	{
-		if (dir == AbstractSRLParser.DIR_LEFT)
-			return getPrevProb1d(pred);
-		else
-			return getNextProb1d(pred);
+		printCP(m_prob1d, filename+".p1d");
+		printCP(m_prob2d, filename+".p2d");
 	}
-	
-	private ObjectDoubleOpenHashMap<String> getPrevProb1d(DepNode pred)
-	{
-		return m_prevProb1d.get(getKey(pred));
-	}
-	
-	private ObjectDoubleOpenHashMap<String> getNextProb1d(DepNode pred)
-	{
-		return m_nextProb1d.get(getKey(pred));
-	}
-	
-	
-	
-	
-	
-	
-	
-	
 	
 	@SuppressWarnings("unchecked")
-	void printCP(HashMap<String, ObjectDoubleOpenHashMap<String>> mPred, String outputFile)
+	private void printCP(HashMap<String, ObjectDoubleOpenHashMap<String>> mPred, String outputFile)
 	{
 		ArrayList<String> keys = new ArrayList<String>(mPred.keySet());
 		ArrayList<JObjectDoubleTuple<String>> tArgs;

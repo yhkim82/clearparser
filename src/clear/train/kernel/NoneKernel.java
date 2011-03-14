@@ -40,6 +40,11 @@ import com.carrotsearch.hppc.IntOpenHashSet;
  */
 public class NoneKernel extends AbstractKernel
 {
+	public NoneKernel()
+	{
+		super(KERNEL_NONE);
+	}
+	
 	public NoneKernel(String instanceFile)
 	{
 		super(KERNEL_NONE, instanceFile);
@@ -104,6 +109,41 @@ public class NoneKernel extends AbstractKernel
 		}	System.out.println("\r* Initializing  : " + instanceFile);
 		
 		fin.close();
+		a_ys.trimToSize();
+		a_xs.trimToSize();
+		
+		// feature dimension = last feature-index + 1
+		D++;
+		
+		// sort labels;
+		a_labels = sLabels.toArray();
+		Arrays.sort(a_labels);
+		L = a_labels.length;
+
+		System.out.println("- # of instances: " + N);
+		System.out.println("- # of labels   : " + L);
+		System.out.println("- # of features : " + D);
+	}
+	
+	public void add(IntArrayList ys, ArrayList<int[]> xs) throws Exception
+	{
+		a_ys = ys;
+		a_xs = xs;
+		N    = a_ys.size();
+		
+		IntOpenHashSet sLabels = new IntOpenHashSet();
+		int y, i;	int[] x;
+		
+		for (i=0; i<N; i++)
+		{
+			y = a_ys.get(i);
+			x = a_xs.get(i);
+			D = Math.max(D, x[x.length-1]);
+			sLabels.add(y);
+			
+			if (N%100000 == 0)	System.out.print("\r* Initializing  : "+(i/1000)+"K");
+		}	System.out.println("\r* Initializing  : " + N);
+		
 		a_ys.trimToSize();
 		a_xs.trimToSize();
 		

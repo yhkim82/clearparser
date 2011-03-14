@@ -57,7 +57,7 @@ public class SRLFtrXml extends AbstractFtrXml
 	static public final Pattern P_FEAT 		= Pattern.compile("^ft(\\d+)$");
 	static public final Pattern P_SUBCAT	= Pattern.compile("^sc(["+F_POS+F_DEPREL+"])(\\d+)$");
 	static public final Pattern P_PATH		= Pattern.compile("^pt(["+F_POS+F_DEPREL+"])(\\d+)$");
-	static public final Pattern P_ARG 		= Pattern.compile("^arg([sn])(\\d+)$");
+	static public final Pattern P_ARGN 		= Pattern.compile("^argn(\\d+)$");
 
 	
 	public SRLFtrXml(String featureXml)
@@ -98,6 +98,6 @@ public class SRLFtrXml extends AbstractFtrXml
 		       P_FEAT  .matcher(field).matches() ||
 		       P_SUBCAT.matcher(field).matches() ||
 		       P_PATH  .matcher(field).matches() ||
-		       P_ARG   .matcher(field).matches();
+		       P_ARGN   .matcher(field).matches();
 	}
 }
