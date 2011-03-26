@@ -25,8 +25,8 @@ package clear.util.tuple;
 
 public class JObjectObjectTuple<KeyType, ValueType>
 {
-	public KeyType   object1;
-	public ValueType object2;
+	public KeyType   o1;
+	public ValueType o2;
 	
 	public JObjectObjectTuple(KeyType object1, ValueType object2)
 	{
@@ -35,7 +35,7 @@ public class JObjectObjectTuple<KeyType, ValueType>
 	
 	public void set(KeyType key, ValueType value)
 	{
-		this.object1   = key;
-		this.object2 = value;
+		this.o1   = key;
+		this.o2 = value;
 	}
 }

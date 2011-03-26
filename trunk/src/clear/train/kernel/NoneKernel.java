@@ -29,6 +29,7 @@ import java.util.Arrays;
 
 import clear.util.DSUtil;
 import clear.util.IOUtil;
+import clear.util.tuple.JObjectObjectTuple;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntOpenHashSet;
@@ -125,12 +126,12 @@ public class NoneKernel extends AbstractKernel
 		System.out.println("- # of features : " + D);
 	}
 	
-	public void add(IntArrayList ys, ArrayList<int[]> xs) throws Exception
+	public void add(JObjectObjectTuple<IntArrayList, ArrayList<int[]>> yx) throws Exception
 	{
-		a_ys = ys;
-		a_xs = xs;
+		a_ys = yx.o1;
+		a_xs = yx.o2;
 		N    = a_ys.size();
-		
+	
 		IntOpenHashSet sLabels = new IntOpenHashSet();
 		int y, i;	int[] x;
 		
@@ -146,6 +147,47 @@ public class NoneKernel extends AbstractKernel
 		
 		a_ys.trimToSize();
 		a_xs.trimToSize();
+		
+		// feature dimension = last feature-index + 1
+		D++;
+		
+		// sort labels;
+		a_labels = sLabels.toArray();
+		Arrays.sort(a_labels);
+		L = a_labels.length;
+
+		System.out.println("- # of instances: " + N);
+		System.out.println("- # of labels   : " + L);
+		System.out.println("- # of features : " + D);
+	}
+	
+	public void addValueArray(JObjectObjectTuple<IntArrayList, ArrayList<double[]>> yx) throws Exception
+	{
+		a_ys = yx.o1;
+		a_vs = yx.o2;
+		a_xs = new ArrayList<int[]>();
+		
+		N = a_ys.size();
+		D = a_vs.get(0).length;
+		
+		IntOpenHashSet sLabels = new IntOpenHashSet();
+		int y, i;
+		int[] x = new int[D];
+		
+		for (i=0; i<D; i++)	x[i] = i+1;
+		
+		for (i=0; i<N; i++)
+		{
+			a_xs.add(x);
+			y = a_ys.get(i);
+			sLabels.add(y);
+			
+			if (N%100000 == 0)	System.out.print("\r* Initializing  : "+(i/1000)+"K");
+		}	System.out.println("\r* Initializing  : " + N);
+		
+		a_ys.trimToSize();
+		a_xs.trimToSize();
+		a_vs.trimToSize();
 		
 		// feature dimension = last feature-index + 1
 		D++;

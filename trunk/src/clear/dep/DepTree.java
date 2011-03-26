@@ -170,6 +170,21 @@ public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
 		return get(currId).rightMostDep;
 	}
 	
+	/** Experimental */
+	public DepNode getRightNearestDependent(int currId)
+	{
+		DepNode node;
+		
+		for (int i=currId+1; i<size(); i++)
+		{
+			node = get(i);
+			if (node.headId == currId)
+				return node;
+		}
+		
+		return null;
+	}
+	
 	/**
      * Returns the index of the right-nearest punctuation of the <code>currId</code>'th node.
      * Punctuation is defined in <code>lib</code> and the index can be retrieved from it. 
@@ -382,6 +397,21 @@ public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
 		}
 		
 		return build.toString();
+	}
+	
+	public String getPRT(int predId)
+	{
+		if (!get(predId).isPredicate())	return null;
+		DepNode node;
+		
+		for (int i=predId+1; i<size(); i++)
+		{
+			node = get(i);
+			if (node.headId == predId && node.isDeprel(DepLib.DEPREL_PRT))
+				return node.form;
+		}
+		
+		return null;
 	}
 		
 	/** @return the score of the tree. */

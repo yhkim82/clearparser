@@ -168,6 +168,20 @@ public class BinaryModel extends AbstractModel
 				score += (d_weights[idx] * tup.d);
 		}
 		
-		return logistic(score);
+		return score;
+	}
+	
+	public double getScore(JIntDoubleTuple[] x)
+	{
+		double score = d_weights[0];
+		int    idx;
+		
+		for (JIntDoubleTuple tup : x)
+		{
+			if ((idx = tup.i) < d_weights.length)
+				score += (d_weights[idx] * tup.d);
+		}
+		
+		return score;
 	}
 }

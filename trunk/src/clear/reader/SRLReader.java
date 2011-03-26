@@ -40,7 +40,7 @@ import clear.dep.srl.SRLInfo;
 public class SRLReader extends AbstractReader<DepNode,DepTree>
 {
 	private boolean b_train;
-	
+
 	/**
 	 * Initializes the dependency reader for <code>filename</code>.
 	 * @param filename name of the file containing dependency trees
@@ -93,7 +93,7 @@ public class SRLReader extends AbstractReader<DepNode,DepTree>
 		
 		if (b_train)	node.srlInfo = new SRLInfo(str[7], str[8]);
 		else			node.srlInfo = new SRLInfo(str[7], DepLib.FIELD_BLANK);
-		
+
 		return node;
 	}
 }

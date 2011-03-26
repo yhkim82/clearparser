@@ -75,7 +75,7 @@ public class MLPredict
 			
 			BufferedReader fin  = IOUtil.createBufferedFileReader(s_inputFile);
 			PrintStream    fout = IOUtil.createPrintFileStream(s_outputFile);
-			String line;	String[] tok;	int y;	int[] x;
+			String line;	String[] tok;	int y;
 			JIntDoubleTuple res;
 			int correct = 0, total;
 			
@@ -84,12 +84,17 @@ public class MLPredict
 			{
 				tok = line.split(AbstractKernel.COL_DELIM);
 				y   = Integer.parseInt (tok[0]);
-				x   = DSUtil.toIntArray(tok, 1);
-				res = decode.predict(x);
 				
-				fout.println(res.i);
+				if (!line.contains(":"))
+					res = decode.predict(DSUtil.toIntArray(tok, 1));
+				else
+					res = decode.predict(DSUtil.toJIntDoubleArray(tok, 1));
+				
+				fout.println(res.i+" "+res.d);
 				if (res.i == y)	correct++;
 			}
+			
+			fout.close();
 			
 			long time = System.currentTimeMillis() - st;
 			System.out.printf("* Accuracy     : %f (%d/%d)\n", (double)correct/total, correct, total);

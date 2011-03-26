@@ -8,7 +8,7 @@ import com.carrotsearch.hppc.ObjectIntOpenHashMap;
 public class FeatEnglish extends AbstractFeat
 {
 	// vo=voice, ca=case, vn=verbnet 
-	static public final String[] STR_TITLES = {"vo"};
+	static public final String[] STR_TITLES = {"vo","vn","ct"};
 	
 	static public final ObjectIntOpenHashMap<String> MAP_TITLES = new ObjectIntOpenHashMap<String>()
 	{{

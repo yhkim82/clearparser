@@ -21,23 +21,21 @@
 * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 * POSSIBILITY OF SUCH DAMAGE.
 */
-package clear.decode;
+package clear.util.tuple;
 
-import java.util.ArrayList;
-
-import clear.util.tuple.JIntDoubleTuple;
-
-import com.carrotsearch.hppc.IntArrayList;
-
-/**
- * Abstract decoder.
- * @author Jinho D. Choi
- * <br><b>Last update:</b> 11/8/2010
- */
-public abstract class AbstractDecoder
+public class JIntObjectTuple<T>
 {
-	abstract public JIntDoubleTuple predict(int[] x);
-	abstract public JIntDoubleTuple predict(IntArrayList x);
-	abstract public JIntDoubleTuple predict(JIntDoubleTuple[] x);
-	abstract public JIntDoubleTuple predict(ArrayList<JIntDoubleTuple> x);
+	public int index;
+	public T   object;
+	
+	public JIntObjectTuple(int i, T o)
+	{
+		set(i, o);
+	}
+	
+	public void set(int i, T o)
+	{
+		index  = i;
+		object = o;
+	}
 }

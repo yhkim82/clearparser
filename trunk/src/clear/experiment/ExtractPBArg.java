@@ -17,7 +17,6 @@ public class ExtractPBArg
 			parser.parse(tree);
 
 		SRLProb prob = parser.getSRLProb();
-		prob.computeProb();
 		prob.printAll(filename);
 	}
 		

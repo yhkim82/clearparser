@@ -28,6 +28,9 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.StringTokenizer;
 
+import clear.train.kernel.AbstractKernel;
+import clear.util.tuple.JIntDoubleTuple;
+
 import com.carrotsearch.hppc.IntArrayList;
 
 /**
@@ -108,6 +111,20 @@ public class DSUtil
 		
 		for (int i=beginIdx,j=0; i<sArr.length; i++,j++)
 			iArr[j] = Integer.parseInt(sArr[i]);
+		
+		return iArr;
+	}
+	
+	static public JIntDoubleTuple[] toJIntDoubleArray(String[] sArr, int beginIdx)
+	{
+		JIntDoubleTuple[] iArr = new JIntDoubleTuple[sArr.length - beginIdx];
+		String[] tmp;
+		
+		for (int i=beginIdx,j=0; i<sArr.length; i++,j++)
+		{
+			tmp = sArr[i].split(AbstractKernel.FTR_DELIM);
+			iArr[j] = new JIntDoubleTuple(Integer.parseInt(tmp[0]), Double.parseDouble(tmp[1]));
+		}
 		
 		return iArr;
 	}

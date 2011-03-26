@@ -178,6 +178,26 @@ public class OneVsAllModel extends AbstractMultiModel
 		return scores;
 	}
 	
+	public double[] getScores(JIntDoubleTuple[] x)
+	{
+		double[] scores = Arrays.copyOf(d_weights, n_labels);
+		int      idx, label;
+		
+		for (JIntDoubleTuple tup : x)
+		{
+			for (label=0; label<n_labels; label++)
+			{
+				if ((idx = getBeginIndex(label, tup.i)) < d_weights.length)
+					scores[label] += (d_weights[idx] * tup.d);
+			}
+		}
+		
+		for (label=0; label<n_labels; label++)
+			scores[label] = scores[label];
+		
+		return scores;
+	}
+	
 	public double[] getScores(ArrayList<JIntDoubleTuple> x)
 	{
 		double[] scores = Arrays.copyOf(d_weights, n_labels);
@@ -193,7 +213,7 @@ public class OneVsAllModel extends AbstractMultiModel
 		}
 		
 		for (label=0; label<n_labels; label++)
-			scores[label] = logistic(scores[label]);
+			scores[label] = scores[label];
 		
 		return scores;
 	}

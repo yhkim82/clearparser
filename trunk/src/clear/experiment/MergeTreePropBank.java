@@ -126,7 +126,7 @@ public class MergeTreePropBank
 				else
 				{
 					SRLTree sTree = convert.toSrlTree(tree, headrules, morph);
-					fout.println(sTree+"\n");
+					fout.println(sTree.toCoNLL09()+"\n");
 				}
 			}
 			
