@@ -23,6 +23,8 @@
 */
 package clear.dep;
 
+import java.util.HashSet;
+
 import clear.dep.feat.AbstractFeat;
 import clear.dep.srl.SRLInfo;
 import clear.ftr.FtrLib;
@@ -70,10 +72,14 @@ public class DepNode
 	/** 1 if the node is non-projective (experimental) */
 	public byte    nonProj = 0;
 	
+	public HashSet<String> s_topics; 
+	public String v_cluster = null;
+	
 	/** Initializes the node as a null node. */
 	public DepNode()
 	{
 		init(DepLib.NULL_ID, FtrLib.TAG_NULL, FtrLib.TAG_NULL, FtrLib.TAG_NULL, null, DepLib.NULL_HEAD_ID, FtrLib.TAG_NULL, 0, false, null, null, null, null, null, false, null);
+		s_topics = new HashSet<String>();
 	}
 	
 	public void toRoot()
@@ -222,6 +228,12 @@ public class DepNode
 	public void clearSRLHeads()
 	{
 		srlInfo.heads.clear();
+	}
+	
+	public boolean isPassive()
+	{
+		String feat = getFeat(0);
+		return feat != null && feat.equals("1"); 
 	}
 	
 	/**

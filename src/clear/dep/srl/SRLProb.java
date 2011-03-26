@@ -1,18 +1,13 @@
 package clear.dep.srl;
 
-import java.io.PrintStream;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 
 import clear.dep.DepNode;
 import clear.parse.SRLParser;
-import clear.util.IOUtil;
-import clear.util.tuple.JObjectDoubleTuple;
-
-import com.carrotsearch.hppc.ObjectDoubleOpenHashMap;
-import com.carrotsearch.hppc.cursors.ObjectCursor;
+import clear.util.cluster.Prob2dMap;
+import clear.util.tuple.JObjectObjectTuple;
 
 public class SRLProb
 {
@@ -23,37 +18,15 @@ public class SRLProb
 	static public final String ARG_NONE    = "NONE";
 	static public final String ARG_END     = "END";
 	
-	private final String TOTAL = "TOTAL";
-	public double SMOOTH_1A = Double.MIN_VALUE;
-	public double SMOOTH_2A = Double.MIN_VALUE; 
-	public double SMOOTH_2N = Double.MIN_VALUE;
-	
-	
-	
-	private HashMap<String, ObjectDoubleOpenHashMap<String>> m_prob1a;
-	private HashMap<String, ObjectDoubleOpenHashMap<String>> m_prob2a;
-	private HashMap<String, ObjectDoubleOpenHashMap<String>> m_prob2n;
+	private Prob2dMap m_prob1a;
+	private Prob2dMap m_prob2a;
+	private Prob2dMap m_prob2n;
 	
 	public SRLProb()
 	{
-		m_prob1a = new HashMap<String, ObjectDoubleOpenHashMap<String>>();
-		m_prob2a = new HashMap<String, ObjectDoubleOpenHashMap<String>>();
-		m_prob2n = new HashMap<String, ObjectDoubleOpenHashMap<String>>();
-	}
-	
-	public ObjectDoubleOpenHashMap<String> get1aProb(DepNode pred, byte dir)
-	{
-		return m_prob1a.get(getKey(pred, dir));
-	}
-	
-	public ObjectDoubleOpenHashMap<String> get2aProb(DepNode pred, String prevArg, byte dir)
-	{
-		return m_prob2a.get(getKey(pred, prevArg, dir));
-	}
-	
-	public ObjectDoubleOpenHashMap<String> get2nProb(DepNode pred, String prevArg, byte dir)
-	{
-		return m_prob2n.get(getKey(pred, prevArg, dir));
+		m_prob1a = new Prob2dMap();
+		m_prob2a = new Prob2dMap();
+		m_prob2n = new Prob2dMap();
 	}
 	
 //	============================= Retrieve Key =============================
@@ -83,50 +56,33 @@ public class SRLProb
 		return (label.startsWith(SYM_PREV));
 	}
 	
+	public boolean isNextArg(String label)
+	{
+		return (label.startsWith(SYM_NEXT));
+	}
+	
 //	============================= Count 1st-degree =============================
 	
 	/** For training. */
 	public void add1dArgs(DepNode pred, HashSet<String> sArgs)
 	{
-		HashSet<String> sPrev = new HashSet<String>();
-		HashSet<String> sNext = new HashSet<String>();
+		HashSet<String> pSet = new HashSet<String>();
+		HashSet<String> nSet = new HashSet<String>();
 		
 		for (String label : sArgs)
 		{
-			if (isPrevArg(label))	sPrev.add(label);
-			else					sNext.add(label);
+			if (isPrevArg(label))	pSet.add(label);
+			else					nSet.add(label);
 		}
 		
-		ObjectDoubleOpenHashMap<String> mArg = incrementPred(m_prob1a, getKey(pred, SRLParser.DIR_LEFT));
+		String pKey = getKey(pred, SRLParser.DIR_LEFT);
+		String nKey = getKey(pred, SRLParser.DIR_RIGHT);
 		
-		if  (sPrev.isEmpty())		mArg.put(ARG_END, mArg.get(ARG_END)+1);
-		for (String label : sPrev)	mArg.put(label  , mArg.get(label  )+1);
+		if (pSet.isEmpty())	m_prob1a.increment(pKey, ARG_END);
+		else				m_prob1a.increment(pKey, pSet);
 		
-		mArg = incrementPred(m_prob1a, getKey(pred, SRLParser.DIR_RIGHT));
-		
-		if  (sNext.isEmpty())		mArg.put(ARG_END, mArg.get(ARG_END)+1);
-		for (String label : sNext)	mArg.put(label  , mArg.get(label  )+1);
-	}
-	
-	/** Called from {@link SRLProb#add1dArgs(DepNode, HashSet)}. */
-	private ObjectDoubleOpenHashMap<String> incrementPred(HashMap<String, ObjectDoubleOpenHashMap<String>> mPred, String key)
-	{
-		ObjectDoubleOpenHashMap<String> mArg;
-		
-		if (mPred.containsKey(key))
-		{
-			mArg = mPred.get(key);
-			mArg.put(TOTAL, mArg.get(TOTAL)+1);
-			
-		}
-		else
-		{
-			mArg = new ObjectDoubleOpenHashMap<String>();
-			mArg .put(TOTAL, 1);
-			mPred.put(key, mArg);	
-		}
-		
-		return mArg;
+		if (nSet.isEmpty())	m_prob1a.increment(nKey, ARG_END);
+		else				m_prob1a.increment(nKey, nSet); 
 	}
 
 //	============================= Count 2nd-degree =============================
@@ -134,145 +90,45 @@ public class SRLProb
 	/** For training. */
 	public void add2dArgs(DepNode pred, ArrayList<SRLArg> lsArgs)
 	{
-		ArrayList<String> sPrev = new ArrayList<String>();
-		ArrayList<String> sNext = new ArrayList<String>();
+		ArrayList<String> pList = new ArrayList<String>();
+		ArrayList<String> nList = new ArrayList<String>();
 		
 		for (SRLArg arg : lsArgs)
 		{
-			if (isPrevArg(arg.label))	sPrev.add(arg.label);
-			else						sNext.add(arg.label);
+			if (isPrevArg(arg.label))	pList.add(arg.label);
+			else						nList.add(arg.label);
 		}
 		
-		String prevArgA = ARG_NONE;
-		String prevArgN = ARG_NONE;
-		
-		for (String label : sPrev)
-		{
-			add2dArgsAux(m_prob2a, pred, prevArgA, label, SRLParser.DIR_LEFT);
-			add2dArgsAux(m_prob2n, pred, prevArgN, label, SRLParser.DIR_LEFT);
-			
-			prevArgA = label;
-			if (label.substring(1).matches("A\\d"))	prevArgN = label;
-		}
-		
-		add2dArgsAux(m_prob2a, pred, prevArgA, ARG_END, SRLParser.DIR_LEFT);
-		add2dArgsAux(m_prob2n, pred, prevArgN, ARG_END, SRLParser.DIR_LEFT);
-		
-		for (String label : sNext)
-		{
-			add2dArgsAux(m_prob2a, pred, prevArgA, label, SRLParser.DIR_RIGHT);
-			add2dArgsAux(m_prob2n, pred, prevArgN, label, SRLParser.DIR_RIGHT);
-			
-			prevArgA = label;
-			if (label.substring(1).matches("A\\d"))	prevArgN = label;
-		}
-		
-		add2dArgsAux(m_prob2a, pred, prevArgA, ARG_END, SRLParser.DIR_RIGHT);
-		add2dArgsAux(m_prob2n, pred, prevArgN, ARG_END, SRLParser.DIR_RIGHT);
+		JObjectObjectTuple<String,String> prevArgs = new JObjectObjectTuple<String,String>(ARG_NONE, ARG_NONE);
+
+		add2dArgsAux(pList, pred, prevArgs, SRLParser.DIR_LEFT);
+		add2dArgsAux(nList, pred, prevArgs, SRLParser.DIR_RIGHT);
 	}
 	
 	/** Called from {@link SRLProb#add1dArgs(DepNode, HashSet)}. */
-	private void add2dArgsAux(HashMap<String, ObjectDoubleOpenHashMap<String>> mPred, DepNode pred, String prevArg, String currArg, byte dir)
+	private void add2dArgsAux(ArrayList<String> list, DepNode pred, JObjectObjectTuple<String,String> prevArgs, byte dir)
 	{
-		ObjectDoubleOpenHashMap<String> mArg = incrementPred(mPred, getKey(pred, prevArg, dir));
-		
-		mArg.put(currArg, mArg.get(currArg)+1);
-	}
-	
-//	============================= Compute Probabilities =============================
-	
-	/** Must be called before any probability is used. */
-	public void computeProb()
-	{
-		SMOOTH_1A = computeConditionalProb(m_prob1a);
-		SMOOTH_2A = computeConditionalProb(m_prob2a);
-		SMOOTH_2N = computeConditionalProb(m_prob2n);
-	}
-	
-	/** Called from {@link SRLProb#computeConditionalProb(HashMap)}. */
-	private double computeConditionalProb(HashMap<String, ObjectDoubleOpenHashMap<String>> mPred)
-	{
-		ObjectDoubleOpenHashMap<String> mArg;
-		double total, score, min = 1;	String label;
-		
-		for (String key : mPred.keySet())
+		for (String currArg : list)
 		{
-			mArg  = mPred.get(key);
-			total = mArg.get(TOTAL);
+			m_prob2a.increment(getKey(pred, prevArgs.o1, dir), currArg);
+			m_prob2n.increment(getKey(pred, prevArgs.o2, dir), currArg);
 			
-			for (ObjectCursor<String> arg : mArg.keySet())
-			{
-				label = arg.value;
-				score = mArg.get(label)/total;
-				min   = Math.min(min, score);
-				mArg.put(label, score);
-			}
-			
-			mArg.remove(TOTAL);
+			prevArgs.o1 = currArg;
+			if (currArg.substring(1).matches("A\\d"))	prevArgs.o2 = currArg;
 		}
 		
-		return min;
-	}
-	
-	public double getScore(DepNode pred, ArrayList<SRLArg> lsArgs)
-	{
-		double score = 1;
-		
-		for (SRLArg arg : lsArgs)
-		{
-			score *= arg.score;
-		}
-
-		return score;
+		m_prob2a.increment(getKey(pred, prevArgs.o1, dir), ARG_END);
+		m_prob2n.increment(getKey(pred, prevArgs.o2, dir), ARG_END);
 	}
 	
 //	============================= Print =============================
 	
 	public void printAll(String filename)
 	{
-		printCP(m_prob1a, filename+".p1d");
-		printCP(m_prob2a, filename+".p2d");
+		DecimalFormat format = new DecimalFormat("#0.0000");
+		
+		m_prob1a.print(filename+".p1a", format);
+		m_prob2a.print(filename+".p2a", format);
+		m_prob2n.print(filename+".p2n", format);
 	}
-	
-	@SuppressWarnings("unchecked")
-	private void printCP(HashMap<String, ObjectDoubleOpenHashMap<String>> mPred, String outputFile)
-	{
-		ArrayList<String> keys = new ArrayList<String>(mPred.keySet());
-		ArrayList<JObjectDoubleTuple<String>> tArgs;
-		ObjectDoubleOpenHashMap<String> mArg;
-		String label;
-		
-		Collections.sort(keys);
-		PrintStream fout = IOUtil.createPrintFileStream(outputFile);
-		
-		for (String key : keys)
-		{
-			tArgs = new ArrayList<JObjectDoubleTuple<String>>();
-			mArg  = mPred.get(key);
-			
-			for (ObjectCursor<String> arg : mArg.keySet())
-			{
-				label = arg.value;
-				tArgs.add(new JObjectDoubleTuple<String>(label, mArg.get(label)));
-			}
-			
-			Collections.sort(tArgs);
-			StringBuilder build = new StringBuilder();
-			
-			build.append(key);
-			
-			for (JObjectDoubleTuple<String> tup : tArgs)
-			{
-				build.append(" ");
-				build.append(tup.object);
-				build.append(":");
-				build.append(tup.value);
-			}
-			
-			fout.println(build.toString());
-		}
-		
-		fout.close();
-	}
-
 }

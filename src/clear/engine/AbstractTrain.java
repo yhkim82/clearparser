@@ -28,9 +28,8 @@ import java.util.ArrayList;
 
 import org.apache.commons.compress.archivers.jar.JarArchiveEntry;
 import org.apache.commons.compress.archivers.jar.JarArchiveOutputStream;
+import org.kohsuke.args4j.Option;
 import org.w3c.dom.Element;
-
-import com.carrotsearch.hppc.IntArrayList;
 
 import clear.model.AbstractModel;
 import clear.train.AbstractTrainer;
@@ -41,6 +40,10 @@ import clear.train.algorithm.LibLinearL2;
 import clear.train.algorithm.RRM;
 import clear.train.kernel.AbstractKernel;
 import clear.train.kernel.NoneKernel;
+import clear.util.IOUtil;
+import clear.util.tuple.JObjectObjectTuple;
+
+import com.carrotsearch.hppc.IntArrayList;
 
 /**
  * Trains dependency parser.
@@ -49,14 +52,16 @@ import clear.train.kernel.NoneKernel;
  */
 abstract public class AbstractTrain extends AbstractCommon
 {
+	@Option(name="-m", usage="model file", required=false, metaVar="OPTIONAL")
+	protected String s_modelFile    = null;
+	
 	protected final String TAG_CLASSIFY           = "classify";
 	protected final String TAG_CLASSIFY_ALGORITHM = "algorithm";
 
 	protected byte kernel_type  = AbstractKernel.KERNEL_NONE;
 	protected byte trainer_type = AbstractTrainer.ST_ONE_VS_ALL;
 	
-	protected ArrayList<IntArrayList>     a_ys;
-	protected ArrayList<ArrayList<int[]>> a_xs;
+	protected ArrayList<JObjectObjectTuple<IntArrayList, ArrayList<int[]>>> a_yx;
 	
 	/** Trains the LibLinear classifier. */
 	protected AbstractModel trainModel(String instanceFile, JarArchiveOutputStream zout) throws Exception
@@ -233,22 +238,28 @@ abstract public class AbstractTrain extends AbstractCommon
 		System.out.println();
 		
 		PrintStream fout = null;
-		if (zout != null)
+		if (s_modelFile != null)
+			fout = IOUtil.createPrintFileStream(s_modelFile+"."+index);
+		else
 		{
-			zout.putArchiveEntry(new JarArchiveEntry(ENTRY_MODEL));
-			fout = new PrintStream(zout);
+			if (zout != null)
+			{
+				zout.putArchiveEntry(new JarArchiveEntry(ENTRY_MODEL));
+				fout = new PrintStream(zout);
+			}	
 		}
-		
+
 		long st = System.currentTimeMillis();
 		
 		NoneKernel kernel = new NoneKernel();
-		kernel.add(a_ys.get(index), a_xs.get(index));
+		kernel.add(a_yx.get(index));
 		AbstractTrainer trainer = (trainer_type == AbstractTrainer.ST_BINARY) ? new BinaryTrainer(fout, algorithm, kernel, numThreads) : new OneVsAllTrainer(fout, algorithm, kernel, numThreads);
 		
 		long time = System.currentTimeMillis() - st;
 		System.out.printf("- duration: %d hours, %d minutes\n", time/(1000*3600), time/(1000*60));
 		
 		if (zout != null)	zout.closeArchiveEntry();
+		if (s_modelFile != null)	fout.close();
 		
 		return trainer.getModel();
 	}

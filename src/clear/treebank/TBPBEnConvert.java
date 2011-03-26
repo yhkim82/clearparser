@@ -46,8 +46,8 @@ public class TBPBEnConvert
 	private TBTree  p_tree;
 	private SRLTree s_tree;
 	
-	boolean b_reverseVC = true;
-	boolean b_funcTag   = false;
+	boolean b_reverseVC = false;
+	boolean b_funcTag   = true;
 	boolean b_includeEC = false;
 	
 	/** @return a semantic role labeling tree converted from <code>pTree</code>. */

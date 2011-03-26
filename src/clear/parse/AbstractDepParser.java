@@ -261,10 +261,10 @@ abstract public class AbstractDepParser
 			
 			if (bestScore > 0)
 			{
-				coord.leftMostDep  = bestPair.object1;
-				coord.rightMostDep = bestPair.object2;
-				bestPair.object1.coordHead = coord;
-				bestPair.object2.coordHead = coord;
+				coord.leftMostDep  = bestPair.o1;
+				coord.rightMostDep = bestPair.o2;
+				bestPair.o1.coordHead = coord;
+				bestPair.o2.coordHead = coord;
 			}
 		}
 	}

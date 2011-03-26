@@ -126,7 +126,7 @@ public class LibLinearL2 implements IAlgorithm
 						G += (weight[xi[j]] * vi[j]);
 				}
 				
-				G = G * yi - 1;
+ 				G = G * yi - 1;
 				G += alpha[i] * diag[GETI(aY, i)];
 				U = upper_bound[GETI(aY, i)];
 				

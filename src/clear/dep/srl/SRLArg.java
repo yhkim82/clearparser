@@ -17,4 +17,15 @@ public class SRLArg
 		this.label = label;
 		this.score = score;
 	}
+	
+	public String toString()
+	{
+		StringBuilder build = new StringBuilder();
+		
+		build.append(argId);
+		build.append(":");
+		build.append(label);
+		
+		return build.toString();
+	}
 }

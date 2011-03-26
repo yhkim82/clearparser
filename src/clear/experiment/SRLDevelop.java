@@ -23,8 +23,8 @@
 */
 package clear.experiment;
 
-import java.io.File;
 import java.io.PrintStream;
+import java.util.ArrayList;
 
 import org.apache.commons.compress.archivers.jar.JarArchiveOutputStream;
 import org.kohsuke.args4j.CmdLineException;
@@ -41,12 +41,19 @@ import clear.engine.SRLEvaluate;
 import clear.ftr.map.SRLFtrMap;
 import clear.ftr.xml.SRLFtrXml;
 import clear.model.AbstractModel;
+import clear.model.BinaryModel;
 import clear.model.OneVsAllModel;
 import clear.parse.AbstractSRLParser;
 import clear.parse.SRLParser;
 import clear.reader.AbstractReader;
 import clear.reader.SRLReader;
+import clear.train.BinaryTrainer;
+import clear.train.algorithm.LibLinearL2;
+import clear.train.kernel.NoneKernel;
 import clear.util.IOUtil;
+import clear.util.tuple.JObjectObjectTuple;
+
+import com.carrotsearch.hppc.IntArrayList;
 
 /**
  * Trains conditional dependency parser.
@@ -72,6 +79,8 @@ public class SRLDevelop extends AbstractTrain
 	private String[]        s_lexiconFiles = {ENTRY_LEXICA+".0",ENTRY_LEXICA+".1"};
 	public void initElements() {}
 	
+	BinaryModel m_shift;
+	
 	protected void train() throws Exception
 	{
 		printConfig();
@@ -85,13 +94,20 @@ public class SRLDevelop extends AbstractTrain
 		s_build.append(log);
 		System.out.print(log);
 		
-		trainDepParser(SRLParser.FLAG_TRAIN_PROBABILITY, null, null);
+	//	trainDepParser(SRLParser.FLAG_TRAIN_PROBABILITY, null, null);
 		trainDepParser(SRLParser.FLAG_TRAIN_LEXICON    , null, null);
 		trainDepParser(SRLParser.FLAG_TRAIN_INSTANCE   , null, null);
 
 		for (int j=0; j<m_model.length; j++)
 			m_model[j] = trainModel(j, null);
 
+	/*	t_xml = new SRLFtrXml(s_featureXml);
+		for (int j=0; j<m_model.length; j++)
+		{
+			m_model[j] = new OneVsAllModel(s_modelFile+"."+j);
+			t_map[j] = new SRLFtrMap(t_xml, s_lexiconFiles[j]);
+		}*/
+		
 		double prevAcc = 0, currAcc;
 		
 		do
@@ -115,8 +131,20 @@ public class SRLDevelop extends AbstractTrain
 		}
 		while (i < MAX_ITER);
 		
-		for (String filename : s_lexiconFiles)	new File(filename).delete();
+	//	for (String filename : s_lexiconFiles)	new File(filename).delete();
 		System.out.println(s_build.toString());
+	}
+	
+	protected void trainShift(JObjectObjectTuple<IntArrayList, ArrayList<double[]>> yx) throws Exception
+	{
+		m_shift = null;
+		LibLinearL2 algorithm = new LibLinearL2((byte)1, 0.1, 0.1, -1);
+		NoneKernel  kernel    = new NoneKernel();
+		
+		kernel.addValueArray(yx);
+		BinaryTrainer trainer = new BinaryTrainer(null, algorithm, kernel, 1);
+		
+		m_shift = trainer.getModel();
 	}
 	
 	/** Trains the dependency parser. */
@@ -156,6 +184,7 @@ public class SRLDevelop extends AbstractTrain
 				fout[i] = IOUtil.createPrintFileStream(outputFile[i]);
 			
 			labeler = new SRLParser(SRLParser.FLAG_PREDICT, t_xml, t_map, decoder);
+		//	labeler.c_shift = new BinaryDecoder(m_shift);
 		}
 		else if (flag == SRLParser.FLAG_TRAIN_BOOST)
 		{
@@ -166,6 +195,7 @@ public class SRLDevelop extends AbstractTrain
 				decoder[i] = new OneVsAllDecoder((OneVsAllModel)m_model[i]);
 			
 			labeler = new SRLParser(flag, t_xml, t_map, decoder);
+		//	labeler.c_shift = new BinaryDecoder(m_shift);
 		}
 		
 		if (flag != SRLParser.FLAG_TRAIN_PROBABILITY)
@@ -177,7 +207,7 @@ public class SRLDevelop extends AbstractTrain
 		if (flag == SRLParser.FLAG_PREDICT)
 		{
 			inputFile = s_devFile;
-			isTrain   = false;
+			isTrain   = true;
 		}
 		else
 		{
@@ -189,6 +219,7 @@ public class SRLDevelop extends AbstractTrain
 		DepTree tree;	int n;
 		
 		labeler.setLanguage(s_language);
+		labeler.initTopics("topics.obj");
 		reader.setLanguage(s_language);
 		
 		for (n=0; (tree = reader.nextTree()) != null; n++)
@@ -206,7 +237,6 @@ public class SRLDevelop extends AbstractTrain
 		if (flag == SRLParser.FLAG_TRAIN_PROBABILITY)
 		{
 			p_prob = labeler.getSRLProb();
-			p_prob.computeProb();
 		}
 		else if (flag == SRLParser.FLAG_TRAIN_LEXICON)
 		{
@@ -217,14 +247,16 @@ public class SRLDevelop extends AbstractTrain
 		else if (flag == SRLParser.FLAG_TRAIN_INSTANCE)
 		{
 			t_map = labeler.getSRLFtrMap();
-			a_ys  = labeler.getLabelArrays();
-			a_xs  = labeler.getFeatureArrays();
+			a_yx  = labeler.a_trans;
+		//	trainShift(labeler.a_shift);
 		}
 		else if (flag == SRLParser.FLAG_PREDICT)
 		{
 			for (int i=0; i<fout.length; i++)
 				fout[i].close();
-				
+			
+			labeler.f_shift.close();
+			
 			String[] args = {"-g", s_devFile, "-s", outputFile[0]};
 			String   log  = "\n* Development accuracy\n";
 			
@@ -233,12 +265,13 @@ public class SRLDevelop extends AbstractTrain
 			
 			s_build.append(log);
 			s_build.append("- F1: "+eval.getF1()+"\n");
+			System.out.println("Trans: "+labeler.n_trans);
 			return eval.getF1();
 		}
 		else if (flag == SRLParser.FLAG_TRAIN_BOOST)
 		{
-			a_ys  = labeler.getLabelArrays();
-			a_xs  = labeler.getFeatureArrays();
+			a_yx = labeler.a_trans;
+		//	trainShift(labeler.a_shift);
 		}
 		
 		return 0;

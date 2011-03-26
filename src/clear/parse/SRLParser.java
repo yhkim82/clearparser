@@ -23,9 +23,12 @@
 */
 package clear.parse;
 
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.util.AbstractCollection;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 
 import clear.decode.AbstractDecoder;
@@ -39,10 +42,12 @@ import clear.dep.srl.SRLInfo;
 import clear.dep.srl.SRLProb;
 import clear.ftr.map.SRLFtrMap;
 import clear.ftr.xml.SRLFtrXml;
+import clear.model.AbstractModel;
 import clear.util.tuple.JIntDoubleTuple;
+import clear.util.tuple.JObjectDoubleTuple;
 
 import com.carrotsearch.hppc.IntArrayList;
-import com.carrotsearch.hppc.ObjectDoubleOpenHashMap;
+import com.carrotsearch.hppc.IntOpenHashSet;
 
 /**
  * Shift-eager dependency parser.
@@ -56,11 +61,20 @@ public class SRLParser extends AbstractSRLParser
 	/** Label of NoArc transition */
 	static public final String LB_NO_ARC = "NA";
 	
+	static public final String KEY_REL = "rel";
+	
 	/** For {@link SRLParser#FLAG_TRAIN_BOOST} only. */
 	protected DepTree d_copy = null;
 	
-	private boolean b_ArgAdded;
-	private String  s_prevArg;
+	int K = 2;
+	double THRESHOLD = 0.4;
+	HashMap<String, ArrayList<ArrayList<SRLArg>>> m_dynamic;
+	
+	boolean b_checkShift;
+	String  s_prevArgA, s_prevArgN;
+	int     i_slack = 0;
+	double  d_shift_margin = 0.1;
+	IntOpenHashSet s_candidates;
 	
 	/** {@link AbstractSRLParser#FLAG_TRAIN_PROBABILITY}. */
 	public SRLParser(byte flag)
@@ -100,26 +114,78 @@ public class SRLParser extends AbstractSRLParser
 		ls_argn = new ArrayList<String>();
 		s_args  = new HashSet<String>();
 		
-		if (i_flag == FLAG_TRAIN_BOOST)
+		s_candidates = new IntOpenHashSet();
+	//	if (i_beta < d_tree.size())	collectArgumentCandidates();
+		
+		m_dynamic = new HashMap<String, ArrayList<ArrayList<SRLArg>>>();
+		
+		if (i_flag == FLAG_PREDICT || i_flag == FLAG_PREDICT_BEST || i_flag == FLAG_TRAIN_BOOST)
 		{
 			d_copy = tree.clone();
 			d_tree.clearSRLHeads();
 		}
 		
-		b_ArgAdded = false;
+		b_checkShift = true;
+		s_prevArgA   = SRLProb.ARG_NONE;
+		s_prevArgN   = SRLProb.ARG_NONE;
+	}
+	
+	protected void retrieveTopics(DepTree tree)
+	{
+		DepNode node;
+		HashSet<String> topics;
+		
+		for (int i=1; i<tree.size(); i++)
+		{
+			node = tree.get(i);
+			if (!node.isPosx("NN.*"))	continue;
+			
+			for (int j=0; j<a_topics.size(); j++)
+			{
+				topics = a_topics.get(j);
+				
+				if (topics.contains(node.lemma))
+					node.s_topics.add("TPC"+j);
+			}
+		}
+	}
+	
+	protected void collectArgumentCandidates()
+	{
+		s_candidates.clear();
+		DepNode beta = d_tree.get(i_beta);
+		
+		while (true)
+		{
+			for (DepNode node : d_tree.getDependents(beta.id))
+				s_candidates.add(node.id);
+			
+			if (beta.hasHead)	beta = d_tree.get(beta.headId);
+			else				break;
+		}
 	}
 	
 	/** Parses <code>tree</code>. */
 	public void parse(DepTree tree)
 	{
+	//	retrieveTopics(tree);
 		init(tree);
 		
 		while (i_beta < tree.size())
 		{
-			if (i_lambda <= 0 || i_lambda >= tree.size() || isShift())
+			if (i_lambda <= 0 || i_lambda >= tree.size())
 				shift();
+		//	else if (!s_candidates.contains(i_lambda))
+		//		i_lambda += i_dir;
 			else if (i_flag == FLAG_PREDICT)
 				predict();
+			else if (i_flag == FLAG_PREDICT_BEST)
+			{
+				predictBest();
+				dynamicPick();
+				i_dir = DIR_RIGHT;
+				shift();
+			}
 			else if (i_flag == FLAG_TRAIN_BOOST)
 				trainConditional();
 			else
@@ -133,7 +199,7 @@ public class SRLParser extends AbstractSRLParser
 		String label = getGoldLabel(d_tree);
 		
 		if (label.equals(LB_NO_ARC))
-			noArc();
+			noArc(1d);
 		else
 			yesArc(label, 1d);
 	}
@@ -151,11 +217,153 @@ public class SRLParser extends AbstractSRLParser
 		JIntDoubleTuple res = dec.predict(ftr);
 		
 		String label = (res.i < 0) ? LB_NO_ARC : map.indexToLabel(res.i);
+		res.d = AbstractModel.logistic(res.d);
 		
 		if (label.equals(LB_NO_ARC))
-			noArc();
+			noArc(res.d);
 		else
 			yesArc(label, res.d);
+	}
+	
+	private void predictBest()
+	{
+		if (i_lambda >= d_tree.size())	// right-shift
+		{
+			dynamicPopulate();
+			return;
+		}
+		else if (i_lambda <= 0)			// left-shift
+		{
+			shift();
+			predictBest();
+			return;
+		}
+		
+		int               iBeta   = i_beta;
+		int               iLambda = i_lambda;
+		byte              iDir    = i_dir;
+		ArrayList<SRLArg> lsArgs  = new ArrayList<SRLArg>(ls_args);
+		ArrayList<String> lsArgn  = new ArrayList<String>(ls_argn);
+		HashSet<String>   sArgs   = new HashSet<String>(s_args);
+		
+		SRLFtrMap         map = getFtrMap();
+		OneVsAllDecoder   dec = getDecoder();
+		JIntDoubleTuple[] res = dec.predictAll(getFeatureArray());
+		String label;
+		double score;
+		
+		for (int i=0; i<K; i++)
+		{
+			if (i != 0)
+			{
+				if (res[i].d < THRESHOLD)	break;
+				
+				i_beta   = iBeta;
+				i_lambda = iLambda;
+				i_dir    = iDir;
+				ls_args  = new ArrayList<SRLArg>(lsArgs);
+				ls_argn  = new ArrayList<String>(lsArgn);
+				s_args   = new HashSet<String>(sArgs);
+			}
+			
+			label = map.indexToLabel(res[i].i);
+			score = AbstractModel.logistic(res[i].d);
+			
+			if (label.equals(LB_NO_ARC))
+				noArc(score);
+			else if ((label = yesArc(label, score)) != null)
+			{
+				dynamicAttach(label);
+				continue;
+			}
+			
+			predictBest();
+		}
+	}
+	
+	private void dynamicPick()
+	{
+		ArrayList<ArrayList<SRLArg>> list = m_dynamic.get(KEY_REL);
+		JObjectDoubleTuple<ArrayList<SRLArg>> max = new JObjectDoubleTuple<ArrayList<SRLArg>>(null, -1);
+		DepNode beta = d_tree.get(i_beta);
+		double score;
+		
+		for (ArrayList<SRLArg> seq : list)
+		{
+			score = getScore(beta, seq);
+			if (score > max.value)	max.set(seq, score);
+		}
+		
+		addArgs(max.object);
+	}
+	
+	private double getScore(DepNode pred, ArrayList<SRLArg> lsArgs)
+	{
+		double score = 1;
+		
+		for (SRLArg arg : lsArgs)
+			score *= arg.score;
+
+		return score;
+	}
+	
+	private void dynamicPopulate()
+	{
+		addDynamicList(KEY_REL, ls_args);
+		int size = ls_args.size();
+		
+		for (int i=0; i<size; i++)
+		{
+			SRLArg arg = ls_args.get(i);
+			addDynamicList(arg.toString(), new ArrayList<SRLArg>(ls_args.subList(i, size)));
+		}
+	}
+	
+	private void dynamicAttach(String key)
+	{
+		ArrayList<ArrayList<SRLArg>> list = m_dynamic.get(key);
+		
+		for (ArrayList<SRLArg> ls : list)
+		{
+			ArrayList<SRLArg> tmp = new ArrayList<SRLArg>(ls_args);
+			
+			tmp.addAll(ls);
+			addDynamicList(KEY_REL, tmp);
+		}
+	}
+	
+	private void addDynamicList(String key, ArrayList<SRLArg> seq)
+	{
+		ArrayList<ArrayList<SRLArg>> list;
+		
+		if (m_dynamic.containsKey(key))
+		{
+			list = m_dynamic.get(key);
+		}
+		else
+		{
+			list = new ArrayList<ArrayList<SRLArg>>();
+			m_dynamic.put(key, list);
+		}
+		
+		list.add(seq);
+	}
+	
+	protected String seqToString(ArrayList<SRLArg> seq)
+	{
+		StringBuilder build = new StringBuilder();
+		build.append(d_tree.get(i_beta).form);
+		NumberFormat formatter = new DecimalFormat("#0.0000");
+		
+		for (SRLArg arg : seq)
+		{
+			build.append(" ");
+			build.append(arg.toString());
+			build.append(":");
+			build.append(formatter.format(arg.score));
+		}
+		
+		return build.toString();
 	}
 	
 	private void trainConditional()
@@ -188,8 +396,11 @@ public class SRLParser extends AbstractSRLParser
 		{
 			shiftRight();
 			i_beta = d_tree.nextPredicateId(i_beta);
+			
+		//	if (i_beta < d_tree.size())	collectArgumentCandidates();
 		}
 		
+		b_checkShift = true;
 		i_dir *= -1;
 		i_lambda = i_beta + i_dir;
 	}
@@ -197,50 +408,72 @@ public class SRLParser extends AbstractSRLParser
 	/** Called from {@link SRLParser#shift()} for {@link AbstractSRLParser#DIR_RIGHT}. */
 	private void shiftRight()
 	{
-		if (i_flag == FLAG_PREDICT || i_flag == FLAG_TRAIN_BOOST)
-		{
-			String label;
-			
-			for (SRLArg arg : ls_args)
-			{
-				label = arg.label.substring(1);
-				d_tree.get(arg.argId).addSRLHead(i_beta, label);
-			}
-		}
-		else if (i_flag == FLAG_TRAIN_PROBABILITY)
+		if (i_flag == FLAG_TRAIN_PROBABILITY)
 		{
 			DepNode beta = d_tree.get(i_beta);
 			p_prob.add1dArgs(beta, s_args);
 			p_prob.add2dArgs(beta, ls_args);
 		}
+		else if (i_flag == FLAG_PREDICT || i_flag == FLAG_TRAIN_BOOST)
+		{
+			addArgs(ls_args);
+		}
 
-		ls_args.clear();
-		ls_argn.clear();
-		s_args .clear();
+		ls_args  .clear();
+		ls_argn  .clear();
+		s_args   .clear();
+		m_dynamic.clear();
+	}
+	
+	private void addArgs(ArrayList<SRLArg> seq)
+	{
+		for (SRLArg arg : seq)
+		{
+			if (arg.argId > 0)
+				d_tree.get(arg.argId).addSRLHead(i_beta, arg.label.substring(1));
+		}
 	}
 	
 	/** Performs a no-arc transition. */
-	private void noArc()
+	private void noArc(double score)
 	{
 		trainInstance(LB_NO_ARC);
+		
+		if (i_flag == FLAG_PREDICT_BEST)
+			ls_args.add(new SRLArg(-1, LB_NO_ARC, score));
+		
 		i_lambda += i_dir;
+		n_trans++;
 	}
 	
-	private void yesArc(String label, double score)
+	private String yesArc(String label, double score)
 	{
 		trainInstance(label);
 		
 		if (label.matches("A\\d"))	ls_argn.add(label);
-		if (i_dir == DIR_LEFT)		label = SRLProb.SYM_PREV + label;
-		else						label = SRLProb.SYM_NEXT + label;
+		label = getDirLabel(label);
 		
 		SRLArg arg = new SRLArg(i_lambda, label, score);
 		
+		if (i_flag == FLAG_PREDICT_BEST && m_dynamic.containsKey(arg))
+			return arg.toString();
+		
 		ls_args.add(arg);
 		s_args .add(label);
+
+		b_checkShift = true;
+		s_prevArgA   = label;
+		if (label.substring(1).matches("A\\d"))	s_prevArgN = label;
 		
 		i_lambda += i_dir;
-		b_ArgAdded = true;
+		n_trans++;
+		return null;
+	}
+	
+	private String getDirLabel(String label)
+	{
+		if (i_dir == DIR_LEFT)	return SRLProb.SYM_PREV + label;
+		else					return SRLProb.SYM_NEXT + label;
 	}
 	
 	private void trainInstance(String label)
@@ -253,12 +486,12 @@ public class SRLParser extends AbstractSRLParser
 		
 	// ---------------------------- getFtr*() ----------------------------
 	
-	protected void addLexica(SRLFtrMap map, boolean isAI)
+	protected void addLexica(SRLFtrMap map)
 	{
 		addNgramLexica(map);
 		addSetLexica  (map, 0, d_tree.getDeprelDepSet(i_beta));
 		addStrLexica  (map, 1, getPredArg());
-	//	addSetLexica  (map, 2, getArgnSet());
+	//	addSetLexica  (map, 2, getTopicArgSet());
 	}
 	
 	protected void addSetLexica(SRLFtrMap map, int ftrId, AbstractCollection<String> ftrs)
@@ -294,6 +527,12 @@ public class SRLParser extends AbstractSRLParser
 		return null;
 	}
 	
+	protected HashSet<String> getTopicArgSet()
+	{
+		DepNode lambda = d_tree.get(i_lambda);
+		return lambda.s_topics;
+	}
+	
 	protected HashSet<String> getArgnSet()
 	{
 		HashSet<String> set = new HashSet<String>();
@@ -316,11 +555,12 @@ public class SRLParser extends AbstractSRLParser
 		int idx[] = {1};
 		SRLFtrMap map = getFtrMap();
 		
-		addNgramFeatures (arr, idx, map);
+		addNgramFeatures(arr, idx, map);
 		addBinaryFeatures(arr, idx);
-		addSetFeatures   (arr, idx, map, 0, d_tree.getDeprelDepSet(i_beta));
-		addStrFeatures   (arr, idx, map, 1, getPredArg());
-	//	addSetFeatures   (arr, idx, map, 2, getArgnSet());
+		addDistanceFeature(arr, idx);
+		addSetFeatures(arr, idx, map, 0, d_tree.getDeprelDepSet(i_beta));
+		addStrFeatures(arr, idx, map, 1, getPredArg());
+	//	addSetFeatures(arr, idx, map, 2, getTopicArgSet());
 		
 		return arr;
 	}
@@ -330,8 +570,9 @@ public class SRLParser extends AbstractSRLParser
 		DepNode lambda = d_tree.get(i_lambda);
 		DepNode beta   = d_tree.get(i_beta);
 		
-		if      (lambda.headId == i_beta)	arr.add(idx[0]);
-		else if (beta.headId == i_lambda)	arr.add(idx[0]+1);
+		if      (lambda.headId == i_beta)			arr.add(idx[0]);
+		else if (beta.headId == i_lambda)			arr.add(idx[0]+1);
+		else if (d_tree.isAncestor(beta, lambda))	arr.add(idx[0]+2);	// for out-of-domain
 		
 		while (DepLib.M_VC.matcher(beta.deprel).matches())
 		{
@@ -339,11 +580,23 @@ public class SRLParser extends AbstractSRLParser
 			
 			if (d_tree.getDeprelDepSet(beta.id).contains(DepLib.DEPREL_SBJ))
 			{
-				arr.add(idx[0]+2);
+				arr.add(idx[0]+3);
 				break;
 			}
 		}
 
+		idx[0] += 4;
+	}
+	
+	protected void addDistanceFeature(IntArrayList arr, int[] idx)
+	{
+		int dist = Math.abs(i_beta - i_lambda);
+		
+		if      (dist <=  5)	dist = 0;
+		else if (dist <= 10)	dist = 1;
+		else					dist = 2;
+		
+		arr.add(idx[0]+dist);
 		idx[0] += 3;
 	}
 	
@@ -375,107 +628,96 @@ public class SRLParser extends AbstractSRLParser
 		idx[0] += map.n_ftr[ftrId];
 	}
 	
-//	==================================== PROBABILITY ====================================
-	
-/*	@SuppressWarnings("unchecked")
-	protected void setPredictArgs()
-	{
-		if (i_flag == FLAG_TRAIN_PROBABILITY || !d_tree.isRange(i_beta))	return;
-		
-		DepNode                         beta = d_tree.get(i_beta);
-		ObjectDoubleOpenHashMap<String> pMap = p_prob.getProb1d(beta, i_dir);
-		if (pMap == null)	return;
-		
-		ArrayList<JObjectDoubleTuple<String>> argn = new ArrayList<JObjectDoubleTuple<String>>();
-		String label;	double prob;
-		
-		p_argn.clear();
-		
-		for (ObjectCursor<String> cur : pMap.keySet())
-		{
-			label = cur.value;
-			prob  = pMap.get(label);	
-			
-			if (label.matches("A\\d"))
-			{
-				argn.add(new JObjectDoubleTuple<String>(label, prob));
-			}
-			else if (m_argm.containsKey(label))
-			{
-				if (label.matches("AM-MOD|AM-NEG"))
-					continue;
-				else
-					dev += m_argm.get(label);
-			}
-			else if (label.startsWith("C-"))
-			{
-				sub = label.substring(2);
-				
-				if (!s_argn.contains(sub) && !s_argm.contains(sub))
-				{
-					prob[index] = p_prob.d_smooth;
-					continue;
-				}
-			}
-		}
-	
-		Collections.sort(argn);
-		p_argn.clear();
-		
-		for (JObjectDoubleTuple<String> tup : argn)
-			p_argn.add(tup.object);
-	}
-	
-	protected String getPredictSeq()
-	{
-		if (p_argn.isEmpty())	return null;
-		
-		StringBuilder build = new StringBuilder();
-		DepNode       beta  = d_tree.get(i_beta);
-
-		build.append(beta.lemma);
-		build.append("_");
-		build.append(p_argn.get(0));
-		
-		return build.toString();
-	}*/
-	
 //	==================================== SHIFT ====================================
 	
-	protected boolean isShift()
+/*	protected boolean isShift(double score)
 	{
-		DepNode pred = d_tree.get(i_beta);
+		if (b_checkShift)	b_checkShift = false;
+		else				return false;
 		
-		if (i_flag == FLAG_PREDICT)
+		double[] arr = getShiftArray(score);
+		if (arr == null)	return false;
+		
+		double sum = 0;
+		double[] weight = {0.23017389186528628, -1.4706302173489318, -0.1499877207617069, -1.180854067164068, -0.38980112947136575, 0.10158032395092477, -2.073205316928537};
+		for (int i=0; i<weight.length; i++)
+			sum += (weight[i] * arr[i]);
+		sum *= -1;
+		return (sum >= 1.5);
+	}
+	
+	protected double[] getShiftArray(double score)
+	{
+		DepNode beta = d_tree.get(i_beta);
+		
+		ObjectDoubleOpenHashMap<String> mProb1a = p_prob.get1aProbMap(beta, i_dir);
+		ObjectDoubleOpenHashMap<String> mProb2a = p_prob.get2aProbMap(beta, s_prevArgA, i_dir);
+		ObjectDoubleOpenHashMap<String> mProb2n = p_prob.get2aProbMap(beta, s_prevArgN, i_dir);
+		
+		JDoubleDoubleTuple prob1a = getEndArgProb(mProb1a);
+		JDoubleDoubleTuple prob2a = getEndArgProb(mProb2a);
+		JDoubleDoubleTuple prob2n = getEndArgProb(mProb2n);
+		
+		double[] arr = {prob1a.d1, prob2a.d1, prob2n.d1, -prob1a.d2, -prob2a.d2, -prob2n.d2, -score};
+		double  prob = 0;
+		for (double d : arr)	prob += d;
+
+		return (prob == 0) ? null : arr;
+	}
+	
+	private JDoubleDoubleTuple getEndArgProb(ObjectDoubleOpenHashMap<String> mPred)
+	{
+		JDoubleDoubleTuple max = new JDoubleDoubleTuple(0, 0);
+		if (mPred == null)	return max;
+		
+		String label;	double prob;
+		
+		for (ObjectCursor<String> cur : mPred.keySet())
 		{
-			return isShiftProb(pred);
+			if ((label = cur.value).equals(SRLProb.ARG_END))
+			{
+				max.d1 = mPred.get(label);
+			}
+			else if (!s_args.contains(label))
+			{
+				if ((prob = mPred.get(label)) > max.d2)
+					max.d2 = prob;
+			}
+		}
+		
+		return max;
+	}
+	
+	protected String getShiftEquation(double[] arr, boolean isShift)
+	{
+	//	DecimalFormat format = new DecimalFormat("#0.0000");
+		StringBuilder build = new StringBuilder();
+		
+		build.append(d_tree.get(i_beta).form);
+		build.append(" ");
+		build.append(d_tree.get(i_lambda).form);
+		build.append(" ");
+		
+		if (isShift)
+		{
+			build.append( "1");
 		}
 		else
 		{
-			DepTree tree = (i_flag == FLAG_TRAIN_BOOST) ? d_copy : d_tree;
-			
+			build.append("-1");
 		}
 		
-		return false;
-	}
-	
-	protected boolean isShiftProb(DepNode pred)
-	{
-		return false;
-	}
-	
-	public double getScore(ObjectDoubleOpenHashMap<String> prob1d)
-	{
-		double score = 0;
+		for (int i=0; i<arr.length; i++)
+		{
+			build.append(" ");
+			build.append((i+1));
+			build.append(":");
+			build.append(arr[i]);
+		}
 		
-		
-		return score;
+		return build.toString();
 	}
 	
-	/**
-	 * This method is called from {@link SRLParser#train()}.
-	 * @return true if non-deterministic shift needs to be performed 
-	 */
 	protected boolean isShift(DepTree tree)
 	{
 		for (int i=i_lambda; 0<i && i<tree.size(); i+=i_dir)
@@ -485,5 +727,5 @@ public class SRLParser extends AbstractSRLParser
 		}
 
 		return true;
-	}
+	}*/
 }

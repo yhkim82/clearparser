@@ -282,10 +282,10 @@ public class MorphEnAnalyzer
 		
 		for (JObjectObjectTuple<String,String> tup : rule)
 		{
-			if (form.endsWith(tup.object1))
+			if (form.endsWith(tup.o1))
 			{
-				offset = form.length() - tup.object1.length();
-				base   = form.substring(0, offset) + tup.object2;
+				offset = form.length() - tup.o1.length();
+				base   = form.substring(0, offset) + tup.o2;
 				
 				if (set.contains(base))	return base;
 			}
