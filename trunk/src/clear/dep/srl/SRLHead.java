@@ -37,6 +37,7 @@ public class SRLHead implements Comparable<SRLHead>
 	
 	public int    headId;
 	public String label;
+	public double score;
 	
 	public SRLHead()
 	{
@@ -47,12 +48,22 @@ public class SRLHead implements Comparable<SRLHead>
 	public SRLHead(String head)
 	{
 		String[] tmp = head.split(DELIM);
+		
 		set(Integer.parseInt(tmp[0]), tmp[1]);
+		if (tmp.length > 2)	score = Double.parseDouble(tmp[2]);
+		else				score = 1;
 	}
 	
 	public SRLHead(int headId, String label)
 	{
 		set(headId, label);
+	}
+	
+	public SRLHead(int headId, String label, double score)
+	{
+		this.headId = headId;
+		this.label  = label;
+		this.score  = score;
 	}
 
 	public void set(int headId, String label)
@@ -93,6 +104,8 @@ public class SRLHead implements Comparable<SRLHead>
 		build.append(headId);
 		build.append(DELIM);
 		build.append(label);
+	//	build.append(DELIM);
+	//	build.append(score);
 		
 		return build.toString();
 	}

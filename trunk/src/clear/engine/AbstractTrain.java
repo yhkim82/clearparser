@@ -256,7 +256,7 @@ abstract public class AbstractTrain extends AbstractCommon
 		AbstractTrainer trainer = (trainer_type == AbstractTrainer.ST_BINARY) ? new BinaryTrainer(fout, algorithm, kernel, numThreads) : new OneVsAllTrainer(fout, algorithm, kernel, numThreads);
 		
 		long time = System.currentTimeMillis() - st;
-		System.out.printf("- duration: %d hours, %d minutes\n", time/(1000*3600), time/(1000*60));
+		System.out.printf("- duration: %d h, %d m, %d s\n", time/(1000*3600), time/(1000*60), time/1000);
 		
 		if (zout != null)	zout.closeArchiveEntry();
 		if (s_modelFile != null)	fout.close();

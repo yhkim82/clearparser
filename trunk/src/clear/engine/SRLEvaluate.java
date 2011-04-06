@@ -1,5 +1,7 @@
 package clear.engine;
 
+import java.util.HashSet;
+
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;

@@ -46,6 +46,11 @@ public class SRLInfo
 		heads.add(new SRLHead(headId, label));
 	}
 	
+	public void addHead(int headId, String label, double score)
+	{
+		heads.add(new SRLHead(headId, label, score));
+	}
+	
 	public boolean isPredicate()
 	{
 		return !rolesetId.equals(DepLib.FIELD_BLANK);

@@ -2,6 +2,7 @@ package clear.util.cluster;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 
 import clear.experiment.SRLVerbCluster;
 import clear.util.tuple.JIntDoubleTuple;
@@ -16,46 +17,75 @@ import com.carrotsearch.hppc.cursors.ObjectCursor;
 
 public class SRLClusterBuilder
 {
-	public double d_threshold;
+	// 0.78, 0.76
+	double d_hm_lower = 0.78;	// 0.80 same
+	double d_km_lower = 0.78;
 	
 	ObjectDoubleOpenHashMap<String> d_similarities;
 	ArrayList<ProbCluster>          k_clusters;
 	
-//	int iter_hm = 2, iter_km = 3;	// brown
-//	int iter_hm = 2, iter_km = 2;	// wsj
-	int iter_hm = 2, iter_km = 1;	
+	public SRLClusterBuilder()
+	{
+	}
 	
 	public SRLClusterBuilder(double threshold)
 	{
-		d_threshold = threshold;
+		d_km_lower = threshold;
 	}
 	
-	public ArrayList<ProbCluster> getInitClusters(Prob2dMap map, Prob1dMap mKeyword, double argmWeight)
+	public ArrayList<ProbCluster> getInitClusters(HashMap<String,ObjectDoubleOpenHashMap<String>> map)
 	{
 		ArrayList<ProbCluster> clusters = new ArrayList<ProbCluster>();
-		ObjectDoubleOpenHashMap<String> lmap;
 		ProbCluster cluster;
-		String      label;
-		double      weight;
 		
 		for (String key : map.keySet())
 		{
-			cluster = new ProbCluster (key);
-			lmap    = map.getProb1dMap(key);
-			
-			for (ObjectCursor<String> cur : lmap.keySet())
-			{
-				label  = cur.value;
-				weight = (mKeyword.containsKey(label)) ? Math.exp(mKeyword.getProb(label)) : 1;
-				if (label.contains("AM"))	weight *= argmWeight;
-				lmap.put(label, lmap.get(label)*weight);
-			}
-			
-			cluster .add(lmap);
+			cluster = new ProbCluster(key);
+			cluster .add(map.get(key));
 			clusters.add(cluster);
 		}
 		
 		return clusters;
+	}
+	
+	/** @return average cosine similarity between two clusters. */
+	public double getCtrSimilarity(ProbCluster cluster1, ProbCluster cluster2, boolean useDynamic)
+	{
+		String key = getJoinedKey(cluster1, cluster2);
+		if (useDynamic && d_similarities.containsKey(key))	return d_similarities.get(key);
+		
+		ObjectDoubleOpenHashMap<String> ctr1 = getCentroid(cluster1);
+		ObjectDoubleOpenHashMap<String> ctr2 = getCentroid(cluster2);
+			
+		double sim = getCosineSimilarity(ctr1, ctr2);
+		if (useDynamic)	d_similarities.put(key, sim);
+
+		return sim;
+	}
+	
+	public ObjectDoubleOpenHashMap<String> getCentroid(ProbCluster cluster)
+	{
+		ObjectDoubleOpenHashMap<String> centroid = new ObjectDoubleOpenHashMap<String>();
+		String key;
+		
+		for (ObjectDoubleOpenHashMap<String> map : cluster)
+		{
+			for (ObjectCursor<String> cur : map.keySet())
+			{
+				key = cur.value;
+				centroid.put(key, centroid.get(key)+map.get(key));
+			}
+		}
+		
+		int size = cluster.size();
+		
+		for (ObjectCursor<String> cur : centroid.keySet())
+		{
+			key = cur.value;
+			centroid.put(key, centroid.get(key)/size);
+		}
+		
+		return centroid;
 	}
 	
 	/** @return average cosine similarity between two clusters. */
@@ -70,7 +100,7 @@ public class SRLClusterBuilder
 			for (ObjectDoubleOpenHashMap<String> map2 : cluster2)
 				avg += getCosineSimilarity(map1, map2);
 		
-		avg /= (cluster1.size() + cluster2.size());
+		avg /= (cluster1.size() * cluster2.size());
 		if (useDynamic)	d_similarities.put(key, avg);
 
 		return avg;
@@ -126,17 +156,24 @@ public class SRLClusterBuilder
 	public void printCluster()
 	{
 		Collections.sort(k_clusters);
+		int count = 0;
 		
 		for (ProbCluster cluster : k_clusters)
+		{
+			if (cluster.size() == 1)	break;
 			System.out.println(cluster.key+" "+cluster.score);
+			count++;
+		}
+		
+		System.out.println("# of clusters: "+count);
 	}
 	
 // ======================== Hierarchical agglomerative clustering ========================	
 	
-	public void hmCluster(Prob2dMap map, Prob1dMap mKeyword, double argmWeight)
+	public void hmCluster(HashMap<String,ObjectDoubleOpenHashMap<String>> map)
 	{
 		d_similarities = new ObjectDoubleOpenHashMap<String>();
-		k_clusters     = getInitClusters(map, mKeyword, argmWeight);
+		k_clusters     = getInitClusters(map);
 		
 		hmClusterRec();
 		hmClusterTrim();
@@ -146,15 +183,15 @@ public class SRLClusterBuilder
 	{
 		boolean cont = true;
 		
-		for (int i=0; i<iter_hm && cont; i++)
+		for (int i=0; cont; i++)
 		{
 			System.out.println("== Iteration: "+i+" ==");
 			cont = hmClusterAux();
-			if (cont)	printCluster();
+		//	if (cont)	printCluster();
 		}
 	}
 	
-	private void hmClusterTrim()
+	protected void hmClusterTrim()
 	{
 		ArrayList<ProbCluster> remove = new ArrayList<ProbCluster>();
 		
@@ -175,15 +212,18 @@ public class SRLClusterBuilder
 	{
 		ArrayList<JObjectDoubleTuple<JIntIntTuple>> list = new ArrayList<JObjectDoubleTuple<JIntIntTuple>>();
 		ProbCluster cluster1, cluster2;
+		double score;
 		
-		for (int i=0; i<k_clusters.size(); i++)
+		for (int i=0; i<k_clusters.size()-1; i++)
 		{
 			cluster1 = k_clusters.get(i);
 			
 			for (int j=i+1; j<k_clusters.size(); j++)
 			{
 				cluster2 = k_clusters.get(j);
-				list.add(new JObjectDoubleTuple<JIntIntTuple>(new JIntIntTuple(i,j), getAvgSimilarity(cluster1,cluster2,true)));
+				score    = getAvgSimilarity(cluster1,cluster2,true);
+			//	score    = getCtrSimilarity(cluster1,cluster2,true);
+				list.add(new JObjectDoubleTuple<JIntIntTuple>(new JIntIntTuple(i,j), score));
 			}
 		}
 		
@@ -192,9 +232,12 @@ public class SRLClusterBuilder
 		JIntIntTuple idx;
 		Collections.sort(list);
 		
-		for (JObjectDoubleTuple<JIntIntTuple> tup : list)
+		for (int i=0; i<list.size(); i++)
 		{
-			if (tup.value < d_threshold)	break;
+			JObjectDoubleTuple<JIntIntTuple> tup = list.get(i);
+			
+			if (tup.value < d_hm_lower)	break;
+			
 			idx = tup.object;
 			if (sClustered.contains(idx.int1) || sClustered.contains(idx.int2))	continue;
 			sClustered.add(idx.int1);	sClustered.add(idx.int2);
@@ -212,16 +255,16 @@ public class SRLClusterBuilder
 	
 // ======================== K-mean clustering ========================
 	
-	public void kmCluster(Prob2dMap map, Prob1dMap mKeyword, double argmWeight)
+	public void kmCluster(HashMap<String,ObjectDoubleOpenHashMap<String>> map)
 	{
-		ArrayList<ProbCluster> nClusters = getInitClusters(map, mKeyword, argmWeight);
+		ArrayList<ProbCluster> nClusters = getInitClusters(map);
 		ArrayList<JIntIntTuple> list = new ArrayList<JIntIntTuple>();
 		ProbCluster kCluster, nCluster;
 		JIntDoubleTuple max;
 		int i, j, k;	double sim;
 		IntOpenHashSet skip = new IntOpenHashSet();
 		
-		for (k=0; k<iter_km; k++)
+		for (k=0; k<3; k++)
 		{
 			System.out.println("== Iteration: "+k+" ==");
 			list.clear();
@@ -238,7 +281,7 @@ public class SRLClusterBuilder
 					if (max.d < sim)	max.set(j, sim);
 				}
 				
-				if (max.d >= d_threshold)	list.add(new JIntIntTuple(max.i, i));
+				if (max.d >= d_km_lower)	list.add(new JIntIntTuple(max.i, i));
 			}
 			
 			for (JIntIntTuple tup : list)
@@ -249,6 +292,8 @@ public class SRLClusterBuilder
 				kCluster.set(getJoinedKey(kCluster, nCluster), 1);
 				skip.add(tup.int2);
 			}
+			
+			if (list.isEmpty())	break;
 		}
 		
 		printCluster();

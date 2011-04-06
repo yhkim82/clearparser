@@ -68,7 +68,10 @@ public class SRLEval
 		
 		for (SRLHead gHead : gHeads)
 		{
-			gArg = getArray(gHead.label);
+			if (gHead.label.startsWith("C-"))
+				gArg = getArray(gHead.label.substring(2));
+			else
+				gArg = getArray(gHead.label);
 			
 			for (SRLHead sHead : sHeads)
 			{
@@ -94,7 +97,11 @@ public class SRLEval
 
 		for (SRLHead sHead : sHeads)
 		{
-			sArg = getArray(sHead.label);
+			if (sHead.label.startsWith("C-"))
+				sArg = getArray(sHead.label.substring(2));
+			else
+				sArg = getArray(sHead.label);
+			
 			sArg[1]++;		// precision
 		}
 	}
@@ -114,15 +121,13 @@ public class SRLEval
 		}
 	}
 	
-	
-	
 	public void print()
 	{
-		System.out.println("----------------------------------------");
-		System.out.printf("%10s%10s%10s%10s\n", "LABEL","P","R","F1");
-		System.out.println("----------------------------------------");
-		printTotal();
-		System.out.println("----------------------------------------");
+		System.out.println("--------------------------------------------------");
+		System.out.printf("%10s%10s%10s%10s%10s\n","LABEL","Dist","P","R","F1");
+		System.out.println("--------------------------------------------------");
+		int total = printTotal();
+		System.out.println("--------------------------------------------------");
 		
 		ArrayList<String> labels = new ArrayList<String>(m_score.keySet());
 		Collections.sort(labels);
@@ -130,12 +135,13 @@ public class SRLEval
 		for (String label : labels)
 		{
 			if (!label.equals(TOTAL))
-				printLocal(label);
+				printLocal(label, total);
 		}
-		System.out.println("----------------------------------------");
+		
+		System.out.println("--------------------------------------------------");
 	}
 	
-	private void printTotal()
+	private int printTotal()
 	{
 		int[] value = m_score.get(TOTAL);
 		
@@ -143,29 +149,32 @@ public class SRLEval
 		double recall    = 100d * value[0] / value[3];
 		double f1        = getF1(precision, recall);
 		
-		printEach("UAS", precision, recall, f1);
+		printEach("UAS", 100, precision, recall, f1);
 		
 		precision = 100d * value[1] / value[2];
 		recall    = 100d * value[1] / value[3];
 		f1        = getF1(precision, recall);
 		
-		printEach("LAS", precision, recall, f1);
+		printEach("LAS", 100, precision, recall, f1);
+		return value[3];
 	}
 	
-	private void printLocal(String label)
+	private int printLocal(String label, int total)
 	{
 		int[] value = m_score.get(label);
 		
+		double dist      = 100d * value[2] / total; 
 		double precision = 100d * value[0] / value[1];
 		double recall    = 100d * value[0] / value[2];
 		double f1        = getF1(precision, recall);
 		
-		printEach(label, precision, recall, f1);
+		printEach(label, dist, precision, recall, f1);
+		return value[2];
 	}
 	
-	private void printEach(String label, double precision, double recall, double f1)
+	private void printEach(String label, double dist, double precision, double recall, double f1)
 	{
-		System.out.printf("%10s%10.2f%10.2f%10.2f\n", label, precision, recall, f1);
+		System.out.printf("%10s%10.2f%10.2f%10.2f%10.2f\n", label, dist, precision, recall, f1);
 	}
 	
 	public double getF1()

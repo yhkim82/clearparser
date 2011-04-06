@@ -430,7 +430,7 @@ public class SRLParser extends AbstractSRLParser
 		for (SRLArg arg : seq)
 		{
 			if (arg.argId > 0)
-				d_tree.get(arg.argId).addSRLHead(i_beta, arg.label.substring(1));
+				d_tree.get(arg.argId).addSRLHead(i_beta, arg.label.substring(1), arg.score);
 		}
 	}
 	
@@ -491,7 +491,6 @@ public class SRLParser extends AbstractSRLParser
 		addNgramLexica(map);
 		addSetLexica  (map, 0, d_tree.getDeprelDepSet(i_beta));
 		addStrLexica  (map, 1, getPredArg());
-	//	addSetLexica  (map, 2, getTopicArgSet());
 	}
 	
 	protected void addSetLexica(SRLFtrMap map, int ftrId, AbstractCollection<String> ftrs)
@@ -560,7 +559,6 @@ public class SRLParser extends AbstractSRLParser
 		addDistanceFeature(arr, idx);
 		addSetFeatures(arr, idx, map, 0, d_tree.getDeprelDepSet(i_beta));
 		addStrFeatures(arr, idx, map, 1, getPredArg());
-	//	addSetFeatures(arr, idx, map, 2, getTopicArgSet());
 		
 		return arr;
 	}
