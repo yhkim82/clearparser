@@ -144,6 +144,11 @@ public class DepNode
 		srlInfo.addHead(headId, label);
 	}
 	
+	public void addSRLHead(int headId, String label, double score)
+	{
+		srlInfo.addHead(headId, label, score);
+	}
+	
 	/** @return true if the node is a null node. */
 	public boolean isNull()
 	{

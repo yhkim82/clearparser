@@ -1,6 +1,9 @@
 package clear.experiment;
 
 import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 
 import clear.dep.DepNode;
@@ -12,29 +15,28 @@ import clear.morph.MorphEnAnalyzer;
 import clear.reader.SRLReader;
 import clear.util.IOUtil;
 import clear.util.cluster.Prob1dMap;
-import clear.util.cluster.Prob2dMap;
 import clear.util.cluster.SRLClusterBuilder;
 import clear.util.tuple.JObjectObjectTuple;
 
 import com.carrotsearch.hppc.IntIntOpenHashMap;
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
+import com.carrotsearch.hppc.ObjectDoubleOpenHashMap;
 
 public class SRLVerbCluster
 {
-	static public final String FLAG_LOCAL  = "b";
-	static public final String FLAG_GLOBAL = "w";
+	static public final String FLAG_LOCAL  = "l";
+	static public final String FLAG_GLOBAL = "g";
 	
 	MorphEnAnalyzer m_morph;
-	Prob2dMap       m_prob;
 	Prob1dMap       m_keyword;
 	int             i_verbId;
+	HashMap<String,ObjectDoubleOpenHashMap<String>> m_args;
 	
 	public SRLVerbCluster(String dicFile)
 	{
 		m_morph   = new MorphEnAnalyzer(dicFile);
-		m_prob    = new Prob2dMap();
 		m_keyword = new Prob1dMap();
-		i_verbId  = 0;
+		m_args    = new HashMap<String,ObjectDoubleOpenHashMap<String>>();
 	}
 	
 	public void lemmatize(DepTree tree)
@@ -61,10 +63,31 @@ public class SRLVerbCluster
 			return node.lemma;
 	}
 	
+	public void retrieveKeywords(DepTree tree)
+	{
+		DepNode node;
+		SRLInfo info;
+		String  key;
+		
+		for (int i=1; i<tree.size(); i++)
+		{
+			node = tree.get(i);
+			info = node.srlInfo;
+			
+			if (!node.isPosx("NN.*"))	continue;
+			
+			for (SRLHead head : info.heads)
+			{
+				key = getArgLemma(tree, node, head)+":"+head.label;
+				m_keyword.increment(key);
+			}
+		}
+	}
+	
 	public void retrieveArgs(DepTree tree, String flag)
 	{
-		IntObjectOpenHashMap<HashSet<String>> map = getArgMap(tree, flag);
-		HashSet<String> set;
+		IntObjectOpenHashMap<ObjectDoubleOpenHashMap<String>> map = getArgSet(tree);
+		ObjectDoubleOpenHashMap<String> set;
 		DepNode node;
 		String  key;
 		
@@ -76,19 +99,20 @@ public class SRLVerbCluster
 				key = flag+":"+i_verbId+":"+node.lemma;
 				set = map.get(node.id);
 				
-				if (set != null)	m_prob.increment(key, set);
+				if (set != null)	m_args.put(key, set);
 				i_verbId++;
 			}
 		}
 	}
 	
-	private IntObjectOpenHashMap<HashSet<String>> getArgMap(DepTree tree, String flag)
+	private IntObjectOpenHashMap<ObjectDoubleOpenHashMap<String>> getArgSet(DepTree tree)
 	{
-		IntObjectOpenHashMap<HashSet<String>> map = new IntObjectOpenHashMap<HashSet<String>>();
-		HashSet<String> set;
+		IntObjectOpenHashMap<ObjectDoubleOpenHashMap<String>> map = new IntObjectOpenHashMap<ObjectDoubleOpenHashMap<String>>();
+		ObjectDoubleOpenHashMap<String> set;
 		DepNode node;
 		SRLInfo info;
-		String  arg;
+		String  key;
+		double  lsc, msc;
 		
 		for (int i=1; i<tree.size(); i++)
 		{
@@ -103,33 +127,34 @@ public class SRLVerbCluster
 					set = map.get(head.headId);
 				else
 				{
-					set = new HashSet<String>();
+					set = new ObjectDoubleOpenHashMap<String>();
 					map.put(head.headId, set);
 				}
 				
-				arg = getArgLemma(tree, node, head)+":"+head.label;
-				if (flag.equals(FLAG_LOCAL) && node.isPosx("NN.*"))	m_keyword.increment(arg);
-				set.add(arg);
+				key = getArgLemma(tree, node, head)+":"+head.label;
+				msc = m_keyword.containsKey(key) ? Math.exp(m_keyword.getProb(key)) : 1;
+				
+				set.put(head.label, head.score);
+				set.put(key, msc);
 			}
 		}
 		
 		return map;
 	}
 	
-	public void retrieveLocalCluster(SRLClusterBuilder build, double argmWeight)
+	public void retrieveHmCluster(SRLClusterBuilder build)
 	{
-		build.hmCluster(m_prob, m_keyword, argmWeight);
-		m_prob.clear();
+		build.hmCluster(m_args);
 	}
 	
-	public void retrieveGlobalCluster(SRLClusterBuilder build, double argmWeight)
+	public void retrieveKmCluster(SRLClusterBuilder build)
 	{
-		build.kmCluster(m_prob, m_keyword, argmWeight);
-		m_prob.clear();
+		build.kmCluster(m_args);
 	}
 	
-	public void initVerbId()
+	public void initDS()
 	{
+		m_args.clear();
 		i_verbId = 0;
 	}
 	
@@ -160,10 +185,46 @@ public class SRLVerbCluster
 		String globalFile = args[2];
 		
 		SRLVerbCluster cluster = new SRLVerbCluster(dicFile);
-		SRLReader      reader  = new SRLReader(localFile, true);
+		SRLReader      reader;
 		DepTree        tree;
-
+		
+		SRLClusterBuilder build = new SRLClusterBuilder();
+		
+	//	System.out.println("== Retrieve local keywords ==");
+		reader = new SRLReader(localFile, true);
+		
+		HashSet<String> set = new HashSet<String>();
+		
+		while ((tree = reader.nextTree()) != null)
+		{
+			cluster.lemmatize(tree);
+			for (int i=1; i<tree.size(); i++)
+			{
+				DepNode node = tree.get(i);
+				
+				if (node.isPredicate())
+					set.add(node.lemma);
+			}
+		}
+		
+		ArrayList<String> list = new ArrayList<String>(set);
+		Collections.sort(list);
+		for (String lemma : list)
+			System.out.println(lemma);
+		
+		
+		
+	/*	while ((tree = reader.nextTree()) != null)
+		{
+			cluster.lemmatize(tree);
+			cluster.retrieveKeywords(tree);
+		}
+		
+		reader.close();
+		
 		System.out.println("== Retrieve local arguments ==");
+		reader.open(localFile);
+		cluster.initDS();
 		
 		while ((tree = reader.nextTree()) != null)
 		{
@@ -174,14 +235,11 @@ public class SRLVerbCluster
 		reader.close();
 		
 		System.out.println("== Retrieve local clusters ==");
-		
-		double clusterThreshold = 0.38, argmWeight = 0.5;	// brown
-	//	double clusterThreshold = 0.42, argmWeight = 0.5;	// wsj
-		SRLClusterBuilder build = new SRLClusterBuilder(clusterThreshold);
-		cluster.retrieveLocalCluster(build, argmWeight);
+		cluster.retrieveHmCluster(build);
 		
 		System.out.println("== Retrieve global arguments ==");
 		reader.open(globalFile);
+		cluster.initDS();
 		
 		while ((tree = reader.nextTree()) != null)
 		{
@@ -192,7 +250,7 @@ public class SRLVerbCluster
 		reader.close();
 		
 		System.out.println("== Retrieve global clusters ==");
-		cluster.retrieveGlobalCluster(build, argmWeight);
+		cluster.retrieveKmCluster(build);
 		
 		JObjectObjectTuple<IntIntOpenHashMap, IntIntOpenHashMap> maps = build.getClusterMaps();
 		IntIntOpenHashMap lMap = maps.o1;
@@ -200,7 +258,7 @@ public class SRLVerbCluster
 
 		System.out.println("== Print local clusters ==");
 		PrintStream fout = IOUtil.createPrintFileStream(localFile+".ct");
-		cluster.initVerbId();
+		cluster.initDS();
 		reader.open(localFile);
 		
 		while ((tree = reader.nextTree()) != null)
@@ -214,7 +272,7 @@ public class SRLVerbCluster
 
 		System.out.println("== Print global clusters ==");
 		fout = IOUtil.createPrintFileStream(globalFile+".ct");
-		cluster.initVerbId();
+		cluster.initDS();
 		reader.open(globalFile);
 		
 		while ((tree = reader.nextTree()) != null)
@@ -224,6 +282,6 @@ public class SRLVerbCluster
 		}
 		
 		reader.close();
-		fout.close();
+		fout.close();*/
 	}
 }
