@@ -2,6 +2,7 @@
 
 ClearParser requires a feature template file in XML.  The following shows a sample feature template (it is not the default feature template).
 
+
 Currently allows upto 3-gram features.
 l = l0 = l+0 = l-0
 l1 = l+1
@@ -35,6 +36,14 @@ if no visible -> true
 
 <*feature_template*> is the top element that consists of 3 kinds of elements: <*unigram*>, <*bigram*>, and <*trigram*>.
 <br><br>
+
+== <*cutoff*> ==
+
+The <*cutoff*> element consist of 3 optional attributes: _label_, _ngram_, and _extra_.  The _label_ and _ngram_ attributes take integer values indicating cutoffs for class labels and n-gram features.  For example, if _label="2"_, only classes whose occurrences are greater than 2 are trained.  Similarly, if _ngram="4"_, only n-gram features whose occurrences are greater than 4 are trained.
+
+The _extra_ attribute can take either integer values delimited by commas or a string value of 'ngram'.  For example, _extra="2,3"_ indicates that the 1st and 2nd extra features use cutoffs of 2 and 3, respectively (extra features are system-specific).  If _extra="ngram"_, the n-gram cutoff is used for all extra features.
+
+When there is no cutoff specified for any attribute, the default value of 0 is assigned.
 
 == <*unigram*> ==
 
