@@ -87,4 +87,6 @@ public class DepLib
 	static public final String DEPREL_VOC   = "VOC";
 	
 	static public final Pattern M_VC = Pattern.compile("CONJ|COORD|IM|OPRD|VC");
+	
+	static public final String[] CZ_FEAT = {"Cas","Gen","Gra","Neg","Num","PGe","PNu","Per","Sem","SubPOS","Ten","Var","Voi"};
 }

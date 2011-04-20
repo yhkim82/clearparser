@@ -1,12 +1,9 @@
 package clear.experiment;
 
-import java.io.PrintStream;
-
 import clear.dep.DepNode;
 import clear.dep.DepTree;
 import clear.reader.DepReader;
 import clear.treebank.TBEnLib;
-import clear.util.IOUtil;
 
 public class CheckNonPorjective
 {
@@ -17,14 +14,14 @@ public class CheckNonPorjective
 	{
 		DepReader reader = new DepReader(inputFile, true);
 		DepTree   tree;
-		PrintStream fout = IOUtil.createPrintFileStream(inputFile+".np");
+	//	PrintStream fout = IOUtil.createPrintFileStream(inputFile+".np");
 		int i;
 		for (i=0; (tree = reader.nextTree()) != null; i++)
 		{
 	//		total += tree.size() - 1;
 			if (!isProjective(tree))	nprojSen++;
 			totalSen++;
-			fout.println(tree.toStringNonProj()+"\n");
+		//	fout.println(tree.toStringNonProj()+"\n");
 		}
 		
 	//	System.out.println((double)total/i);
@@ -54,7 +51,7 @@ public class CheckNonPorjective
 				
 				if (node.headId < sId || node.headId > eId)
 				{
-					curr.nonProj = 1;
+				//	curr.nonProj = 1;
 					nproj++;
 					isProj = false;
 					break;

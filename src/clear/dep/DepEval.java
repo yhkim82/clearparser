@@ -23,6 +23,12 @@
 */
 package clear.dep;
 
+import java.util.ArrayList;
+import java.util.Collections;
+
+import com.carrotsearch.hppc.ObjectIntOpenHashMap;
+import com.carrotsearch.hppc.cursors.ObjectCursor;
+
 /**
  * Compare two dependency trees.
  * @author Jinho D. Choi
@@ -30,25 +36,33 @@ package clear.dep;
  */
 public class DepEval
 {
-	private int  n_las;
-	private int  n_uas;
-	private int  n_ls;
-	private int  n_dep;
+	private int n_las;
+	private int n_uas;
+	private int n_ls;
+	private int n_dep;
 	
 	private double d_las;
 	private double d_uas;
 	private double d_ls;
 	private int    n_tree;
+	
+	private ObjectIntOpenHashMap<String> m_las;
+	private ObjectIntOpenHashMap<String> m_uas;
+	private ObjectIntOpenHashMap<String> m_ls;
+	private ObjectIntOpenHashMap<String> m_dep;
 
 	private byte b_skip;
 	
 	public DepEval(byte skip)
 	{
-		n_las   = 0;
-		n_uas   = 0;
-		n_ls    = 0;
-		n_dep   = 0;
-		b_skip  = skip;
+		n_las = n_uas = n_ls = n_dep  = 0;
+		d_las = d_uas = d_ls = n_tree = 0;
+		m_las = new ObjectIntOpenHashMap<String>();
+		m_uas = new ObjectIntOpenHashMap<String>();
+		m_ls  = new ObjectIntOpenHashMap<String>();
+		m_dep = new ObjectIntOpenHashMap<String>();
+		
+		b_skip = skip;
 	}
 
 	public void evaluate(DepTree gold, DepTree sys)
@@ -97,15 +111,27 @@ public class DepEval
 	
 	private void measure(DepNode gNode, DepNode sNode, int[] acc)
 	{
+		String gDeprel = gNode.deprel;
+		
 		if (gNode.isDeprel(sNode.deprel))
 		{
 			acc[2]++;
+			m_ls.put(gDeprel, m_ls.get(gDeprel)+1);
+			
 			if (gNode.headId == sNode.headId)
+			{
 				acc[0]++;
+				m_las.put(gDeprel, m_las.get(gDeprel)+1);
+			}
 		}
 		
 		if (gNode.headId == sNode.headId)
+		{
 			acc[1]++;
+			m_uas.put(gDeprel, m_uas.get(gDeprel)+1);
+		}
+		
+		m_dep.put(gDeprel, m_dep.get(gDeprel)+1);
 	}
 	
 	public double getLas()
@@ -125,14 +151,40 @@ public class DepEval
 	
 	public void printTotal()
 	{
-		System.out.println("== Micro ==");
-		System.out.printf("LAS: %4.2f%% (%d/%d)\n", getLas()*100, n_las, n_dep);
-		System.out.printf("UAS: %4.2f%% (%d/%d)\n", getUas()*100, n_uas, n_dep);
-		System.out.printf("LS : %4.2f%% (%d/%d)\n", getLs ()*100, n_ls , n_dep);
-		System.out.println();
-		System.out.println("== Macro ==");
-		System.out.printf("LAS: %4.2f%%\n", (d_las/n_tree)*100);
-		System.out.printf("UAS: %4.2f%%\n", (d_uas/n_tree)*100);
-		System.out.printf("LS : %4.2f%%\n", (d_ls /n_tree)*100);
+		System.out.println("--------------------------------------------------");
+		System.out.printf("%10s%10s%10s%10s%10s\n","Label","Dist","LAS","UAS","LS");
+		System.out.println("--------------------------------------------------");
+		
+		double las = getLas() * 100;
+		double uas = getUas() * 100;
+		double ls  = getLs()  * 100;
+		
+		System.out.printf("%10s%10.2f%10.2f%10.2f%10.2f\n","Micro",100d,las,uas,ls);
+		
+		las = (d_las/n_tree) * 100;
+		uas = (d_uas/n_tree) * 100;
+		ls  = (d_ls /n_tree) * 100;
+		
+		System.out.printf("%10s%10.2f%10.2f%10.2f%10.2f\n","Macro",100d,las,uas,ls);
+		System.out.println("--------------------------------------------------");
+		
+		ArrayList<String> labels = new ArrayList<String>(m_dep.size());
+		for (ObjectCursor<String> cur : m_dep.keySet())
+			labels.add(cur.value);
+			
+		Collections.sort(labels);
+		int total;
+		
+		for (String label : labels)
+		{
+			total = m_dep.get(label);
+			las = 100d * m_las.get(label) / total;
+			uas = 100d * m_uas.get(label) / total;
+			ls  = 100d * m_ls .get(label) / total;
+			
+			System.out.printf("%10s%10.2f%10.2f%10.2f%10.2f\n",label,100d*total/n_dep,las,uas,ls);
+		}
+		
+		System.out.println("--------------------------------------------------");
 	}
 }

@@ -2,7 +2,7 @@ package clear.experiment;
 
 import java.io.File;
 
-import clear.parse.VoiceDetectorPhrase;
+import clear.parse.VoiceDetector;
 import clear.treebank.TBNode;
 import clear.treebank.TBReader;
 import clear.treebank.TBTree;
@@ -24,7 +24,7 @@ public class ExtractVoices
 			{
 				for (TBNode node : tree.getTerminalNodes())
 				{
-					int id = VoiceDetectorPhrase.getPassive(node);
+					int id = VoiceDetector.getPassive(node);
 					if (id == 0)	continue;
 					System.out.println(filename+"\t"+treeId+"\t"+node.terminalId+"\tvo="+id);
 				//	if (id == 1 || id == 2)	System.out.println(filename+"\t"+treeId+"\t"+node.terminalId+"\tvo=1");

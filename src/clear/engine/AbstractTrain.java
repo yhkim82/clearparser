@@ -40,7 +40,6 @@ import clear.train.algorithm.LibLinearL2;
 import clear.train.algorithm.RRM;
 import clear.train.kernel.AbstractKernel;
 import clear.train.kernel.NoneKernel;
-import clear.util.IOUtil;
 import clear.util.tuple.JObjectObjectTuple;
 
 import com.carrotsearch.hppc.IntArrayList;
@@ -238,15 +237,11 @@ abstract public class AbstractTrain extends AbstractCommon
 		System.out.println();
 		
 		PrintStream fout = null;
-		if (s_modelFile != null)
-			fout = IOUtil.createPrintFileStream(s_modelFile+"."+index);
-		else
+		
+		if (zout != null)
 		{
-			if (zout != null)
-			{
-				zout.putArchiveEntry(new JarArchiveEntry(ENTRY_MODEL));
-				fout = new PrintStream(zout);
-			}	
+			zout.putArchiveEntry(new JarArchiveEntry(ENTRY_MODEL));
+			fout = new PrintStream(zout);
 		}
 
 		long st = System.currentTimeMillis();
@@ -256,10 +251,10 @@ abstract public class AbstractTrain extends AbstractCommon
 		AbstractTrainer trainer = (trainer_type == AbstractTrainer.ST_BINARY) ? new BinaryTrainer(fout, algorithm, kernel, numThreads) : new OneVsAllTrainer(fout, algorithm, kernel, numThreads);
 		
 		long time = System.currentTimeMillis() - st;
-		System.out.printf("- duration: %d h, %d m, %d s\n", time/(1000*3600), time/(1000*60), time/1000);
+		System.out.printf("- duration: %d h, %d m\n", time/(1000*3600), time/(1000*60));
 		
 		if (zout != null)	zout.closeArchiveEntry();
-		if (s_modelFile != null)	fout.close();
+		if (fout != null)	fout.close();
 		
 		return trainer.getModel();
 	}

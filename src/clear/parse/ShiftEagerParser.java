@@ -25,7 +25,6 @@ package clear.parse;
 
 import java.util.ArrayList;
 
-import clear.decode.AbstractMultiDecoder;
 import clear.decode.OneVsAllDecoder;
 import clear.dep.DepLib;
 import clear.dep.DepNode;
@@ -40,7 +39,7 @@ import com.carrotsearch.hppc.IntArrayList;
 /**
  * Shift-eager dependency parser.
  * @author Jinho D. Choi
- * <b>Last update:</b> 11/6/2010
+ * <b>Last update:</b> 4/12/2011
  */
 public class ShiftEagerParser extends AbstractDepParser
 {
@@ -55,71 +54,67 @@ public class ShiftEagerParser extends AbstractDepParser
 	/** Delimiter between transition and dependency label */
 	static public final String LB_DELIM     = "-";
 	
-	/** For {@link AbstractDepParser#FLAG_TRAIN_CONDITIONAL} only. */
+	/** {@link AbstractDepParser#FLAG_TRAIN_BOOST} only. */
 	protected DepTree d_copy = null;
 	
-	/** Initializes this parser for {@link ShiftEagerParser#FLAG_PRINT_LEXICON} or {@link ShiftEagerParser#FLAG_PRINT_TRANSITION}. */
+	/** {@link ShiftEagerParser#FLAG_PRINT_TRANSITION} or {@link ShiftEagerParser#FLAG_TRAIN_LEXICON}. */
 	public ShiftEagerParser(byte flag, String filename)
 	{
 		super(flag, filename);
 	}
 
-	/** Initializes this parser for {@link ShiftEagerParser#FLAG_PRINT_INSTANCE}. */
-	public ShiftEagerParser(byte flag, DepFtrXml xml, String lexiconFile, String instanceFile)
+	/** {@link ShiftEagerParser#FLAG_TRAIN_INSTANCE}. */
+	public ShiftEagerParser(byte flag, DepFtrXml xml, String lexiconFile)
 	{
-		super(flag, xml, lexiconFile, instanceFile);
+		super(flag, xml, lexiconFile);
 	}
 	
-	/** Initializes this parser for {@link ShiftEagerParser#FLAG_PREDICT}. */
-	public ShiftEagerParser(byte flag, DepFtrXml xml, DepFtrMap map, AbstractMultiDecoder decoder)
+	/** {@link ShiftEagerParser#FLAG_PREDICT} or {@link ShiftEagerParser#FLAG_TRAIN_BOOST}. */
+	public ShiftEagerParser(byte flag, DepFtrXml xml, DepFtrMap map, OneVsAllDecoder decoder)
 	{
 		super(flag, xml, map, decoder);
 	}
 	
-	/** Initializes this parser for {@link ShiftEagerParser#FLAG_TRAIN_CONDITIONAL}. */
-	public ShiftEagerParser(byte flag, DepFtrXml xml, DepFtrMap map, AbstractMultiDecoder decoder, String instanceFile)
-	{
-		super(flag, xml, map, decoder, instanceFile);
-	}
-	
-	/** Initializes lambda_1 and beta using <code>tree</code>. */
-	private void init(DepTree tree)
+	/** Initializes all pointers. */
+	protected void init(DepTree tree)
 	{
 		preProcess(tree);
-		d_tree   = tree;
-		i_lambda = 0;
-		i_beta   = 1;
-		prev_transitions = new ArrayList<String>();
+		
+		d_tree     = tree;
+		i_lambda   = 0;
+		i_beta     = 1;
+		prev_trans = new ArrayList<String>();
 		
 		if      (i_flag == FLAG_PRINT_TRANSITION)	printTransition("", "");
-		else if (i_flag == FLAG_TRAIN_CONDITIONAL)	d_copy = tree.clone();
+		else if (i_flag == FLAG_TRAIN_BOOST)		d_copy = tree.clone();
 	}
 	
-	/** Parses <code>tree</code>. */
+	/** Parses the dependency tree. */
 	public void parse(DepTree tree)
 	{
 		init(tree);
+		int size = tree.size();
 		
-		while (i_beta < tree.size())	// beta is not empty
+		while (i_beta < size)		// beta is not empty
 		{
-			d_tree.n_trans++;
-			
-			if (i_lambda == -1)			// lambda_1 is empty: deterministic shift
-				shift(true);
+			if (i_lambda == -1)		// lambda_1 is empty: deterministic shift
+			{	shift(true);	continue;	}
 			else if (i_flag == FLAG_PREDICT)
 				predict();
-			else if (i_flag == FLAG_TRAIN_CONDITIONAL)
-				trainConditional();
+			else if (i_flag == FLAG_TRAIN_BOOST)
+				trainBoost();
 			else
 				train();
+			
+			d_tree.n_trans++;
 		}
 		
 		if      (i_flag == FLAG_PRINT_TRANSITION)	f_out.println();
-		else if (i_flag == FLAG_PREDICT)			postProcess();
-		else if (i_flag == FLAG_TRAIN_CONDITIONAL)	postProcessConditional();
+		else if (i_flag == FLAG_PREDICT)			postProcess(LB_LEFT_ARC, LB_RIGHT_ARC);
+		else if (i_flag == FLAG_TRAIN_BOOST)		postProcessBoost();
 	}
 	
-	/** Trains the dependency tree ({@link ShiftEagerParser#d_tree}). */
+	/** Trains a dependency tree. */
 	private void train()
 	{
 		DepNode lambda = d_tree.get(i_lambda);
@@ -135,7 +130,7 @@ public class ShiftEagerParser extends AbstractDepParser
 	 * This method is called from {@link ShiftEagerParser#train()}.
 	 * @return true if non-deterministic shift needs to be performed 
 	 */
-	private boolean isShift(DepTree tree)
+	protected boolean isShift(DepTree tree)
 	{
 		DepNode beta = tree.get(i_beta);
 		
@@ -153,15 +148,15 @@ public class ShiftEagerParser extends AbstractDepParser
 	/** Predicts dependencies. */
 	private void predict()
 	{
-		predictAux(getBinaryFeatureArray());
+		predictAux(getFeatureArray());
 	}
 	
-	private void trainConditional()
+	private void trainBoost()
 	{
 		String gLabel = getGoldLabel(d_copy);
-		IntArrayList ftr = getBinaryFeatureArray();
+		IntArrayList ftr = getFeatureArray();
 		
-		printInstance(gLabel, ftr);
+		saveInstance(gLabel, ftr);
 		predictAux(ftr);
 	}
 	
@@ -170,7 +165,6 @@ public class ShiftEagerParser extends AbstractDepParser
 		JIntDoubleTuple res;
 		
 		res = c_dec.predict(ftr);
-	//	res = c_dec.predict(getValueFeatureArray());
 		
 		String  label  = (res.i < 0) ? LB_NO_ARC : t_map.indexToLabel(res.i);
 		int     index  = label.indexOf(LB_DELIM);
@@ -203,7 +197,7 @@ public class ShiftEagerParser extends AbstractDepParser
 	}
 	
 	/** Predicts dependencies for tokens that have not found their heads during parsing. */
-	private void postProcess()
+	protected void postProcess(String leftLabels, String rightLabels)
 	{
 		int currId, maxId, i, n = d_tree.size();
 		JObjectDoubleTuple<String> max;
@@ -221,14 +215,14 @@ public class ShiftEagerParser extends AbstractDepParser
 			{
 				node = d_tree.get(i);
 				if (d_tree.isAncestor(curr, node))	continue;
-				maxId = getMaxHeadId(curr, node, maxId, max, LB_RIGHT_ARC);
+				maxId = getMaxHeadId(curr, node, maxId, max, rightLabels);
 			}
 			
 			for (i=currId+1; i<d_tree.size(); i++)
 			{
 				node = d_tree.get(i);
 				if (d_tree.isAncestor(curr, node))	continue;
-				maxId = getMaxHeadId(curr, node, maxId, max, LB_LEFT_ARC);
+				maxId = getMaxHeadId(curr, node, maxId, max, leftLabels);
 			}
 		
 			if (maxId != -1)	curr.setHead(maxId, max.object, max.value);
@@ -236,7 +230,7 @@ public class ShiftEagerParser extends AbstractDepParser
 	}
 	
 	/** This method is called from {@link ShiftEagerParser#postProcess()}. */
-	private int getMaxHeadId(DepNode curr, DepNode head, int maxId, JObjectDoubleTuple<String> max, String sTrans)
+	protected int getMaxHeadId(DepNode curr, DepNode head, int maxId, JObjectDoubleTuple<String> max, String sTrans)
 	{
 		if (curr.id < head.id)
 		{
@@ -254,8 +248,7 @@ public class ShiftEagerParser extends AbstractDepParser
 		String label, trans;
 		int    index;
 		
-		aRes = ((OneVsAllDecoder)c_dec).predictAll(getBinaryFeatureArray());
-	//	aRes = ((OneVsAllDecoder)c_dec).predictAll(getValueFeatureArray());
+		aRes = ((OneVsAllDecoder)c_dec).predictAll(getFeatureArray());
 		
 		if (curr.id < head.id && t_map.indexToLabel(aRes[0].i).equals(LB_SHIFT))
 			return maxId;
@@ -269,7 +262,7 @@ public class ShiftEagerParser extends AbstractDepParser
 			if (index == -1)	continue;
 			trans = label.substring(0, index);
 			
-			if (trans.equals(sTrans))
+			if (trans.matches(sTrans))
 			{
 				if (max.value < res.d)
 				{
@@ -283,7 +276,7 @@ public class ShiftEagerParser extends AbstractDepParser
 		return maxId;
 	}
 	
-	private void postProcessConditional()
+	private void postProcessBoost()
 	{
 		int currId, n = d_tree.size();
 		DepNode curr;
@@ -297,7 +290,7 @@ public class ShiftEagerParser extends AbstractDepParser
 			i_beta   = currId;
 			
 			if (isShift(d_copy))
-				printInstance(LB_SHIFT, getBinaryFeatureArray());
+				saveInstance(LB_SHIFT, getFeatureArray());
 		
 			if (currId < curr.headId)
 			{
@@ -310,7 +303,7 @@ public class ShiftEagerParser extends AbstractDepParser
 				i_beta   = currId;
 			}
 			
-			printInstance(getGoldLabel(d_copy), getBinaryFeatureArray());
+			saveInstance(getGoldLabel(d_copy), getFeatureArray());
 		}
 	}
 	
@@ -318,16 +311,12 @@ public class ShiftEagerParser extends AbstractDepParser
 	 * Performs a shift transition.
 	 * @param isDeterministic true if this is called for a deterministic-shift.
 	 */
-	private void shift(boolean isDeterministic)
+	protected void shift(boolean isDeterministic)
 	{
-		if (!isDeterministic)
-		{
-			if      (i_flag == FLAG_PRINT_LEXICON )	addTags      (LB_SHIFT);
-			else if (i_flag == FLAG_PRINT_INSTANCE)	printInstance(LB_SHIFT, getBinaryFeatureArray());
-		}
+		if (!isDeterministic)	trainInstance(LB_SHIFT);
 			
 		i_lambda = i_beta++;
-		prev_transitions.clear();
+		prev_trans.clear();
 		
 		if (i_flag == FLAG_PRINT_TRANSITION)
 		{
@@ -337,13 +326,12 @@ public class ShiftEagerParser extends AbstractDepParser
 	}
 	
 	/** Performs a no-arc transition. */
-	private void noArc()
+	protected void noArc()
 	{
-		if      (i_flag == FLAG_PRINT_LEXICON )	addTags      (LB_NO_ARC);
-		else if (i_flag == FLAG_PRINT_INSTANCE)	printInstance(LB_NO_ARC, getBinaryFeatureArray());
+		trainInstance(LB_NO_ARC);
 		
 		i_lambda--;
-		prev_transitions.add(LB_NO_ARC);
+		prev_trans.add(LB_NO_ARC);
 		
 		if (i_flag == FLAG_PRINT_TRANSITION)	printTransition("NO-ARC", "");
 	}
@@ -355,17 +343,15 @@ public class ShiftEagerParser extends AbstractDepParser
 	 * @param deprel dependency label between <code>lambda</code> and <code>beta</code>
 	 * @param score  dependency score between <code>lambda</code> and <code>beta</code>
 	 */
-	private void leftArc(DepNode lambda, DepNode beta, String deprel, double score)
+	protected void leftArc(DepNode lambda, DepNode beta, String deprel, double score)
 	{
-		String  label = LB_LEFT_ARC + LB_DELIM + deprel;
-		
-	    if      (i_flag == FLAG_PRINT_LEXICON)  addTags      (label);
-		else if (i_flag == FLAG_PRINT_INSTANCE)	printInstance(label, getBinaryFeatureArray());
+		String label = LB_LEFT_ARC + LB_DELIM + deprel;
+		trainInstance(label);
 
 		lambda.setHead(beta.id, deprel, score);
 		if (beta.leftMostDep == null || lambda.id < beta.leftMostDep.id)	beta.leftMostDep = lambda;
 		i_lambda--;
-		prev_transitions.add(label);
+		prev_trans.add(label);
 		
 		if (i_flag == FLAG_PRINT_TRANSITION)
 			printTransition("LEFT-ARC", lambda.id+" <-"+deprel+"- "+beta.id);
@@ -378,86 +364,17 @@ public class ShiftEagerParser extends AbstractDepParser
 	 * @param deprel dependency label between lambda_1[0] and beta[0]
 	 * @param score  dependency score between lambda_1[0] and beta[0]
 	 */
-	private void rightArc(DepNode lambda, DepNode beta, String deprel, double score)
+	protected void rightArc(DepNode lambda, DepNode beta, String deprel, double score)
 	{
 		String label = LB_RIGHT_ARC + LB_DELIM + deprel;
-		
-		if      (i_flag == FLAG_PRINT_LEXICON)	addTags      (label);
-		else if (i_flag == FLAG_PRINT_INSTANCE)	printInstance(label, getBinaryFeatureArray());
+		trainInstance(label);
 
 		beta.setHead(lambda.id, deprel, score);
 		if (lambda.rightMostDep == null || lambda.rightMostDep.id < beta.id)	lambda.rightMostDep = beta;
 		i_lambda--;
-		prev_transitions.add(label);
+		prev_trans.add(label);
 		
 		if (i_flag == FLAG_PRINT_TRANSITION)
 			printTransition("RIGHT-ARC", lambda.id+" -"+deprel+"-> "+beta.id);
-	}
-	
-	/**
-	 * Prints the current transition.
-	 * @param trans transition
-	 * @param arc   lambda_1[0] <- deprel -> beta[0]
-	 */
-	private void printTransition(String trans, String arc)
-	{
-		StringBuilder build = new StringBuilder();
-		
-		// operation
-		build.append(trans);
-		build.append("\t");
-		
-		// lambda_1
-		build.append("[");
-		if (i_lambda >= 0)	build.append(0);
-		if (i_lambda >= 1)	build.append(":"+i_lambda);
-		build.append("]\t");
-		
-		// lambda_2
-		build.append("[");
-		if (getLambda2Count() > 0)	build.append(i_lambda+1);
-		if (getLambda2Count() > 1)	build.append(":"+(i_beta-1));
-		build.append("]\t");
-		
-		// beta
-		build.append("[");
-		if (i_beta < d_tree.size())		build.append(i_beta);
-		if (i_beta <= d_tree.size())	build.append(":"+(d_tree.size()-1));
-		build.append("]\t");
-		
-		// transition
-		build.append(arc);
-		f_out.println(build.toString());
-	}
-	
-	/** @return number of nodes in lambda_2 (list #2) */
-	private int getLambda2Count()
-	{
-		return i_beta - (i_lambda+1);
-	}
-	
-	// ---------------------------- getFtr*() ----------------------------
-	
-	protected void addLexica()
-	{
-		addNgramLexica();
-		addLanguageSpecificLexica();	
-	}
-	
-	protected IntArrayList getBinaryFeatureArray()
-	{
-		// add features
-		IntArrayList arr = new IntArrayList();
-		int idx[] = {1};
-		
-		addNgramFeatures           (arr, idx);
-		addLanguageSpecificFeatures(arr, idx);
-		
-		return arr;
-	}
-	
-	protected ArrayList<JIntDoubleTuple> getValueFeatureArray()
-	{
-		return null;
 	}
 }

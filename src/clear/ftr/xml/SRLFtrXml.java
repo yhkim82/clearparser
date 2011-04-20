@@ -26,39 +26,16 @@ package clear.ftr.xml;
 import java.io.InputStream;
 import java.util.regex.Pattern;
 
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
-
 /**
- * Reads dependency feature templates from a xml file.
+ * Semantic role labeling feature template.
  * @author Jinho D. Choi
- * <b>Last update:</b> 11/6/2010
+ * <b>Last update:</b> 4/12/2010
  */
-public class SRLFtrXml extends AbstractFtrXml
+public class SRLFtrXml extends DepFtrXml
 {
-	static public final char   LAMBDA	= 'l';
-	static public final char   BETA		= 'b';
-	static public final String R_HD		= "hd";
-	static public final String R_LM		= "lm";		// leftmost dependent
-	static public final String R_RM		= "rm";		// rightmost dependent
-	static public final String R_LS		= "ls";		// left sibling
-	static public final String R_RS		= "rs";		// right sibling
-	static public final String R_VC		= "vc";		// highest verb chain
-	
-	static public final String F_FORM	= "f";
-	static public final String F_LEMMA	= "m";
-	static public final String F_POS	= "p";
-	static public final String F_DEPREL	= "d";
-
-	static public final Pattern P_REL	= Pattern.compile(R_HD+"|"+R_LM+"|"+R_RM+"|"+R_LS+"|"+R_RS+"|"+R_VC);
-	static public final Pattern P_FIELD	= Pattern.compile(F_FORM+"|"+F_LEMMA+"|"+F_POS+"|"+F_DEPREL); 
-	
-	static public final Pattern P_FEAT 		= Pattern.compile("^ft(\\d+)$");
-	static public final Pattern P_SUBCAT	= Pattern.compile("^sc(["+F_POS+F_DEPREL+"])(\\d+)$");
-	static public final Pattern P_PATH		= Pattern.compile("^pt(["+F_POS+F_DEPREL+"])(\\d+)$");
-	static public final Pattern P_ARGN 		= Pattern.compile("^argn(\\d+)$");
-
+	static public final Pattern P_SUBCAT = Pattern.compile("^sc(["+F_POS+F_DEPREL+"])(\\d+)$");
+	static public final Pattern P_PATH	 = Pattern.compile("^pt(["+F_POS+F_DEPREL+"])(\\d+)$");
+	static public final Pattern P_ARGN 	 = Pattern.compile("^argn(\\d+)$");
 	
 	public SRLFtrXml(String featureXml)
 	{
@@ -70,34 +47,11 @@ public class SRLFtrXml extends AbstractFtrXml
 		super(fin);
 	}
 	
-	protected void initCutoffs(Document doc) throws Exception
-	{
-		NodeList eList = doc.getElementsByTagName(CUTOFF);
-		if (eList.getLength() <= 0)	return;
-		
-		Element eCutoff = (Element)eList.item(0);
-		n_cutoff_label  = (eCutoff.hasAttribute(LABEL)) ? Integer.parseInt(eCutoff.getAttribute(LABEL)) : 0;
-		n_cutoff_ngram  = (eCutoff.hasAttribute(NGRAM)) ? Integer.parseInt(eCutoff.getAttribute(NGRAM)) : 0;
-	}
-	
-	protected void initFeatures(Document doc) throws Exception {}
-	
-	protected boolean validSource(char token)
-	{
-		return token == LAMBDA || token == BETA;
-	}
-	
-	protected boolean validRelation(String relation)
-	{
-		return P_REL.matcher(relation).matches();
-	}
-	
 	protected boolean validField(String field)
 	{
-		return P_FIELD .matcher(field).matches() ||  
-		       P_FEAT  .matcher(field).matches() ||
+		return super.validField(field) ||  
 		       P_SUBCAT.matcher(field).matches() ||
 		       P_PATH  .matcher(field).matches() ||
-		       P_ARGN   .matcher(field).matches();
+		       P_ARGN  .matcher(field).matches();
 	}
 }

@@ -38,9 +38,9 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
 /**
- * Read abstract features from a xml file.
+ * Abstract feature template.
  * @author Jinho D. Choi
- * <b>Last update:</b> 11/8/2010
+ * <b>Last update:</b> 4/12/2011
  */
 abstract public class AbstractFtrXml
 {
@@ -49,6 +49,8 @@ abstract public class AbstractFtrXml
 	static protected final String LABEL		= "label";
 	/** N-gram feature */
 	static protected final String NGRAM		= "ngram";
+	/** Extra feature */
+	static protected final String EXTRA		= "extra";
 	/** Number of tokens */
 	static protected final String N			= "n";
 	/** Cutoff (>= 0) */
@@ -68,6 +70,7 @@ abstract public class AbstractFtrXml
 	public FtrTemplate[][] a_ngram_templates;
 	public int n_cutoff_label;
 	public int n_cutoff_ngram;
+	public int n_cutoff_extra;
 	
 	public AbstractFtrXml(String featureXml)
 	{
@@ -99,17 +102,18 @@ abstract public class AbstractFtrXml
 		catch (Exception e) {e.printStackTrace();System.exit(1);}
 	}
 	
+	/** Initializes cutoffs. */
 	protected void initCutoffs(Document doc) throws Exception
 	{
 		NodeList eList = doc.getElementsByTagName(CUTOFF);
 		if (eList.getLength() <= 0)	return;
-		
 		Element eCutoff = (Element)eList.item(0);
-		n_cutoff_label  = (eCutoff.hasAttribute(LABEL)) ? Integer.parseInt(eCutoff.getAttribute(LABEL)) : 0;
-		n_cutoff_ngram  = (eCutoff.hasAttribute(NGRAM)) ? Integer.parseInt(eCutoff.getAttribute(NGRAM)) : 0;
+		
+		n_cutoff_label = (eCutoff.hasAttribute(LABEL)) ? Integer.parseInt(eCutoff.getAttribute(LABEL)) : 0;
+		n_cutoff_ngram = (eCutoff.hasAttribute(NGRAM)) ? Integer.parseInt(eCutoff.getAttribute(NGRAM)) : 0;
+		n_cutoff_extra = (eCutoff.hasAttribute(EXTRA)) ? Integer.parseInt(eCutoff.getAttribute(EXTRA)) : 0;
 	}
 	
-	/** Initializes n-gram feature templates. */
 	protected void initNgrams(Document doc) throws Exception
 	{
 		NodeList eList = doc.getElementsByTagName(NGRAM);
@@ -151,7 +155,7 @@ abstract public class AbstractFtrXml
 		}
 	}
 	
-	/** Convert an xml-feature to {@link FtrTemplate}. */
+	/** Convert the element to {@link FtrTemplate}. */
 	protected FtrTemplate getFtrTemplate(Element eFeature)
 	{
 		int nToken = Integer.parseInt(eFeature.getAttribute(N));
@@ -212,6 +216,7 @@ abstract public class AbstractFtrXml
 		System.exit(1);
 	}
 	
+	/** Initializes other kinds of features. */
 	abstract protected void    initFeatures(Document doc) throws Exception;
 	abstract protected boolean validSource(char source);
 	abstract protected boolean validRelation(String relation);

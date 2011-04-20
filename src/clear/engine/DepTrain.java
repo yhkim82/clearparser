@@ -41,6 +41,7 @@ import clear.ftr.map.DepFtrMap;
 import clear.ftr.xml.DepFtrXml;
 import clear.model.OneVsAllModel;
 import clear.parse.AbstractDepParser;
+import clear.parse.AbstractParser;
 import clear.parse.ShiftEagerParser;
 import clear.parse.ShiftPopParser;
 import clear.reader.AbstractReader;
@@ -58,8 +59,6 @@ public class DepTrain extends AbstractTrain
 	private String s_featureXml = null;
 	@Option(name="-i", usage="training file", required=true, metaVar="REQUIRED")
 	private String s_trainFile  = null;
-	@Option(name="-m", usage="model file", required=true, metaVar="REQUIRED")
-	private String s_modelFile  = null;
 	@Option(name="-n", usage="bootstrapping level (default = 0)", required=false, metaVar="OPTIONAL")
 	private int    n_boot       = 0;
 	
@@ -107,13 +106,13 @@ public class DepTrain extends AbstractTrain
 	{
 		printConfig();
 		
-		String instanceFile = "instaces.ftr";
-		String modelFile    = s_modelFile;
+		String modelFile = s_modelFile;
 		JarArchiveOutputStream zout = new JarArchiveOutputStream(new FileOutputStream(modelFile));
 		
-		trainDepParser(ShiftPopParser.FLAG_PRINT_LEXICON , null,         null);
-		trainDepParser(ShiftPopParser.FLAG_PRINT_INSTANCE, instanceFile, zout);
-		m_model = (OneVsAllModel)trainModel(instanceFile, zout);
+		trainDepParser(AbstractParser.FLAG_TRAIN_LEXICON , null);
+		trainDepParser(AbstractParser.FLAG_TRAIN_INSTANCE, zout);
+		m_model = (OneVsAllModel)trainModel(0, zout);
+		a_yx    = null;
 		zout.flush();	zout.close();
 		
 		for (int i=1; i<=n_boot; i++)
@@ -122,23 +121,23 @@ public class DepTrain extends AbstractTrain
 			System.out.print("\n== Bootstrapping: "+i+" ==\n");
 
 			zout = new JarArchiveOutputStream(new FileOutputStream(modelFile));
-			trainDepParser(ShiftPopParser.FLAG_TRAIN_CONDITIONAL, instanceFile, zout);
+			trainDepParser(AbstractParser.FLAG_TRAIN_BOOST, zout);
 			m_model = null;
-			m_model = (OneVsAllModel)trainModel(instanceFile, zout);
+			m_model = (OneVsAllModel)trainModel(0, zout);
+			a_yx    = null;
 			zout.flush();	zout.close();
 		}
 		
 		new File(ENTRY_LEXICA).delete();
-		new File(instanceFile).delete();
 	}
 	
 	/** Trains the dependency parser. */
-	private void trainDepParser(byte flag, String outputFile, JarArchiveOutputStream zout) throws Exception
+	private void trainDepParser(byte flag, JarArchiveOutputStream zout) throws Exception
 	{
 		AbstractDepParser parser  = null;
 		OneVsAllDecoder   decoder = null;
 		
-		if (flag == ShiftPopParser.FLAG_PRINT_LEXICON)
+		if (flag == ShiftPopParser.FLAG_TRAIN_LEXICON)
 		{
 			System.out.println("\n* Save lexica");
 			
@@ -147,25 +146,25 @@ public class DepTrain extends AbstractTrain
 			else if (s_depParser.equals(AbstractDepParser.ALG_SHIFT_POP))
 				parser = new ShiftPopParser  (flag, s_featureXml);
 		}
-		else if (flag == ShiftPopParser.FLAG_PRINT_INSTANCE)
+		else if (flag == ShiftPopParser.FLAG_TRAIN_INSTANCE)
 		{
 			System.out.println("\n* Print training instances");
 			System.out.println("- loading lexica");
 			
 			if (s_depParser.equals(AbstractDepParser.ALG_SHIFT_EAGER))
-				parser = new ShiftEagerParser(flag, t_xml, ENTRY_LEXICA, outputFile);
+				parser = new ShiftEagerParser(flag, t_xml, ENTRY_LEXICA);
 			else if (s_depParser.equals(AbstractDepParser.ALG_SHIFT_POP))
-				parser = new ShiftPopParser  (flag, t_xml, ENTRY_LEXICA, outputFile);
+				parser = new ShiftPopParser  (flag, t_xml, ENTRY_LEXICA);
 		}
-		else if (flag == ShiftPopParser.FLAG_TRAIN_CONDITIONAL)
+		else if (flag == ShiftPopParser.FLAG_TRAIN_BOOST)
 		{
 			System.out.println("\n* Train conditional");
 			decoder = new OneVsAllDecoder(m_model);
 			
 			if (s_depParser.equals(AbstractDepParser.ALG_SHIFT_EAGER))
-				parser = new ShiftEagerParser(flag, t_xml, t_map, decoder, outputFile);
+				parser = new ShiftEagerParser(flag, t_xml, t_map, decoder);
 			else if (s_depParser.equals(AbstractDepParser.ALG_SHIFT_POP))
-				parser = new ShiftPopParser  (flag, t_xml, t_map, decoder, outputFile);
+				parser = new ShiftPopParser  (flag, t_xml, t_map, decoder);
 		}
 		
 		AbstractReader<DepNode, DepTree> reader = null;
@@ -187,15 +186,15 @@ public class DepTrain extends AbstractTrain
 		
 		System.out.println("\r- parsing: "+n);
 		
-		if (flag == ShiftPopParser.FLAG_PRINT_LEXICON)
+		if (flag == ShiftPopParser.FLAG_TRAIN_LEXICON)
 		{
 			System.out.println("- saving");
 			parser.saveTags(ENTRY_LEXICA);
 			t_xml = parser.getDepFtrXml();
 		}
-		else if (flag == ShiftPopParser.FLAG_PRINT_INSTANCE || flag == ShiftPopParser.FLAG_TRAIN_CONDITIONAL)
+		else if (flag == ShiftPopParser.FLAG_TRAIN_INSTANCE || flag == ShiftPopParser.FLAG_TRAIN_BOOST)
 		{
-			parser.closeOutputStream();
+			a_yx = parser.a_trans;
 			
 			zout.putArchiveEntry(new JarArchiveEntry(ENTRY_FEATURE));
 			IOUtils.copy(new FileInputStream(s_featureXml), zout);
@@ -205,7 +204,7 @@ public class DepTrain extends AbstractTrain
 			IOUtils.copy(new FileInputStream(ENTRY_LEXICA), zout);
 			zout.closeArchiveEntry();
 			
-			if (flag == ShiftPopParser.FLAG_PRINT_INSTANCE)
+			if (flag == ShiftPopParser.FLAG_TRAIN_INSTANCE)
 				t_map = parser.getDepFtrMap();
 		}
 	}

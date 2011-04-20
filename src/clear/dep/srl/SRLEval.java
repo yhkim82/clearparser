@@ -1,5 +1,5 @@
 /**
-* Copyright (c) 2009, Regents of the University of Colorado
+* Copyright (c) 2011, Regents of the University of Colorado
 * All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -31,9 +31,9 @@ import clear.dep.DepNode;
 import clear.dep.DepTree;
 
 /**
- * Compare two dependency trees.
+ * Compare two dependency-based semantic role labeling outputs.
  * @author Jinho D. Choi
- * <b>Last update:</b> 4/26/2010
+ * <b>Last update:</b> 4/19/2011
  */
 public class SRLEval
 {
@@ -124,7 +124,7 @@ public class SRLEval
 	public void print()
 	{
 		System.out.println("--------------------------------------------------");
-		System.out.printf("%10s%10s%10s%10s%10s\n","LABEL","Dist","P","R","F1");
+		System.out.printf("%10s%10s%10s%10s%10s\n","Label","Dist","P","R","F1");
 		System.out.println("--------------------------------------------------");
 		int total = printTotal();
 		System.out.println("--------------------------------------------------");

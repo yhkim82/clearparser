@@ -27,35 +27,33 @@ import java.io.InputStream;
 import java.util.regex.Pattern;
 
 import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
 
 /**
- * Reads dependency feature templates from a xml file.
+ * Dependency feature template.
  * @author Jinho D. Choi
- * <b>Last update:</b> 11/6/2010
+ * <b>Last update:</b> 4/12/2011
  */
 public class DepFtrXml extends AbstractFtrXml
 {
-	static public final char    LAMBDA	= 'l';
-	static public final char    BETA	= 'b';
-	static public final String  R_HD	= "hd";
-	static public final String  R_LM	= "lm";
-	static public final String  R_RM	= "rm";
+	static public final char   LAMBDA	= 'l';
+	static public final char   BETA		= 'b';
+	static public final String R_HD		= "hd";		// head
+	static public final String R_LM		= "lm";		// leftmost  dependent
+	static public final String R_RM		= "rm";		// rightmost dependent
+	static public final String R_LS		= "ls";		// left  sibling
+	static public final String R_RS		= "rs";		// right sibling
+	static public final String R_VC		= "vc";		// highest verb chain
 	
-	static public final String F_FORM		= "f";
-	static public final String F_LEMMA		= "m";
-	static public final String F_POS		= "p";
-	static public final String F_DEPREL		= "d";
-	static public final String PUNCTUATION	= "punctuation";
-	
-	static public final Pattern P_FEAT  = Pattern.compile("^ft(\\d+)$");
-	static public final Pattern P_TRANS = Pattern.compile("^tr(\\d+)$");	// transition
-	static public final Pattern P_REL	= Pattern.compile(R_HD+"|"+R_LM+"|"+R_RM);
-	static public final Pattern P_FIELD = Pattern.compile(F_FORM+"|"+F_LEMMA+"|"+F_POS+"|"+F_DEPREL); 
+	static public final String F_FORM	= "f";
+	static public final String F_LEMMA	= "m";
+	static public final String F_POS	= "p";
+	static public final String F_DEPREL	= "d";
 
-	public int n_cutoff_punctuation;
-	
+	static public final Pattern P_REL	= Pattern.compile(R_HD+"|"+R_LM+"|"+R_RM+"|"+R_LS+"|"+R_RS+"|"+R_VC);
+	static public final Pattern P_FIELD = Pattern.compile(F_FORM+"|"+F_LEMMA+"|"+F_POS+"|"+F_DEPREL); 
+	static public final Pattern P_FEAT  = Pattern.compile("^ft=(.+)$");		
+	static public final Pattern P_TRANS = Pattern.compile("^tr(\\d+)$");	// transition
+
 	public DepFtrXml(String featureXml)
 	{
 		super(featureXml);
@@ -64,17 +62,6 @@ public class DepFtrXml extends AbstractFtrXml
 	public DepFtrXml(InputStream fin)
 	{
 		super(fin);
-	}
-	
-	protected void initCutoffs(Document doc) throws Exception
-	{
-		NodeList eList = doc.getElementsByTagName(CUTOFF);
-		if (eList.getLength() <= 0)	return;
-		
-		Element eCutoff = (Element)eList.item(0);
-		n_cutoff_label  = (eCutoff.hasAttribute(LABEL)) ? Integer.parseInt(eCutoff.getAttribute(LABEL)) : 0;
-		n_cutoff_ngram  = (eCutoff.hasAttribute(NGRAM)) ? Integer.parseInt(eCutoff.getAttribute(NGRAM)) : 0;
-		n_cutoff_punctuation = (eCutoff.hasAttribute(PUNCTUATION)) ? Integer.parseInt(eCutoff.getAttribute(PUNCTUATION)) : 0;
 	}
 	
 	protected void initFeatures(Document doc) throws Exception {}
@@ -95,11 +82,4 @@ public class DepFtrXml extends AbstractFtrXml
 			   P_FEAT .matcher(field).matches() ||
 			   P_TRANS.matcher(field).matches();
 	}
-	
-/*	static public void main(String[] args)
-	{
-		DepFtrXml xml = new DepFtrXml(args[0]);
-		
-		System.out.println(xml.toString());
-	}*/
 }

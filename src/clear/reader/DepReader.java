@@ -25,11 +25,10 @@ package clear.reader;
 
 import java.io.IOException;
 
+import clear.dep.DepFeat;
 import clear.dep.DepLib;
 import clear.dep.DepNode;
 import clear.dep.DepTree;
-import clear.dep.feat.FeatCzech;
-import clear.dep.feat.FeatEnglish;
 
 /**
  * Dependency reader.
@@ -79,12 +78,7 @@ public class DepReader extends AbstractReader<DepNode,DepTree>
 		node.pos     = str[3];
 		
 		if (!str[4].equals(DepLib.FIELD_BLANK))
-		{
-			if      (s_language.equals(LANG_EN))
-				node.feats = new FeatEnglish(str[4]);
-			else if (s_language.equals(LANG_CZ))
-				node.feats = new FeatCzech(str[4]);			
-		}
+			node.feats = new DepFeat(str[4]);
 		
 		if (b_train)
 		{

@@ -23,7 +23,6 @@
 */
 package clear.dep;
 
-
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -35,7 +34,7 @@ import clear.ftr.xml.DepFtrXml;
  * Dependency tree.
  * @see DepNode
  * @author Jinho D. Choi
- * <b>Last update:</b> 11/4/2010
+ * <b>Last update:</b> 4/19/2011
  */
 @SuppressWarnings("serial")
 public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
@@ -57,6 +56,8 @@ public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
 		add(root);
 		init(0, 0d);
 	}
+
+//	==================================== Construct ====================================
 	
 	/**
 	 * Initializes member variables.
@@ -68,6 +69,42 @@ public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
 		n_trans = nTrans;
 		d_score = score;
 	}
+	
+	public void copy(DepTree tree)
+	{
+		for (int i=1; i<size(); i++)
+			get(i).copy(tree.get(i));
+	}
+	
+	public DepTree clone()
+	{
+		DepTree tree = new DepTree();
+		
+		for (int i=1; i<size(); i++)
+			tree.add(get(i).clone());
+			
+		tree.trimToSize();
+		return tree;
+	}
+	
+	/**
+	 * Each node is separated by a new line ('\n').
+	 * @return the string representation of the tree.
+	 */
+	public String toString()
+	{
+		StringBuilder buff = new StringBuilder();
+		
+		for (int i=1; i<size(); i++)
+		{
+			buff.append(get(i));
+			buff.append("\n");
+		}
+		
+		return buff.toString().trim();
+	}
+	
+//	==================================== Boolean ====================================
 	
 	/** @return true if <code>index</code> is in [0, {@link ITree#size()}) */
 	public boolean isRange(int index)
@@ -95,19 +132,75 @@ public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
 		return isAncestor(node1, get(node2.headId));
 	}
 	
-	/**
-	 * Sets the <code>headId</code>'th node as the head of the <code>currId</code>'th node.
-	 * @see   DepNode#setHead(int, String, double)
-	 * @param currId index of the current node
-	 * @param headId index of the head node
-	 * @param deprel dependency label between the current and the head nodes
-	 * @param score  score of the headId'th node being the head of the node
-	 */
-	public void setHead(int currId, int headId, String deprel, double score)
-	{	
-		DepNode curr = get(currId);
-		curr.setHead(headId, deprel, score);
+	public boolean existsLeftDependent(int currId, String deprel)
+	{
+		DepNode node;
+		
+		for (int i=currId-1; i>0; i--)
+		{
+			node = get(i);
+			
+			if (node.hasHead && node.headId == currId && node.isDeprel(deprel))
+				return true;
+		}
+		
+		return false;
 	}
+	
+	public boolean existsRightDependent(int currId, String deprel)
+	{
+		DepNode node;
+		
+		for (int i=currId+1; i<size(); i++)
+		{
+			node = get(i);
+			
+			if (node.hasHead && node.headId == currId && node.isDeprel(deprel))
+				return true;
+		}
+		
+		return false;
+	}
+
+	/**
+	 * Prints errors if not unique-root, single-headed, connected, acyclic.
+	 * @return true if there is no error.
+	 */
+	public boolean checkTree()
+	{
+		int countRoot = 0;
+		
+		for (int i=1; i<size(); i++)
+		{
+			DepNode node = get(i);
+			
+			if (node.headId == DepLib.ROOT_ID)
+				countRoot++;
+			
+			if (!isRange(node.headId))
+			{
+				System.err.println("Not connected: "+node.id+" <- "+node.headId);
+				return false;
+			}
+			
+			if (isAncestor(node.id, node.headId))
+			{
+				System.err.println("Cycle exists: "+node.id+" <-*-> "+node.headId);
+				return false;
+			}
+		}
+		
+		if (countRoot != 1)
+		{
+			System.err.println("Not single-rooted: "+countRoot);
+		//	System.err.println(this.toString());
+			return false;
+		}
+		
+		return true;
+	}
+	
+//	==================================== Getter ====================================
 	
 	/**
 	 * Returns the head of the <code>currId</code>'th node.
@@ -133,9 +226,20 @@ public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
 		return get(currId).leftMostDep;
 	}
 	
+	/** @return the rightmost dependent of the <code>currId</code>'th node. */
+	public DepNode getRightMostDependent(int currId)
+	{
+		return get(currId).rightMostDep;
+	}
+	
 	public DepNode getLeftSibling(int currId)
 	{
 		return get(currId).leftSibling;
+	}
+	
+	public DepNode getRightSibling(int currId)
+	{
+		return get(currId).rightSibling;
 	}
 	
 	/**
@@ -152,37 +256,11 @@ public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
 		
 		for (i=currId-1; i>=leftBoundId; i--)
 		{
-			puncIndex = map.punctuationToIndex(get(i).form);
+			puncIndex = map.extraToIndex(0, get(i).form);
 			if (puncIndex >= 0)    return puncIndex;
 		}
 		
 		return -1;
-	}
-	
-	public DepNode getRightSibling(int currId)
-	{
-		return get(currId).rightSibling;
-	}
-	
-	/** @return the rightmost dependent of the <code>currId</code>'th node. */
-	public DepNode getRightMostDependent(int currId)
-	{
-		return get(currId).rightMostDep;
-	}
-	
-	/** Experimental */
-	public DepNode getRightNearestDependent(int currId)
-	{
-		DepNode node;
-		
-		for (int i=currId+1; i<size(); i++)
-		{
-			node = get(i);
-			if (node.headId == currId)
-				return node;
-		}
-		
-		return null;
 	}
 	
 	/**
@@ -199,38 +277,11 @@ public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
 		
 		for (i=currId+1; i<=rightBoundId; i++)
 		{
-			puncIndex = map.punctuationToIndex(get(i).form);
+			puncIndex = map.extraToIndex(0, get(i).form);
 			if (puncIndex >= 0)    return puncIndex;
 		}
 		
 		return -1;
-	}
-	
-	/** @return all dependents of <code>currId</code>'th node */
-	public ArrayList<DepNode> getDependents(int currId)
-	{
-		ArrayList<DepNode> list = new ArrayList<DepNode>();
-		
-		for (int i=1; i<size(); i++)
-		{
-			DepNode node = get(i);
-			if (node.headId == currId)	list.add(node);
-		}
-		
-		return list;
-	}
-	
-	public HashSet<String> getDeprelDepSet(int currId)
-	{
-		HashSet<String> set = new HashSet<String>();
-		
-		for (int i=1; i<size(); i++)
-		{
-			DepNode node = get(i);
-			if (node.headId == currId)	set.add(node.deprel);
-		}
-		
-		return set;
 	}
 	
 	public ArrayList<DepNode> getLeftDependents(int currId)
@@ -280,6 +331,51 @@ public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
 		{
 			DepNode node = get(i);
 			if (node.hasHead && node.headId == currId)	set.add(node.deprel);
+		}
+		
+		return set;
+	}
+	
+	/** Experimental */
+	public DepNode getRightNearestDependent(int currId)
+	{
+		DepNode node;
+		
+		for (int i=currId+1; i<size(); i++)
+		{
+			node = get(i);
+			if (node.headId == currId)
+				return node;
+		}
+		
+		return null;
+	}
+	
+	/**
+	 * Assumes all nodes already have heads.
+	 * @return all dependents of <code>currId</code>'th node
+	 */
+	public ArrayList<DepNode> getDependents(int currId)
+	{
+		ArrayList<DepNode> list = new ArrayList<DepNode>();
+		
+		for (int i=1; i<size(); i++)
+		{
+			DepNode node = get(i);
+			if (node.headId == currId)	list.add(node);
+		}
+		
+		return list;
+	}
+	
+	public HashSet<String> getDeprelDepSet(int currId)
+	{
+		HashSet<String> set = new HashSet<String>();
+		
+		for (int i=1; i<size(); i++)
+		{
+			DepNode node = get(i);
+			if (node.headId == currId)	set.add(node.deprel);
 		}
 		
 		return set;
@@ -399,6 +495,16 @@ public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
 		return build.toString();
 	}
 	
+	public DepNode getHighestVC(int currId)
+	{
+		DepNode node = get(currId);
+		
+		while (DepLib.M_VC.matcher(node.deprel).matches())
+			node = get(node.headId);
+		
+		return (node.id == currId) ? null : node;
+	}
+	
 	public String getPRT(int predId)
 	{
 		if (!get(predId).isPredicate())	return null;
@@ -445,67 +551,26 @@ public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
 		return size();
 	}
 	
-	public void copy(DepTree tree)
-	{
-		for (int i=1; i<size(); i++)
-			get(i).copy(tree.get(i));
-	}
+//	==================================== Setter ====================================
 	
-	public DepTree clone()
-	{
-		DepTree tree = new DepTree();
-		
-		for (int i=1; i<size(); i++)
-			tree.add(get(i).clone());
-			
-		tree.trimToSize();
-		return tree;
-	}
-	
-	public boolean existsLeftDependent(int currId, String deprel)
-	{
-		DepNode node;
-		
-		for (int i=currId-1; i>0; i--)
-		{
-			node = get(i);
-			
-			if (node.hasHead && node.headId == currId && node.isDeprel(deprel))
-				return true;
-		}
-		
-		return false;
-	}
-	
-	public boolean existsRightDependent(int currId, String deprel)
-	{
-		DepNode node;
-		
-		for (int i=currId+1; i<size(); i++)
-		{
-			node = get(i);
-			
-			if (node.hasHead && node.headId == currId && node.isDeprel(deprel))
-				return true;
-		}
-		
-		return false;
+	/**
+	 * Sets the <code>headId</code>'th node as the head of the <code>currId</code>'th node.
+	 * @see   DepNode#setHead(int, String, double)
+	 * @param currId index of the current node
+	 * @param headId index of the head node
+	 * @param deprel dependency label between the current and the head nodes
+	 * @param score  score of the headId'th node being the head of the node
+	 */
+	public void setHead(int currId, int headId, String deprel, double score)
+	{	
+		DepNode curr = get(currId);
+		curr.setHead(headId, deprel, score);
 	}
 	
 	public void clearSRLHeads()
 	{
 		for (int i=1; i<size(); i++)
 			get(i).clearSRLHeads();
-	}
-	
-	public DepNode getHighestVC(int currId)
-	{
-		DepNode node = get(currId);
-		
-		while (DepLib.M_VC.matcher(node.deprel).matches())
-			node = get(node.headId);
-		
-		return (node.id == currId) ? null : node;
 	}
 	
 	public void setSubcat()
@@ -553,44 +618,6 @@ public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
 		}
 	}
 	
-	/**
-	 * Prints errors if not unique-root, single-headed, connected, acyclic.
-	 * @return true if there is no error.
-	 */
-	public boolean checkTree()
-	{
-		int countRoot = 0;
-		
-		for (int i=1; i<size(); i++)
-		{
-			DepNode node = get(i);
-			
-			if (node.headId == DepLib.ROOT_ID)
-				countRoot++;
-			
-			if (!isRange(node.headId))
-			{
-				System.err.println("Not connected: "+node.id+" <- "+node.headId);
-				return false;
-			}
-			
-			if (isAncestor(node.id, node.headId))
-			{
-				System.err.println("Cycle exists: "+node.id+" <-*-> "+node.headId);
-				return false;
-			}
-		}
-		
-		if (countRoot != 1)
-		{
-			System.err.println("Not single-rooted: "+countRoot);
-		//	System.err.println(this.toString());
-			return false;
-		}
-		
-		return true;
-	}
-	
 	/** Make non-projective dependencies on punctuation as projective. */
 	public void projectizePunc()
 	{
@@ -620,35 +647,5 @@ public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
 					
 			}
 		}
-	}
-	
-	/**
-	 * Each node is separated by a new line ('\n').
-	 * @return the string representation of the tree.
-	 */
-	public String toString()
-	{
-		StringBuilder buff = new StringBuilder();
-		
-		for (int i=1; i<size(); i++)
-		{
-			buff.append(get(i));
-			buff.append("\n");
-		}
-		
-		return buff.toString().trim();
-	}
-	
-	public String toStringNonProj()
-	{
-		StringBuilder buff = new StringBuilder();
-		
-		for (int i=1; i<size(); i++)
-		{
-			buff.append(get(i).toStringNonProj());
-			buff.append("\n");
-		}
-		
-		return buff.toString().trim();
 	}
 }
