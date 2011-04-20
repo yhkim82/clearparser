@@ -37,7 +37,6 @@ import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
 import org.w3c.dom.Element;
 
-import clear.decode.AbstractMultiDecoder;
 import clear.decode.OneVsAllDecoder;
 import clear.dep.DepNode;
 import clear.dep.DepTree;
@@ -110,9 +109,9 @@ public class DepPredict extends AbstractCommon
 		ZipInputStream zin = new ZipInputStream(new FileInputStream(s_modelFile));
 		ZipEntry zEntry;
 		
-		DepFtrXml            xml     = null;
-		DepFtrMap            map     = null;
-		AbstractMultiDecoder decoder = null;
+		DepFtrXml       xml     = null;
+		DepFtrMap       map     = null;
+		OneVsAllDecoder decoder = null;
 		
 		int[]    n_size_total = new int[10];
 		double[] d_time       = new double[10];
@@ -143,7 +142,7 @@ public class DepPredict extends AbstractCommon
 			if (zEntry.getName().equals(ENTRY_LEXICA))
 			{
 				System.out.println("- loading lexica");
-				map = new DepFtrMap(xml, new BufferedReader(new InputStreamReader(zin)));
+				map = new DepFtrMap(new BufferedReader(new InputStreamReader(zin)));
 			}
 			else if (zEntry.getName().equals(ENTRY_MODEL))
 			{

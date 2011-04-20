@@ -47,7 +47,7 @@ public class ExtractClusterFeature
 		
 		build.append(morph.getLemma(pred.form, "VB"));
 		build.append(" ");
-		build.append(pred.getFeat(1));	// VerbNet class
+		build.append(pred.getFeat("vn"));	// VerbNet class
 		
 		ArrayList<DepNode> aDeps = tree.getDependents  (pred.id);
 		HashSet<String> sDeprels = tree.getDeprelDepSet(pred.id);

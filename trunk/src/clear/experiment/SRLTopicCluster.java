@@ -4,7 +4,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 
@@ -45,7 +44,7 @@ public class SRLTopicCluster
 			for (SRLHead head : info.heads)
 			{
 				pred = tree.get(head.headId);
-				if ((feat = pred.getFeat(2)) == null)	continue;
+				if ((feat = pred.getFeat("ct")) == null)	continue;
 				
 				pTA = getSubMap(m_ta, feat);
 				pTA.increment(head.label, node.lemma);

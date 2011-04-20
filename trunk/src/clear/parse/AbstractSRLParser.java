@@ -23,11 +23,7 @@
 */
 package clear.parse;
 
-import java.io.FileInputStream;
-import java.io.ObjectInputStream;
-import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.regex.Matcher;
 
 import clear.decode.AbstractDecoder;
@@ -35,55 +31,31 @@ import clear.decode.OneVsAllDecoder;
 import clear.dep.DepNode;
 import clear.dep.DepTree;
 import clear.dep.srl.SRLArg;
-import clear.dep.srl.SRLProb;
-import clear.ftr.FtrLib;
 import clear.ftr.map.SRLFtrMap;
-import clear.ftr.xml.FtrTemplate;
 import clear.ftr.xml.FtrToken;
 import clear.ftr.xml.SRLFtrXml;
-import clear.reader.AbstractReader;
-import clear.util.IOUtil;
 import clear.util.tuple.JObjectObjectTuple;
 
 import com.carrotsearch.hppc.IntArrayList;
-import com.carrotsearch.hppc.ObjectIntOpenHashMap;
 
 /**
  * Shift-eager dependency parser.
  * @author Jinho D. Choi
  * <b>Last update:</b> 11/6/2010
  */
-abstract public class AbstractSRLParser
+abstract public class AbstractSRLParser extends AbstractParser
 {
-	ArrayList<HashSet<String>> a_topics;
-	
-	/** Train probabilities */
-	static public final byte FLAG_TRAIN_PROBABILITY = 0;
-	/** Print lexicons */
-	static public final byte FLAG_TRAIN_LEXICON     = 1;
-	/** Print training instances */
-	static public final byte FLAG_TRAIN_INSTANCE    = 2;
-	/** Train automatic dependencies */
-	static public final byte FLAG_TRAIN_BOOST       = 3;
-	/** Predict dependencies (greedy) */
-	static public final byte FLAG_PREDICT           = 4;
-	/** Predict dependencies (exhaustive) */
-	static public final byte FLAG_PREDICT_BEST      = 5;
 	/** Parse from predicate to the left */
 	static public final byte DIR_LEFT  = -1;
 	/** Parse from predicate to the right */
 	static public final byte DIR_RIGHT = +1;
 	
-	/** Flags */
-	protected byte                        i_flag;
-	/** Argument probabilities */
-	protected SRLProb                     p_prob;
-	/** Feature template */
-	protected SRLFtrXml                   t_xml;
+	/** Feature templates */
+	protected SRLFtrXml         t_xml;
 	/** Feature mappings */
-	protected SRLFtrMap[]                 t_map;
-	/** Argument classification decoder */
-	protected OneVsAllDecoder[]           c_dec;
+	protected SRLFtrMap[]       t_map;
+	/** ML decoder */
+	protected OneVsAllDecoder[] c_dec;
 	
 	/** Current dependency tree */
 	protected DepTree d_tree;
@@ -93,30 +65,13 @@ abstract public class AbstractSRLParser
 	protected int     i_beta;
 	/** {@link AbstractSRLParser#DIR_LEFT} or {@link AbstractSRLParser#DIR_RIGHT} */
 	protected byte    i_dir;
-	/** Language */
-	protected String  s_language = AbstractReader.LANG_EN;
 	
 	/** List of all arguments sequence */
-	protected ArrayList<SRLArg>            ls_args;
+	protected ArrayList<SRLArg> ls_args;
 	/** List of core arguments sequence */
-	protected ArrayList<String>            ls_argn;
-	/** Set of numbered argument labels */
-	protected HashSet<String>              s_args;
+	protected ArrayList<String> ls_argn;
 	
-	/** Transtision training instances */
-	public ArrayList<JObjectObjectTuple<IntArrayList, ArrayList<int[]>>> a_trans;
-
-//	public JObjectObjectTuple<IntArrayList, ArrayList<double[]>> a_shift;
-//	public BinaryDecoder c_shift = null;
-	public PrintStream f_shift;
-	public int n_trans = 0;
-	
-	/** {@link AbstractSRLParser#FLAG_TRAIN_PROBABILITY}. */
-	public AbstractSRLParser(byte flag)
-	{
-		i_flag = flag;
-		p_prob = new SRLProb();
-	}
+//	=============================== Constructors ===============================
 	
 	/** {@link AbstractSRLParser#FLAG_TRAIN_LEXICON}. */
 	public AbstractSRLParser(byte flag, String xmlFile)
@@ -137,7 +92,7 @@ abstract public class AbstractSRLParser
 		t_map  = new SRLFtrMap[lexiconFile.length];
 		
 		for (int i=0; i<t_map.length; i++)
-			t_map[i] = new SRLFtrMap(t_xml, lexiconFile[i]);
+			t_map[i] = new SRLFtrMap(lexiconFile[i]);
 		
 		initTrainArrays(t_map.length);
 	}
@@ -155,40 +110,9 @@ abstract public class AbstractSRLParser
 		
 		if (flag == FLAG_TRAIN_BOOST)
 			initTrainArrays(decoder.length);
-		else if (flag == FLAG_PREDICT)
-		{
-			f_shift = IOUtil.createPrintFileStream("shift.lp");
-		}
 	}
 	
-	/** Initializes arrays containing training instances. */
-	private void initTrainArrays(int size)
-	{
-		a_trans = new ArrayList<JObjectObjectTuple<IntArrayList, ArrayList<int[]>>>(size);
-		
-		for (int i=0; i<size; i++)
-			a_trans.add(new JObjectObjectTuple<IntArrayList, ArrayList<int[]>>(new IntArrayList(), new ArrayList<int[]>()));
-		
-	//	a_shift = new JObjectObjectTuple<IntArrayList, ArrayList<double[]>>(new IntArrayList(), new ArrayList<double[]>());
-	}
-	
-	abstract public    void parse(DepTree tree);
-	abstract protected void addLexica(SRLFtrMap map);
-	
-	public void setLanguage(String language)
-	{
-		s_language = language;
-	}
-	
-	public void setSRLProb(SRLProb prob)
-	{
-		p_prob = prob;
-	}
-	
-	public SRLProb getSRLProb()
-	{
-		return p_prob;
-	}
+//	=============================== External methods ===============================
 	
 	public SRLFtrXml getSRLFtrXml()
 	{
@@ -198,17 +122,6 @@ abstract public class AbstractSRLParser
 	public SRLFtrMap[] getSRLFtrMap()
 	{
 		return t_map;
-	}
-	
-	@SuppressWarnings("unchecked")
-	public void initTopics(String topicFile)
-	{
-		try
-		{
-			ObjectInputStream inputStream = new ObjectInputStream(new FileInputStream(topicFile));
-			a_topics = (ArrayList<HashSet<String>>)inputStream.readObject();
-		}
-		catch (Exception e) {e.printStackTrace();}
 	}
 	
 	protected SRLFtrMap getFtrMap()
@@ -226,7 +139,7 @@ abstract public class AbstractSRLParser
 		return (i_dir == DIR_LEFT) ? a_trans.get(0) : a_trans.get(1);
 	}
 	
-	/** Adds a label and lexica for argument classification. */
+	/** Adds a label and lexica to {@link AbstractSRLParser#t_map}. */
 	protected void addTags(String label)
 	{
 		SRLFtrMap map = getFtrMap();
@@ -254,76 +167,20 @@ abstract public class AbstractSRLParser
 		yx.o1.add(index);
 		yx.o2.add(arr.toArray());
 	}
+
+//	=============================== Lexica ===============================
 	
 	/** Add n-gram lexica to the feature map. */
 	protected void addNgramLexica(SRLFtrMap map)
 	{
-		FtrTemplate[][] templates = t_xml.a_ngram_templates;
-		FtrTemplate[]   template;
-		int i, j, n, m = templates.length;
-		String ftr;
-		
-		for (j=0; j<m; j++)
-		{
-			template = templates[j];
-			n        = template.length;
-			
-			for (i=0; i<n; i++)
-			{
-				if ((ftr = getFeature(template[i])) != null)
-					map.addNgram(j, ftr);
-			}
-		}
+		addNgramLexica(t_xml, map);
 	}
 	
 	/** Adds n-gram features. */
 	protected void addNgramFeatures(IntArrayList arr, int[] idx, SRLFtrMap tmap)
 	{
-		FtrTemplate[][] templates = t_xml.a_ngram_templates;
-		FtrTemplate[]   template;
-		int i, j, n, m = templates.length, size, value;
-		ObjectIntOpenHashMap<String> map;
-		String                       ftr;
-		
-		for (j=0; j<m; j++)
-		{
-			map  = tmap.getNgramHashMap(j);
-			size = tmap.n_ngram[j];
-			
-			template = templates[j];
-			n        = template.length;
-			
-			for (i=0; i<n; i++)
-			{
-				if ((ftr = getFeature(template[i])) != null)
-				{
-					value = map.get(ftr);
-					if (value > 0)	arr.add(idx[0]+value-1);
-				}
-				
-				idx[0] += size;
-			}
-		}
+		addNgramFeatures(arr, idx, t_xml, tmap);
 	}
-	
-	/** @return feature value. */
-	protected String getFeature(FtrTemplate ftr)
-	{
-		StringBuilder build = new StringBuilder();
-		int i, n = ftr.tokens.length;
-		String field;
-		
-		for (i=0; i<n; i++)
-		{
-			field = getField(ftr.tokens[i]);
-			if (field == null)	return null;
-			
-			if (i > 0)	build.append(FtrLib.TAG_DELIM);
-			build.append(field);
-		}
-		
-		return build.toString();
-    }
 	
 	/** @return field retrieved from <code>token</code> */
 	protected String getField(FtrToken token)
@@ -365,8 +222,7 @@ abstract public class AbstractSRLParser
 		}
 		else if ((m = SRLFtrXml.P_FEAT.matcher(token.field)).find())
 		{
-			int idx = Integer.parseInt(m.group(1));
-			return node.getFeat(idx);
+			return node.getFeat(m.group(1));
 		}
 		else if ((m = SRLFtrXml.P_SUBCAT.matcher(token.field)).find())
 		{
@@ -388,34 +244,6 @@ abstract public class AbstractSRLParser
 		return null;
 	}
 	
-	protected String getLemma(DepNode node)
-	{
-		if (node.id != i_beta)	return node.lemma;
-		String ct = node.getFeat(2);
-		
-		if (ct == null)	return node.lemma;
-		else			return ct;
-		
-		
-		
-	/*	DepNode lambda = d_tree.get(i_lambda);
-		DepNode beta   = d_tree.get(i_beta);
-		ArrayList<Pattern> clusters;
-		
-		for (int i=0; i<i_topicDir.size(); i++)
-		{
-			if (i_topicDir.get(i) != i_dir)			continue;
-			if (!lambda.s_topics.contains("TPC"+i))	continue;
-			
-			clusters = p_topicCluster.get(i);
-			
-			for (int j=0; j<clusters.size(); j++)
-			{
-				if (clusters.get(j).matcher(beta.lemma).matches())
-					return "CLS"+i+"."+j;
-			}
-		}
-		
-		return node.lemma;*/
-	}
+	abstract public    void parse(DepTree tree);
+	abstract protected void addLexica(SRLFtrMap map);
 }

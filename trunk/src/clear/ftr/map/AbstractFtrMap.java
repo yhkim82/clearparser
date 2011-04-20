@@ -1,5 +1,5 @@
 /**
-* Copyright (c) 2009, Regents of the University of Colorado
+* Copyright (c) 2010, Regents of the University of Colorado
 * All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -28,6 +28,7 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 
 import clear.ftr.xml.AbstractFtrXml;
+import clear.util.IOUtil;
 
 import com.carrotsearch.hppc.ObjectIntOpenHashMap;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
@@ -35,9 +36,9 @@ import com.carrotsearch.hppc.cursors.ObjectCursor;
 /**
  * Abstract feature map.
  * @author Jinho D. Choi
- * <b>Last update:</b> 11/4/2010
+ * <b>Last update:</b> 4/12/2010
  */
-abstract public class AbstractFtrMap<FtrXmlType>
+abstract public class AbstractFtrMap
 {
 	/** List of labels. */
 	protected ArrayList<String>							a_label;
@@ -45,99 +46,97 @@ abstract public class AbstractFtrMap<FtrXmlType>
 	protected ObjectIntOpenHashMap<String>				m_label;
 	/** Contains n-gram features. */
 	protected ArrayList<ObjectIntOpenHashMap<String>>	m_ngram;
-	/** Number of each n-gram feature. */
+	/** Size of each n-gram feature. */
 	public    int[]										n_ngram;
+	/** Takes "feature" as a key and its index as a value. */
+	protected ArrayList<ObjectIntOpenHashMap<String>>	m_extra;
+	/** Size of each feature. */
+	public    int[]										n_extra;
 	
-	/** Initializes empty maps (values to be added later). */
-	public AbstractFtrMap(FtrXmlType xml)
-	{
-		init(xml);
-	}
+//	=========================== Init ===========================
 	
-	/** Initializes maps from <code>lexiconFile</code>. */
-	public AbstractFtrMap(FtrXmlType xml, String lexiconFile)
+	public AbstractFtrMap(AbstractFtrXml xml, int nExtra)
 	{
-		load(lexiconFile);
-	}
-	
-	/** Initializes maps from <code>lexiconFile</code>. */
-	public AbstractFtrMap(FtrXmlType xml, BufferedReader fin)
-	{
-		load(fin);
-	}
-	
-	/** This method must be included at the top of {@link AbstractFtrMap#init(Object)}. */
-	protected void initDefault(AbstractFtrXml xml)
-	{
-		int i, n = xml.a_ngram_templates.length;
-		
-		m_label = new ObjectIntOpenHashMap<String>();
-		m_ngram = new ArrayList<ObjectIntOpenHashMap<String>>(n);
-		
-		for (i=0; i<n; i++)
-			m_ngram.add(new ObjectIntOpenHashMap<String>());
-	}
-	
-	/** This method must be included at the top of {@link AbstractFtrMap#load(String)}. */
-	protected void loadDefault(BufferedReader fin) throws Exception
-	{
-		ObjectIntOpenHashMap<String> map;
-		int n, m, i, j;
-		String key;
-		
-		// labels
-		n = Integer.parseInt(fin.readLine());
-		a_label = new ArrayList<String>(n);
-		m_label = new ObjectIntOpenHashMap<String>(n);
-		
-		for (i=1; i<=n; i++)
-		{
-			key = fin.readLine();
-			a_label.add(key);
-			m_label.put(key, i);
-		}
-		
-		// n-grams
-		m = Integer.parseInt(fin.readLine());
-		m_ngram = new ArrayList<ObjectIntOpenHashMap<String>>(m);
-		n_ngram = new int[m];
-		
-		for (j=0; j<m; j++)
-		{
-			map = loadHashMap(fin);
-			n_ngram[j] = map.size();
-			m_ngram.add(map);
-		}
-	}
-	
-	protected ObjectIntOpenHashMap<String> loadHashMap(BufferedReader fin) throws Exception
-	{
-		int i, n = Integer.parseInt(fin.readLine());
-		ObjectIntOpenHashMap<String> map = new ObjectIntOpenHashMap<String>(n);
-		
-		for (i=1; i<=n; i++)	// 0 is reserved for unseen feature
-			map.put(fin.readLine(), i);
-		
-		return map;
+		init(xml, nExtra);
 	}
 
-	/** This method must be included at the top of {@link AbstractFtrMap#save(String)}. */
-	public void saveDefault(AbstractFtrXml xml, PrintStream fout)
+	protected void init(AbstractFtrXml xml, int nExtra)
 	{
-		int j, m;
+		int i, nNgram = xml.a_ngram_templates.length;
+		
+		m_label = new ObjectIntOpenHashMap<String>();
+		m_ngram = new ArrayList<ObjectIntOpenHashMap<String>>(nNgram);
+		m_extra = new ArrayList<ObjectIntOpenHashMap<String>>(nExtra);
+		
+		for (i=0; i<nNgram; i++)
+			m_ngram.add(new ObjectIntOpenHashMap<String>());
+		
+		for (i=0; i<nExtra; i++)
+			m_extra.add(new ObjectIntOpenHashMap<String>());
+	}
+	
+	public void addLabel(String label)
+	{
+		incrementKey(m_label, label);
+	}
+	
+	public void addNgram(int index, String ftr)
+	{
+		incrementKey(m_ngram.get(index), ftr);
+	}
+	
+	public void addExtra(int index, String ftr)
+	{
+		incrementKey(m_extra.get(index), ftr);
+	}
+	
+	protected void incrementKey(ObjectIntOpenHashMap<String> map, String key)
+	{
+		map.put(key, map.get(key)+1);
+	}
+
+//	=========================== Save ===========================
+
+	public void save(AbstractFtrXml xml, String lexiconFile)
+	{
+		try
+		{
+			PrintStream fout = IOUtil.createPrintFileStream(lexiconFile);
+			saveDefault(xml, fout);
+			fout.close();
+		}
+		catch (Exception e) {e.printStackTrace();}
+	}
+	
+	public void save(AbstractFtrXml xml, PrintStream fout)
+	{
+		try
+		{
+			saveDefault(xml, fout);
+		}
+		catch (Exception e) {e.printStackTrace();}
+	}
+	
+	protected void saveDefault(AbstractFtrXml xml, PrintStream fout)
+	{
+		int i, n;
 		
 		// labels
 		saveHashMap(fout, m_label, xml.n_cutoff_label);
-	//	fout.println(m_label.size());
-	//	for (ObjectCursor<String> str : m_label.keySet())
-	//		fout.println(str.value);
 
-		// n-grams
-		m = m_ngram.size();
-		fout.println(m);
+		// n-grams features
+		n = m_ngram.size();
+		fout.println(n);
 
-		for (j=0; j<m; j++)
-			saveHashMap(fout, m_ngram.get(j), xml.n_cutoff_ngram);
+		for (i=0; i<n; i++)
+			saveHashMap(fout, m_ngram.get(i), xml.n_cutoff_ngram);
+		
+		// extra features
+		n = m_extra.size();
+		fout.println(n);
+		
+		for (i=0; i<n; i++)
+			saveHashMap(fout, m_extra.get(i), xml.n_cutoff_extra);
 	}
 	
 	protected void saveHashMap(PrintStream fout, ObjectIntOpenHashMap<String> map, int cutoff)
@@ -150,6 +149,19 @@ abstract public class AbstractFtrMap<FtrXmlType>
 			key   = str.value;
 			value = map.get(key);
 			if (value > cutoff)	fout.println(key);
+		}
+	}
+	
+	protected void saveFreqMap(PrintStream fout, ObjectIntOpenHashMap<String> map, int cutoff)
+	{
+		String key;	int value;
+		fout.println(countKeys(map, cutoff));
+		
+		for (ObjectCursor<String> str : map.keySet())
+		{
+			key   = str.value;
+			value = map.get(key);
+			if (value > cutoff)	fout.println(key+" "+value);
 		}
 	}
 	
@@ -167,36 +179,115 @@ abstract public class AbstractFtrMap<FtrXmlType>
 		return count;
 	}
 	
-	public int getLabelSize()
+//	=========================== Load ===========================
+	
+	public AbstractFtrMap(String lexiconFile)
 	{
-		return a_label.size();
+		load(lexiconFile);
 	}
 	
-	/** Adds the class label. */
-	public void addLabel(String label)
+	public AbstractFtrMap(BufferedReader fin)
 	{
-		m_label.put(label, m_label.get(label)+1);
+		load(fin);
 	}
 	
-	/** @return the class label corresponding to the index. */
+	public void load(String lexiconFile)
+	{
+		try
+		{
+			BufferedReader fin = IOUtil.createBufferedFileReader(lexiconFile);
+			loadDefault(fin);
+			fin.close();
+		}
+		catch (Exception e) {e.printStackTrace();System.exit(1);}
+	}
+	
+	public void load(BufferedReader fin)
+	{
+		try
+		{
+			loadDefault(fin);
+		}
+		catch (Exception e) {e.printStackTrace();System.exit(1);}
+	}
+	
+	protected void loadDefault(BufferedReader fin) throws Exception
+	{
+		ObjectIntOpenHashMap<String> map;
+		int n, i;
+		String key;
+		
+		// labels
+		n = Integer.parseInt(fin.readLine());
+		a_label = new ArrayList<String>(n);
+		m_label = new ObjectIntOpenHashMap<String>(n);
+		
+		for (i=1; i<=n; i++)
+		{
+			key = fin.readLine();
+			a_label.add(key);
+			m_label.put(key, i);
+		}
+		
+		// n-grams
+		n = Integer.parseInt(fin.readLine());
+		m_ngram = new ArrayList<ObjectIntOpenHashMap<String>>(n);
+		n_ngram = new int[n];
+		
+		for (i=0; i<n; i++)
+		{
+			map = loadHashMap(fin);
+			m_ngram.add(map);
+			n_ngram[i] = map.size();
+		}
+		
+		// extra features
+		n = Integer.parseInt(fin.readLine());
+		m_extra = new ArrayList<ObjectIntOpenHashMap<String>>(n);
+		n_extra = new int[n];
+		
+		for (i=0; i<n; i++)
+		{
+			map = loadHashMap(fin);
+			m_extra.add(map);
+			n_extra[i] = map.size();
+		}
+	}
+	
+	protected ObjectIntOpenHashMap<String> loadHashMap(BufferedReader fin) throws Exception
+	{
+		int i, n = Integer.parseInt(fin.readLine());
+		ObjectIntOpenHashMap<String> map = new ObjectIntOpenHashMap<String>(n);
+		
+		for (i=1; i<=n; i++)	// 0 is reserved for unseen feature
+			map.put(fin.readLine(), i);
+		
+		return map;
+	}
+	
+	protected ObjectIntOpenHashMap<String> loadFreqMap(BufferedReader fin) throws Exception
+	{
+		int i, n = Integer.parseInt(fin.readLine());
+		ObjectIntOpenHashMap<String> map = new ObjectIntOpenHashMap<String>(n);
+		String[] tmp;
+		
+		for (i=1; i<=n; i++)
+		{
+			tmp = fin.readLine().split(" ");
+			map.put(tmp[0], Integer.parseInt(tmp[1]));
+		}
+		
+		return map;
+	}
+	
 	public String indexToLabel(int index)
 	{
 		return a_label.get(index);
 	}
 	
-	/**
-	 * Returns the index of the class label.
-	 * If the class label does not exist, returns -1.
-	 */
 	public int labelToIndex(String label)
 	{
 		return m_label.get(label) - 1;
-	}
-	
-	public void addNgram(int index, String ftr)
-	{
-		ObjectIntOpenHashMap<String> map = m_ngram.get(index);
-		map.put(ftr, map.get(ftr)+1);
 	}
 	
 	public int ngramToIndex(int index, String ftr)
@@ -204,14 +295,13 @@ abstract public class AbstractFtrMap<FtrXmlType>
 		return m_ngram.get(index).get(ftr) - 1;
 	}
 	
+	public int extraToIndex(int index, String ftr)
+	{
+		return m_extra.get(index).get(ftr) - 1;
+	}
+	
 	public ObjectIntOpenHashMap<String> getNgramHashMap(int index)
 	{
 		return m_ngram.get(index);
 	}
-	
-	abstract protected void init(FtrXmlType xml);
-	abstract protected void load(String lexiconFile);
-	abstract protected void load(BufferedReader fin);
-	abstract public    void save(FtrXmlType xml, String lexiconFile);
-	abstract public    void save(FtrXmlType xml, PrintStream fout);
 }

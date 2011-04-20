@@ -1,5 +1,5 @@
 /**
-* Copyright (c) 2010, Regents of the University of Colorado
+* Copyright (c) 2011, Regents of the University of Colorado
 * All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -29,7 +29,7 @@ import clear.ftr.FtrLib;
 /**
  * Semantic role labeling head.
  * @author Jinho D. Choi
- * <b>Last update:</b> 1/26/2011
+ * <b>Last update:</b> 4/19/2011
  */
 public class SRLHead implements Comparable<SRLHead>
 {
@@ -44,10 +44,10 @@ public class SRLHead implements Comparable<SRLHead>
 		set(DepLib.NULL_HEAD_ID, FtrLib.TAG_NULL);
 	}
 
-	/** @param head "headId:label" */
-	public SRLHead(String head)
+	/** @param headInfo "headId:label[:score]" */
+	public SRLHead(String headInfo)
 	{
-		String[] tmp = head.split(DELIM);
+		String[] tmp = headInfo.split(DELIM);
 		
 		set(Integer.parseInt(tmp[0]), tmp[1]);
 		if (tmp.length > 2)	score = Double.parseDouble(tmp[2]);
@@ -61,15 +61,20 @@ public class SRLHead implements Comparable<SRLHead>
 	
 	public SRLHead(int headId, String label, double score)
 	{
-		this.headId = headId;
-		this.label  = label;
-		this.score  = score;
+		set(headId, label, score);
 	}
 
 	public void set(int headId, String label)
 	{
 		this.headId = headId;
 		this.label  = label; 
+	}
+	
+	public void set(int headId, String label, double score)
+	{
+		this.headId = headId;
+		this.label  = label;
+		this.score  = score;
 	}
 	
 	public boolean equals(int headId)
@@ -84,17 +89,22 @@ public class SRLHead implements Comparable<SRLHead>
 	
 	public boolean equals(int headId, String label)
 	{
-		return this.headId == headId && this.label.equals(label); 
+		return equals(headId) && equals(label); 
+	}
+	
+	public boolean labelMatches(String regex)
+	{
+		return label.matches(regex);
 	}
 	
 	public void copy(SRLHead head)
 	{
-		set(head.headId, head.label);
+		set(head.headId, head.label, head.score);
 	}
 	
 	public SRLHead clone()
 	{
-		return new SRLHead(headId, label);
+		return new SRLHead(headId, label, score);
 	}
 	
 	public String toString()

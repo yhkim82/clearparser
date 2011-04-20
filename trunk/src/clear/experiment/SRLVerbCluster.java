@@ -1,22 +1,19 @@
 package clear.experiment;
 
-import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 
+import clear.dep.DepFeat;
 import clear.dep.DepNode;
 import clear.dep.DepTree;
-import clear.dep.feat.FeatEnglish;
 import clear.dep.srl.SRLHead;
 import clear.dep.srl.SRLInfo;
 import clear.morph.MorphEnAnalyzer;
 import clear.reader.SRLReader;
-import clear.util.IOUtil;
 import clear.util.cluster.Prob1dMap;
 import clear.util.cluster.SRLClusterBuilder;
-import clear.util.tuple.JObjectObjectTuple;
 
 import com.carrotsearch.hppc.IntIntOpenHashMap;
 import com.carrotsearch.hppc.IntObjectOpenHashMap;
@@ -112,7 +109,7 @@ public class SRLVerbCluster
 		DepNode node;
 		SRLInfo info;
 		String  key;
-		double  lsc, msc;
+		double  msc;
 		
 		for (int i=1; i<tree.size(); i++)
 		{
@@ -169,8 +166,8 @@ public class SRLVerbCluster
 			{
 				if ((clusterId = map.get(i_verbId)) > 0)
 				{
-					if (node.feats == null)	node.feats = new FeatEnglish();
-					node.feats.feats[2] = Integer.toString(clusterId);
+					if (node.feats == null)	node.feats = new DepFeat("");
+					node.feats.put("ct", Integer.toString(clusterId));
 				}
 				
 				i_verbId++;
@@ -182,14 +179,13 @@ public class SRLVerbCluster
 	{
 		String dicFile    = args[0];
 		String localFile  = args[1];
-		String globalFile = args[2];
+	//	String globalFile = args[2];
 		
 		SRLVerbCluster cluster = new SRLVerbCluster(dicFile);
 		SRLReader      reader;
 		DepTree        tree;
 		
-		SRLClusterBuilder build = new SRLClusterBuilder();
-		
+	//	SRLClusterBuilder build = new SRLClusterBuilder();
 	//	System.out.println("== Retrieve local keywords ==");
 		reader = new SRLReader(localFile, true);
 		

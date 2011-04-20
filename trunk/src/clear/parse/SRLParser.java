@@ -29,7 +29,6 @@ import java.util.AbstractCollection;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 
 import clear.decode.AbstractDecoder;
 import clear.decode.OneVsAllDecoder;
@@ -76,12 +75,6 @@ public class SRLParser extends AbstractSRLParser
 	double  d_shift_margin = 0.1;
 	IntOpenHashSet s_candidates;
 	
-	/** {@link AbstractSRLParser#FLAG_TRAIN_PROBABILITY}. */
-	public SRLParser(byte flag)
-	{
-		super(flag);
-	}
-	
 	/** {@link AbstractSRLParser#FLAG_TRAIN_LEXICON}. */
 	public SRLParser(byte flag, String xmlFile)
 	{
@@ -112,7 +105,6 @@ public class SRLParser extends AbstractSRLParser
 		
 		ls_args = new ArrayList<SRLArg>();
 		ls_argn = new ArrayList<String>();
-		s_args  = new HashSet<String>();
 		
 		s_candidates = new IntOpenHashSet();
 	//	if (i_beta < d_tree.size())	collectArgumentCandidates();
@@ -128,26 +120,6 @@ public class SRLParser extends AbstractSRLParser
 		b_checkShift = true;
 		s_prevArgA   = SRLProb.ARG_NONE;
 		s_prevArgN   = SRLProb.ARG_NONE;
-	}
-	
-	protected void retrieveTopics(DepTree tree)
-	{
-		DepNode node;
-		HashSet<String> topics;
-		
-		for (int i=1; i<tree.size(); i++)
-		{
-			node = tree.get(i);
-			if (!node.isPosx("NN.*"))	continue;
-			
-			for (int j=0; j<a_topics.size(); j++)
-			{
-				topics = a_topics.get(j);
-				
-				if (topics.contains(node.lemma))
-					node.s_topics.add("TPC"+j);
-			}
-		}
 	}
 	
 	protected void collectArgumentCandidates()
@@ -244,7 +216,6 @@ public class SRLParser extends AbstractSRLParser
 		byte              iDir    = i_dir;
 		ArrayList<SRLArg> lsArgs  = new ArrayList<SRLArg>(ls_args);
 		ArrayList<String> lsArgn  = new ArrayList<String>(ls_argn);
-		HashSet<String>   sArgs   = new HashSet<String>(s_args);
 		
 		SRLFtrMap         map = getFtrMap();
 		OneVsAllDecoder   dec = getDecoder();
@@ -263,7 +234,6 @@ public class SRLParser extends AbstractSRLParser
 				i_dir    = iDir;
 				ls_args  = new ArrayList<SRLArg>(lsArgs);
 				ls_argn  = new ArrayList<String>(lsArgn);
-				s_args   = new HashSet<String>(sArgs);
 			}
 			
 			label = map.indexToLabel(res[i].i);
@@ -380,7 +350,7 @@ public class SRLParser extends AbstractSRLParser
 		DepNode lambda = tree.get(i_lambda);
 		String  label;
 		
-		if ((label = lambda.getSRLLabel(i_beta)) != null)
+		if ((label = lambda.getLabel(i_beta)) != null)
 			return label;
 		else
 			return LB_NO_ARC;
@@ -408,20 +378,13 @@ public class SRLParser extends AbstractSRLParser
 	/** Called from {@link SRLParser#shift()} for {@link AbstractSRLParser#DIR_RIGHT}. */
 	private void shiftRight()
 	{
-		if (i_flag == FLAG_TRAIN_PROBABILITY)
-		{
-			DepNode beta = d_tree.get(i_beta);
-			p_prob.add1dArgs(beta, s_args);
-			p_prob.add2dArgs(beta, ls_args);
-		}
-		else if (i_flag == FLAG_PREDICT || i_flag == FLAG_TRAIN_BOOST)
+		if (i_flag == FLAG_PREDICT || i_flag == FLAG_TRAIN_BOOST)
 		{
 			addArgs(ls_args);
 		}
 
 		ls_args  .clear();
 		ls_argn  .clear();
-		s_args   .clear();
 		m_dynamic.clear();
 	}
 	
@@ -443,7 +406,6 @@ public class SRLParser extends AbstractSRLParser
 			ls_args.add(new SRLArg(-1, LB_NO_ARC, score));
 		
 		i_lambda += i_dir;
-		n_trans++;
 	}
 	
 	private String yesArc(String label, double score)
@@ -459,14 +421,12 @@ public class SRLParser extends AbstractSRLParser
 			return arg.toString();
 		
 		ls_args.add(arg);
-		s_args .add(label);
 
 		b_checkShift = true;
 		s_prevArgA   = label;
 		if (label.substring(1).matches("A\\d"))	s_prevArgN = label;
 		
 		i_lambda += i_dir;
-		n_trans++;
 		return null;
 	}
 	
@@ -496,12 +456,12 @@ public class SRLParser extends AbstractSRLParser
 	protected void addSetLexica(SRLFtrMap map, int ftrId, AbstractCollection<String> ftrs)
 	{
 		for (String ftr : ftrs)
-			map.addFtr(ftrId, ftr);
+			map.addExtra(ftrId, ftr);
 	}
 	
 	protected void addStrLexica(SRLFtrMap map, int ftrId, String ftr)
 	{
-		if (ftr != null)	map.addFtr(ftrId, ftr);
+		if (ftr != null)	map.addExtra(ftrId, ftr);
 	}
 	
 	protected String getPredArg()
@@ -524,27 +484,6 @@ public class SRLParser extends AbstractSRLParser
 		}
 		
 		return null;
-	}
-	
-	protected HashSet<String> getTopicArgSet()
-	{
-		DepNode lambda = d_tree.get(i_lambda);
-		return lambda.s_topics;
-	}
-	
-	protected HashSet<String> getArgnSet()
-	{
-		HashSet<String> set = new HashSet<String>();
-		String sub;
-		DepNode beta = d_tree.get(i_beta);
-		
-		for (String label : s_args)
-		{
-			if ((sub = label.substring(1)).matches("A\\d"))
-				set.add(beta.lemma+"_"+sub);
-		}
-		
-		return set;
 	}
 	
 	protected IntArrayList getFeatureArray()
@@ -605,25 +544,25 @@ public class SRLParser extends AbstractSRLParser
 		
 		for (String ftr : ftrs)
 		{
-			if ((i = map.ftrToIndex(ftrId, ftr)) >= 0)
+			if ((i = map.extraToIndex(ftrId, ftr)) >= 0)
 				list.add(idx[0]+i);
 		}
 		
 		int[] tmp = list.toArray();
 		Arrays.sort(tmp);
 		arr.add(tmp, 0, tmp.length);
-		idx[0] += map.n_ftr[ftrId];
+		idx[0] += map.n_extra[ftrId];
 	}
 	
 	protected void addStrFeatures(IntArrayList arr, int[] idx, SRLFtrMap map, int ftrId, String ftr)
 	{
 		if (ftr != null)
 		{
-			int index = map.ftrToIndex(ftrId, ftr);
+			int index = map.extraToIndex(ftrId, ftr);
 			if (index >= 0)	arr.add(idx[0]+index);	
 		}
 		
-		idx[0] += map.n_ftr[ftrId];
+		idx[0] += map.n_extra[ftrId];
 	}
 	
 //	==================================== SHIFT ====================================

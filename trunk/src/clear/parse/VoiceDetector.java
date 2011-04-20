@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import clear.treebank.TBEnLib;
 import clear.treebank.TBNode;
 
-public class VoiceDetectorPhrase
+public class VoiceDetector
 {
 	static public int getPassive(TBNode pred)
 	{

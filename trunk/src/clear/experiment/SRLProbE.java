@@ -75,7 +75,7 @@ public class SRLProbE
 	{
 		DepNode tmp;
 		
-		if (pred.isPassive() && head.equals("A0") && node.isLemma("by") && (tmp = tree.getRightNearestDependent(node.id)) != null)
+		if (head.equals("A0") && node.isLemma("by") && (tmp = tree.getRightNearestDependent(node.id)) != null)
 			return tmp.lemma;
 		else
 			return node.lemma;

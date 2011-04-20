@@ -1,3 +1,26 @@
+/**
+* Copyright (c) 2011, Regents of the University of Colorado
+* All rights reserved.
+*
+* Redistribution and use in source and binary forms, with or without
+* modification, are permitted provided that the following conditions are met:
+*
+* Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+* Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+* Neither the name of the University of Colorado at Boulder nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+*
+* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+* AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+* IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+* ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+* LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+* CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+* SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+* INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+* CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+* ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+* POSSIBILITY OF SUCH DAMAGE.
+*/
 package clear.dep.srl;
 
 import java.util.ArrayList;
@@ -5,6 +28,11 @@ import java.util.ArrayList;
 import clear.dep.DepLib;
 import clear.reader.AbstractReader;
 
+/**
+ * Compare two dependency trees.
+ * @author Jinho D. Choi
+ * <b>Last update:</b> 4/19/2011
+ */
 public class SRLInfo
 {
 	static final public String DELIM_ARG = ";";
@@ -31,10 +59,19 @@ public class SRLInfo
 		}
 	}
 	
-	public SRLHead getHead(int index)
+//	============================ Getter ============================
+	
+	/** @return label of the headId; if not exists, returns null. */
+	public String getLabel(int headId)
 	{
-		return heads.get(index);
+		for (SRLHead head : heads)
+			if (head.equals(headId))
+				return head.label;
+		
+		return null;
 	}
+	
+//	============================ Setter ============================
 
 	public void setRolesetId(String rolesetId)
 	{
@@ -50,6 +87,8 @@ public class SRLInfo
 	{
 		heads.add(new SRLHead(headId, label, score));
 	}
+
+//	============================ Boolean ============================
 	
 	public boolean isPredicate()
 	{
@@ -61,7 +100,7 @@ public class SRLInfo
 		return heads.isEmpty();
 	}
 	
-	public boolean isHead(int headId)
+	public boolean isArgOf(int headId)
 	{
 		for (SRLHead head : heads)
 			if (head.equals(headId))
@@ -70,28 +109,21 @@ public class SRLInfo
 		return false;
 	}
 	
-	public boolean isHeadMatch(String regex)
+	public boolean labelMatches(String regex)
 	{
 		for (SRLHead head : heads)
-			if (head.label.matches(regex))
+			if (head.labelMatches(regex))
 				return true;
 		
 		return false;
 	}
 	
-	public String getLabel(int headId)
-	{
-		for (SRLHead head : heads)
-			if (head.equals(headId))
-				return head.label;
-		
-		return null;
-	}
-	
+//	============================ Global ============================
+
 	public void copy(SRLInfo info)
 	{
 		rolesetId = info.rolesetId;
-		heads     = new ArrayList<SRLHead>();
+		heads.clear();
 		
 		for (SRLHead head : info.heads)
 			heads.add(head.clone());
@@ -104,7 +136,7 @@ public class SRLInfo
 		info.copy(this);
 		return info;
 	}
-
+	
 	public String toString()
 	{
 		StringBuilder build = new StringBuilder();

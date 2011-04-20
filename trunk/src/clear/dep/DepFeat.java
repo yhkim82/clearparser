@@ -1,5 +1,5 @@
 /**
-* Copyright (c) 2009, Regents of the University of Colorado
+* Copyright (c) 2010, Regents of the University of Colorado
 * All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -21,71 +21,52 @@
 * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 * POSSIBILITY OF SUCH DAMAGE.
 */
-package clear.reader;
+package clear.dep;
 
-import java.io.IOException;
-
-import clear.dep.DepFeat;
-import clear.dep.DepLib;
-import clear.dep.DepNode;
-import clear.dep.DepTree;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 
 /**
- * CoNLL dependency reader.
+ * Dependency feat features.
  * @author Jinho D. Choi
- * <b>Last update:</b> 6/26/2010
+ * <b>Last update:</b> 4/19/2011
  */
-public class CoNLLXReader extends AbstractReader<DepNode,DepTree>
+@SuppressWarnings("serial")
+public class DepFeat extends HashMap<String,String>
 {
-	private boolean b_train;
-	
-	/**
-	 * Initializes the dependency reader for <code>filename</code>.
-	 * @param filename name of the file containing dependency trees
-	 * @param isTrain  true if the reader is for training
-	 */
-	public CoNLLXReader(String filename, boolean isTrain)
+	public DepFeat(String feats)
 	{
-		super(filename);
-		b_train = isTrain;
+		set(feats);
+	}
+		
+	public void set(String feats)
+	{
+		String key, val;
+		
+		for (String feat : feats.split("\\|"))
+		{
+			key = feat.split("=")[0];
+			val = feat.substring(key.length()+1);
+			
+			put(key, val);
+		}
 	}
 	
-	/** 
-	 * Returns the next dependency tree.
-	 * If there is no more tree, returns null.
-	 */
-	public DepTree nextTree()
+	public String toString()
 	{
-		DepTree tree   = new DepTree();
-		boolean isNext = false;
+		StringBuilder    build = new StringBuilder();
+		ArrayList<String> keys = new ArrayList<String>(keySet());
+		Collections.sort(keys);
 		
-		try
+		for (String key : keys)
 		{
-			isNext = appendNextTree(tree);
-		}
-		catch (IOException e) {e.printStackTrace();}
-
-		return isNext ? tree : null;
-	}
-	
-	protected DepNode toNode(String line, int id)
-	{
-		DepNode node = new DepNode();
-		String[] str = line.split(FIELD_DELIM);
-		node.id      = Integer.parseInt(str[0]);
-		node.form    = str[1];
-		node.lemma   = str[2];
-		node.pos     = str[4];
-		
-		if (!str[5].equals(DepLib.FIELD_BLANK))
-			node.feats = new DepFeat(str[5]);
-
-		if (b_train)
-		{
-			node.headId = Integer.parseInt(str[6]);
-			node.deprel = str[7];
+			build.append("|");
+			build.append(key);
+			build.append("=");
+			build.append(get(key));
 		}
 		
-		return node;
+		return build.toString().substring(1);
 	}
 }
