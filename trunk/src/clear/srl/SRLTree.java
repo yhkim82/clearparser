@@ -150,6 +150,7 @@ public class SRLTree extends FloatObjectOpenHashMap<SRLNode> implements ITree<SR
 			curr = curr.nextNode;
 			if (curr.isDeprel(SRLLib.DEPREL_P))	continue;
 			head = get(curr.getDepHeadId());
+			if (head == null)	continue;
 			
 			if (curr.id < head.id)
 			{	sId = curr.id;	eId = head.id;	}

@@ -47,8 +47,8 @@ public class PhraseToDep
 	String s_outputFile;
 	@Option(name="-h", usage="name of a file containing head-percolation rules", required=true, metaVar="REQUIRED")
 	String s_headruleFile;
-	@Option(name="-m", usage="path of a directory containing dictionaries for morphological analyzer", metaVar="OPTIONAL")
-	String s_dictDir = null;
+	@Option(name="-m", usage="name of a file containing dictionaries for morphological analyzer", metaVar="OPTIONAL")
+	String s_dictFile = null;
 	@Option(name="-l", usage="language ::= "+AbstractReader.LANG_CH+" | "+AbstractReader.LANG_EN+" (default)", metaVar="OPTIONAL")
 	String s_language = AbstractReader.LANG_EN;
 	@Option(name="-n", usage="minimum sentence length (inclusive; default = 0)", metaVar="OPTIONAL")
@@ -80,7 +80,7 @@ public class PhraseToDep
 	{
 		TBReader        reader    = new TBReader(s_inputFile);
 		TBHeadRules     headrules = new TBHeadRules(s_headruleFile);
-		MorphEnAnalyzer morph     = (s_dictDir != null) ? new MorphEnAnalyzer(s_dictDir) : null;
+		MorphEnAnalyzer morph     = (s_dictFile != null) ? new MorphEnAnalyzer(s_dictFile) : null;
 		PrintStream     fout      = IOUtil.createPrintFileStream(s_outputFile);
 		TBTree          tree;
 		TBEnConvert     converter = new TBEnConvert();

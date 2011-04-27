@@ -232,6 +232,11 @@ abstract public class AbstractSRLParser extends AbstractParser
 		else if ((m = SRLFtrXml.P_PATH.matcher(token.field)).find())
 		{
 			byte idx  = Byte.parseByte(m.group(2));
+			if (node.id > d_tree.size())
+			{
+				System.out.println(node.toString());
+				System.out.println(d_tree.toString());
+			}
 			return d_tree.getPath(m.group(1), node.id, i_beta, idx);
 		}
 		else if ((m = SRLFtrXml.P_ARGN.matcher(token.field)).find())

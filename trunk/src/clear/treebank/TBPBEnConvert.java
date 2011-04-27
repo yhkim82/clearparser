@@ -60,12 +60,13 @@ public class TBPBEnConvert
 		initSrlTree(morph, pTree.getRootNode());
 		setDepHeads(pTree.getRootNode(), headrules);
 		setDepRoot();
+		mapPhraseToDep();
 			
 		remapEmptyCategory();
 		p_tree.mapSRLTree(s_tree);
 		SRLTree copy = removeEmptyCategories();
 		copy.projectizePunc();
-		copy.checkTree();
+		if (!copy.checkTree())	System.out.println("WROOONNNNGGGG");
 		
 		return copy;
 	}
@@ -749,5 +750,26 @@ public class TBPBEnConvert
 	private boolean hasHead(int currId)
 	{
 		return s_tree.get(currId+1).hasDepHead();
+	}
+	
+	private void mapPhraseToDep()
+	{
+		mapPhraseToDepAux(p_tree.getRootNode());
+	}
+	
+	private void mapPhraseToDepAux(TBNode tNode)
+	{
+		SRLNode sNode = s_tree.get(tNode.headId+1);
+		if (sNode.pbLoc == null)
+		{
+			sNode.pbLoc = tNode.pbLoc;
+			sNode.pbLoc.type = "";
+		}
+		
+		if (tNode.isPhrase())
+		{
+			for (TBNode child : tNode.getChildren())
+				mapPhraseToDepAux(child);
+		}
 	}
 }

@@ -1,4 +1,4 @@
-package clear.experiment;
+package clear.engine;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -28,19 +28,19 @@ import clear.util.JSet;
 
 import com.carrotsearch.hppc.IntOpenHashSet;
 
-public class MergeTreePropBank
+public class PropToDep
 {
 	final String PARSE_EXT = ".parse";
 	final String SRL_EXT   = ".srl";
 	HashMap<String,PBInstance> m_pbInstances;
 	
-	public MergeTreePropBank(String propFile, String treeDir, String mergeDir, String headruleFile, String dictDir)
+	public PropToDep(String propFile, String treeDir, String mergeDir, String headruleFile, String dictDir)
 	{
 		readPBInstances(propFile);
 		merge(treeDir, mergeDir, headruleFile, dictDir);
 	}
 	
-	/** Reads all PropBank instances and stores them to {@link MergeTreePropBank#m_pbInstances}. */
+	/** Reads all PropBank instances and stores them to {@link PropToDep#m_pbInstances}. */
 	public void readPBInstances(String propFile)
 	{
 		PBReader   reader = new PBReader(propFile);
@@ -523,6 +523,6 @@ public class MergeTreePropBank
 		String headruleFile = args[3];
 		String dictDir  = args[4];
 		
-		new MergeTreePropBank(propFile, treeDir, mergeDir, headruleFile, dictDir);
+		new PropToDep(propFile, treeDir, mergeDir, headruleFile, dictDir);
 	}
 }
