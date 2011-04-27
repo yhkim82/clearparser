@@ -171,10 +171,13 @@ public class TBTree
 			if (coIndex == -1)	continue;
 			
 			ante = getAntecedent(coIndex);
-			if (ante == null)	System.err.println("Missing antecedent "+coIndex+": "+node.form+"\n"+toTree());
-			
-			ante.pbLoc.type = PBLib.PROP_OP_ANTE;
-			node.antecedent = ante;
+			if (ante == null)
+				System.err.println("Missing antecedent "+coIndex+": "+node.form);//+"\n"+toTree());
+			else
+			{
+				ante.pbLoc.type = PBLib.PROP_OP_ANTE;
+				node.antecedent = ante;				
+			}
 		}
 	}
 	

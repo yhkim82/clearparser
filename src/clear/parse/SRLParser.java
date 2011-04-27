@@ -23,12 +23,9 @@
 */
 package clear.parse;
 
-import java.text.DecimalFormat;
-import java.text.NumberFormat;
 import java.util.AbstractCollection;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 
 import clear.decode.AbstractDecoder;
 import clear.decode.OneVsAllDecoder;
@@ -38,15 +35,11 @@ import clear.dep.DepTree;
 import clear.dep.srl.SRLArg;
 import clear.dep.srl.SRLHead;
 import clear.dep.srl.SRLInfo;
-import clear.dep.srl.SRLProb;
 import clear.ftr.map.SRLFtrMap;
 import clear.ftr.xml.SRLFtrXml;
-import clear.model.AbstractModel;
 import clear.util.tuple.JIntDoubleTuple;
-import clear.util.tuple.JObjectDoubleTuple;
 
 import com.carrotsearch.hppc.IntArrayList;
-import com.carrotsearch.hppc.IntOpenHashSet;
 
 /**
  * Shift-eager dependency parser.
@@ -60,20 +53,8 @@ public class SRLParser extends AbstractSRLParser
 	/** Label of NoArc transition */
 	static public final String LB_NO_ARC = "NA";
 	
-	static public final String KEY_REL = "rel";
-	
 	/** For {@link SRLParser#FLAG_TRAIN_BOOST} only. */
 	protected DepTree d_copy = null;
-	
-	int K = 2;
-	double THRESHOLD = 0.4;
-	HashMap<String, ArrayList<ArrayList<SRLArg>>> m_dynamic;
-	
-	boolean b_checkShift;
-	String  s_prevArgA, s_prevArgN;
-	int     i_slack = 0;
-	double  d_shift_margin = 0.1;
-	IntOpenHashSet s_candidates;
 	
 	/** {@link AbstractSRLParser#FLAG_TRAIN_LEXICON}. */
 	public SRLParser(byte flag, String xmlFile)
@@ -106,58 +87,24 @@ public class SRLParser extends AbstractSRLParser
 		ls_args = new ArrayList<SRLArg>();
 		ls_argn = new ArrayList<String>();
 		
-		s_candidates = new IntOpenHashSet();
-	//	if (i_beta < d_tree.size())	collectArgumentCandidates();
-		
-		m_dynamic = new HashMap<String, ArrayList<ArrayList<SRLArg>>>();
-		
-		if (i_flag == FLAG_PREDICT || i_flag == FLAG_PREDICT_BEST || i_flag == FLAG_TRAIN_BOOST)
+		if (i_flag == FLAG_PREDICT || i_flag == FLAG_TRAIN_BOOST)
 		{
 			d_copy = tree.clone();
 			d_tree.clearSRLHeads();
-		}
-		
-		b_checkShift = true;
-		s_prevArgA   = SRLProb.ARG_NONE;
-		s_prevArgN   = SRLProb.ARG_NONE;
-	}
-	
-	protected void collectArgumentCandidates()
-	{
-		s_candidates.clear();
-		DepNode beta = d_tree.get(i_beta);
-		
-		while (true)
-		{
-			for (DepNode node : d_tree.getDependents(beta.id))
-				s_candidates.add(node.id);
-			
-			if (beta.hasHead)	beta = d_tree.get(beta.headId);
-			else				break;
 		}
 	}
 	
 	/** Parses <code>tree</code>. */
 	public void parse(DepTree tree)
 	{
-	//	retrieveTopics(tree);
 		init(tree);
 		
 		while (i_beta < tree.size())
 		{
 			if (i_lambda <= 0 || i_lambda >= tree.size())
 				shift();
-		//	else if (!s_candidates.contains(i_lambda))
-		//		i_lambda += i_dir;
 			else if (i_flag == FLAG_PREDICT)
 				predict();
-			else if (i_flag == FLAG_PREDICT_BEST)
-			{
-				predictBest();
-				dynamicPick();
-				i_dir = DIR_RIGHT;
-				shift();
-			}
 			else if (i_flag == FLAG_TRAIN_BOOST)
 				trainConditional();
 			else
@@ -189,7 +136,7 @@ public class SRLParser extends AbstractSRLParser
 		JIntDoubleTuple res = dec.predict(ftr);
 		
 		String label = (res.i < 0) ? LB_NO_ARC : map.indexToLabel(res.i);
-		res.d = AbstractModel.logistic(res.d);
+	//	res.d = AbstractModel.logistic(res.d);
 		
 		if (label.equals(LB_NO_ARC))
 			noArc(res.d);
@@ -197,6 +144,214 @@ public class SRLParser extends AbstractSRLParser
 			yesArc(label, res.d);
 	}
 	
+	private void trainConditional()
+	{
+		String    gLabel = getGoldLabel(d_copy);
+		IntArrayList ftr = getFeatureArray();
+		
+		saveInstance(gLabel, ftr);
+		predictAux(ftr);
+	}
+	
+	private String getGoldLabel(DepTree tree)
+	{
+		DepNode lambda = tree.get(i_lambda);
+		String  label;
+		
+		if ((label = lambda.getLabel(i_beta)) != null)
+			return label;
+		else
+			return LB_NO_ARC;
+	}
+	
+	/**
+	 * Performs a shift transition.
+	 * @param isDeterministic true if this is called for a deterministic-shift.
+	 */
+	private void shift()
+	{
+		if (i_dir == DIR_RIGHT)
+		{
+			shiftRight();
+			i_beta = d_tree.nextPredicateId(i_beta);
+		}
+		
+		i_dir *= -1;
+		i_lambda = i_beta + i_dir;
+	}
+	
+	/** Called from {@link SRLParser#shift()} for {@link AbstractSRLParser#DIR_RIGHT}. */
+	private void shiftRight()
+	{
+		if (i_flag == FLAG_PREDICT || i_flag == FLAG_TRAIN_BOOST)
+		{
+			addArgs(ls_args);
+		}
+
+		ls_args.clear();
+		ls_argn.clear();
+	}
+	
+	private void addArgs(ArrayList<SRLArg> seq)
+	{
+		for (SRLArg arg : seq)
+		{
+			d_tree.get(arg.argId).addSRLHead(i_beta, arg.label, arg.score);
+		}
+	}
+	
+	/** Performs a no-arc transition. */
+	private void noArc(double score)
+	{
+		trainInstance(LB_NO_ARC);
+		i_lambda += i_dir;
+	}
+	
+	private String yesArc(String label, double score)
+	{
+		trainInstance(label);
+		
+		SRLArg arg = new SRLArg(i_lambda, label, score);
+		
+		ls_args.add(arg);
+		if (label.matches("A\\d"))	ls_argn.add(label);
+
+		i_lambda += i_dir;
+		return null;
+	}
+	
+	private void trainInstance(String label)
+	{
+		if (i_flag == FLAG_TRAIN_LEXICON)
+			addTags(label);
+		else if (i_flag == FLAG_TRAIN_INSTANCE)
+			saveInstance(label, getFeatureArray());
+	}
+		
+	// ---------------------------- getFtr*() ----------------------------
+	
+	protected void addLexica(SRLFtrMap map)
+	{
+		addNgramLexica(map);
+		addSetLexica  (map, 0, d_tree.getDeprelDepSet(i_beta));
+		addStrLexica  (map, 1, getPredArg());
+	}
+	
+	protected void addSetLexica(SRLFtrMap map, int ftrId, AbstractCollection<String> ftrs)
+	{
+		for (String ftr : ftrs)
+			map.addExtra(ftrId, ftr);
+	}
+	
+	protected void addStrLexica(SRLFtrMap map, int ftrId, String ftr)
+	{
+		if (ftr != null)	map.addExtra(ftrId, ftr);
+	}
+	
+	protected String getPredArg()
+	{
+		if (i_dir == DIR_RIGHT)	return null;
+		SRLInfo info = d_tree.get(i_lambda).srlInfo;
+		
+		if (!info.heads.isEmpty())
+		{
+			for (int i=info.heads.size()-1; i>=0; i--)
+			{
+				SRLHead head = info.heads.get(i);
+				
+				if (head.headId < i_beta)
+				{
+					DepNode pred = d_tree.get(head.headId);
+					return pred.lemma+"_"+head.label;
+				}
+			}
+		}
+		
+		return null;
+	}
+	
+	protected IntArrayList getFeatureArray()
+	{
+		// add features
+		IntArrayList arr = new IntArrayList();
+		int idx[] = {1};
+		SRLFtrMap map = getFtrMap();
+		
+		addNgramFeatures(arr, idx, map);
+		addBinaryFeatures(arr, idx);
+		addDistanceFeature(arr, idx);
+		addSetFeatures(arr, idx, map, 0, d_tree.getDeprelDepSet(i_beta));
+		addStrFeatures(arr, idx, map, 1, getPredArg());
+		
+		return arr;
+	}
+	
+	protected void addBinaryFeatures(IntArrayList arr, int[] idx)
+	{
+		DepNode lambda = d_tree.get(i_lambda);
+		DepNode beta   = d_tree.get(i_beta);
+		
+		if      (lambda.headId == i_beta)			arr.add(idx[0]);
+		else if (beta.headId == i_lambda)			arr.add(idx[0]+1);
+		else if (d_tree.isAncestor(beta, lambda))	arr.add(idx[0]+2);	// for out-of-domain
+		
+		while (DepLib.M_VC.matcher(beta.deprel).matches())
+		{
+			beta = d_tree.get(beta.headId);
+			
+			if (d_tree.getDeprelDepSet(beta.id).contains(DepLib.DEPREL_SBJ))
+			{
+				arr.add(idx[0]+3);
+				break;
+			}
+		}
+
+		idx[0] += 4;
+	}
+	
+	protected void addDistanceFeature(IntArrayList arr, int[] idx)
+	{
+		int dist = Math.abs(i_beta - i_lambda);
+		
+		if      (dist <=  5)	dist = 0;
+		else if (dist <= 10)	dist = 1;
+		else					dist = 2;
+		
+		arr.add(idx[0]+dist);
+		idx[0] += 3;
+	}
+	
+	protected void addSetFeatures(IntArrayList arr, int[] idx, SRLFtrMap map, int ftrId, AbstractCollection<String> ftrs)
+	{
+		IntArrayList list = new IntArrayList();
+		int i;
+		
+		for (String ftr : ftrs)
+		{
+			if ((i = map.extraToIndex(ftrId, ftr)) >= 0)
+				list.add(idx[0]+i);
+		}
+		
+		int[] tmp = list.toArray();
+		Arrays.sort(tmp);
+		arr.add(tmp, 0, tmp.length);
+		idx[0] += map.n_extra[ftrId];
+	}
+	
+	protected void addStrFeatures(IntArrayList arr, int[] idx, SRLFtrMap map, int ftrId, String ftr)
+	{
+		if (ftr != null)
+		{
+			int index = map.extraToIndex(ftrId, ftr);
+			if (index >= 0)	arr.add(idx[0]+index);	
+		}
+		
+		idx[0] += map.n_extra[ftrId];
+	}
+	
+//	==================================== SHIFT ====================================
+	
+/*	
 	private void predictBest()
 	{
 		if (i_lambda >= d_tree.size())	// right-shift
@@ -336,238 +491,7 @@ public class SRLParser extends AbstractSRLParser
 		return build.toString();
 	}
 	
-	private void trainConditional()
-	{
-		String    gLabel = getGoldLabel(d_copy);
-		IntArrayList ftr = getFeatureArray();
-		
-		saveInstance(gLabel, ftr);
-		predictAux(ftr);
-	}
-	
-	private String getGoldLabel(DepTree tree)
-	{
-		DepNode lambda = tree.get(i_lambda);
-		String  label;
-		
-		if ((label = lambda.getLabel(i_beta)) != null)
-			return label;
-		else
-			return LB_NO_ARC;
-	}
-	
-	/**
-	 * Performs a shift transition.
-	 * @param isDeterministic true if this is called for a deterministic-shift.
-	 */
-	private void shift()
-	{
-		if (i_dir == DIR_RIGHT)
-		{
-			shiftRight();
-			i_beta = d_tree.nextPredicateId(i_beta);
-			
-		//	if (i_beta < d_tree.size())	collectArgumentCandidates();
-		}
-		
-		b_checkShift = true;
-		i_dir *= -1;
-		i_lambda = i_beta + i_dir;
-	}
-	
-	/** Called from {@link SRLParser#shift()} for {@link AbstractSRLParser#DIR_RIGHT}. */
-	private void shiftRight()
-	{
-		if (i_flag == FLAG_PREDICT || i_flag == FLAG_TRAIN_BOOST)
-		{
-			addArgs(ls_args);
-		}
-
-		ls_args  .clear();
-		ls_argn  .clear();
-		m_dynamic.clear();
-	}
-	
-	private void addArgs(ArrayList<SRLArg> seq)
-	{
-		for (SRLArg arg : seq)
-		{
-			if (arg.argId > 0)
-				d_tree.get(arg.argId).addSRLHead(i_beta, arg.label.substring(1), arg.score);
-		}
-	}
-	
-	/** Performs a no-arc transition. */
-	private void noArc(double score)
-	{
-		trainInstance(LB_NO_ARC);
-		
-		if (i_flag == FLAG_PREDICT_BEST)
-			ls_args.add(new SRLArg(-1, LB_NO_ARC, score));
-		
-		i_lambda += i_dir;
-	}
-	
-	private String yesArc(String label, double score)
-	{
-		trainInstance(label);
-		
-		if (label.matches("A\\d"))	ls_argn.add(label);
-		label = getDirLabel(label);
-		
-		SRLArg arg = new SRLArg(i_lambda, label, score);
-		
-		if (i_flag == FLAG_PREDICT_BEST && m_dynamic.containsKey(arg))
-			return arg.toString();
-		
-		ls_args.add(arg);
-
-		b_checkShift = true;
-		s_prevArgA   = label;
-		if (label.substring(1).matches("A\\d"))	s_prevArgN = label;
-		
-		i_lambda += i_dir;
-		return null;
-	}
-	
-	private String getDirLabel(String label)
-	{
-		if (i_dir == DIR_LEFT)	return SRLProb.SYM_PREV + label;
-		else					return SRLProb.SYM_NEXT + label;
-	}
-	
-	private void trainInstance(String label)
-	{
-		if (i_flag == FLAG_TRAIN_LEXICON)
-			addTags(label);
-		else if (i_flag == FLAG_TRAIN_INSTANCE)
-			saveInstance(label, getFeatureArray());
-	}
-		
-	// ---------------------------- getFtr*() ----------------------------
-	
-	protected void addLexica(SRLFtrMap map)
-	{
-		addNgramLexica(map);
-		addSetLexica  (map, 0, d_tree.getDeprelDepSet(i_beta));
-		addStrLexica  (map, 1, getPredArg());
-	}
-	
-	protected void addSetLexica(SRLFtrMap map, int ftrId, AbstractCollection<String> ftrs)
-	{
-		for (String ftr : ftrs)
-			map.addExtra(ftrId, ftr);
-	}
-	
-	protected void addStrLexica(SRLFtrMap map, int ftrId, String ftr)
-	{
-		if (ftr != null)	map.addExtra(ftrId, ftr);
-	}
-	
-	protected String getPredArg()
-	{
-		if (i_dir == DIR_RIGHT)	return null;
-		SRLInfo info = d_tree.get(i_lambda).srlInfo;
-		
-		if (!info.heads.isEmpty())
-		{
-			for (int i=info.heads.size()-1; i>=0; i--)
-			{
-				SRLHead head = info.heads.get(i);
-				
-				if (head.headId < i_beta)
-				{
-					DepNode pred = d_tree.get(head.headId);
-					return pred.lemma+"_"+head.label;
-				}
-			}
-		}
-		
-		return null;
-	}
-	
-	protected IntArrayList getFeatureArray()
-	{
-		// add features
-		IntArrayList arr = new IntArrayList();
-		int idx[] = {1};
-		SRLFtrMap map = getFtrMap();
-		
-		addNgramFeatures(arr, idx, map);
-		addBinaryFeatures(arr, idx);
-		addDistanceFeature(arr, idx);
-		addSetFeatures(arr, idx, map, 0, d_tree.getDeprelDepSet(i_beta));
-		addStrFeatures(arr, idx, map, 1, getPredArg());
-		
-		return arr;
-	}
-	
-	protected void addBinaryFeatures(IntArrayList arr, int[] idx)
-	{
-		DepNode lambda = d_tree.get(i_lambda);
-		DepNode beta   = d_tree.get(i_beta);
-		
-		if      (lambda.headId == i_beta)			arr.add(idx[0]);
-		else if (beta.headId == i_lambda)			arr.add(idx[0]+1);
-		else if (d_tree.isAncestor(beta, lambda))	arr.add(idx[0]+2);	// for out-of-domain
-		
-		while (DepLib.M_VC.matcher(beta.deprel).matches())
-		{
-			beta = d_tree.get(beta.headId);
-			
-			if (d_tree.getDeprelDepSet(beta.id).contains(DepLib.DEPREL_SBJ))
-			{
-				arr.add(idx[0]+3);
-				break;
-			}
-		}
-
-		idx[0] += 4;
-	}
-	
-	protected void addDistanceFeature(IntArrayList arr, int[] idx)
-	{
-		int dist = Math.abs(i_beta - i_lambda);
-		
-		if      (dist <=  5)	dist = 0;
-		else if (dist <= 10)	dist = 1;
-		else					dist = 2;
-		
-		arr.add(idx[0]+dist);
-		idx[0] += 3;
-	}
-	
-	protected void addSetFeatures(IntArrayList arr, int[] idx, SRLFtrMap map, int ftrId, AbstractCollection<String> ftrs)
-	{
-		IntArrayList list = new IntArrayList();
-		int i;
-		
-		for (String ftr : ftrs)
-		{
-			if ((i = map.extraToIndex(ftrId, ftr)) >= 0)
-				list.add(idx[0]+i);
-		}
-		
-		int[] tmp = list.toArray();
-		Arrays.sort(tmp);
-		arr.add(tmp, 0, tmp.length);
-		idx[0] += map.n_extra[ftrId];
-	}
-	
-	protected void addStrFeatures(IntArrayList arr, int[] idx, SRLFtrMap map, int ftrId, String ftr)
-	{
-		if (ftr != null)
-		{
-			int index = map.extraToIndex(ftrId, ftr);
-			if (index >= 0)	arr.add(idx[0]+index);	
-		}
-		
-		idx[0] += map.n_extra[ftrId];
-	}
-	
-//	==================================== SHIFT ====================================
-	
-/*	protected boolean isShift(double score)
+	protected boolean isShift(double score)
 	{
 		if (b_checkShift)	b_checkShift = false;
 		else				return false;
@@ -664,5 +588,6 @@ public class SRLParser extends AbstractSRLParser
 		}
 
 		return true;
-	}*/
+	}
+*/
 }

@@ -1,5 +1,5 @@
 /**
-* Copyright (c) 2009, Regents of the University of Colorado
+* Copyright (c) 2011, Regents of the University of Colorado
 * All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -21,73 +21,53 @@
 * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 * POSSIBILITY OF SUCH DAMAGE.
 */
-package clear.reader;
+package clear.dep.srl;
 
-import java.io.IOException;
+import clear.util.JArrays;
 
-import clear.dep.DepFeat;
-import clear.dep.DepLib;
-import clear.dep.DepNode;
-import clear.dep.DepTree;
-import clear.dep.srl.SRLInfo;
+import com.carrotsearch.hppc.IntArrayList;
 
 /**
- * Dependency reader.
+ * Semantic role labeling argument	.
  * @author Jinho D. Choi
- * <b>Last update:</b> 6/26/2010
+ * <b>Last update:</b> 4/19/2011
  */
-public class SRLReader extends AbstractReader<DepNode,DepTree>
+public class SRLSpan
 {
-	private boolean b_train;
+	static public final String ID_DELIM = ",";
+	
+	public String       label;
+	public IntArrayList argIds;
+	
+	public SRLSpan(String span)
+	{
+		String[] tmp = span.split(SRLHead.DELIM);
+		label  = tmp[0];
+		argIds = new IntArrayList();
+		
+		for (String id : tmp[1].split(ID_DELIM))
+			argIds.add(Integer.parseInt(id));
+	}
 
-	/**
-	 * Initializes the dependency reader for <code>filename</code>.
-	 * @param filename name of the file containing dependency trees
-	 * @param isTrain  true if the reader is for training
-	 */
-	public SRLReader(String filename, boolean isTrain)
+	public SRLSpan(IntArrayList argIds, String label)
 	{
-		super(filename);
-		b_train = isTrain;
+		set(argIds, label);
 	}
 	
-	/** 
-	 * Returns the next dependency tree.
-	 * If there is no more tree, returns null.
-	 */
-	public DepTree nextTree()
+	public void set(IntArrayList argIds, String label)
 	{
-		DepTree tree   = new DepTree();
-		boolean isNext = false;
-		
-		try
-		{
-			isNext = appendNextTree(tree);
-		}
-		catch (IOException e) {e.printStackTrace();}
-		
-		return isNext ? tree : null;
+		this.argIds = argIds;
+		this.label  = label;
 	}
 	
-	protected DepNode toNode(String line, int id)
+	public String toString()
 	{
-		DepNode node = new DepNode();
-		String[] str = line.split(FIELD_DELIM);
-		node.id      = Integer.parseInt(str[0]);
-		node.form    = str[1];
-		node.lemma   = str[2];
-		node.pos     = str[3];
+		StringBuilder build = new StringBuilder();
 		
-		if (!str[4].equals(DepLib.FIELD_BLANK))
-			node.feats = new DepFeat(str[4]);
+		build.append(label);
+		build.append(SRLHead.DELIM);
+		build.append(JArrays.join(argIds, ID_DELIM));
 		
-		node.headId = Integer.parseInt(str[5]);
-		node.deprel = str[6];
-		if ((node.headId >= 0))	node.hasHead = true;
-		
-		if (b_train)	node.srlInfo = new SRLInfo(str[7], str[8]);
-		else			node.srlInfo = new SRLInfo(str[7], DepLib.FIELD_BLANK);
-		
-		return node;
+		return build.toString();
 	}
 }

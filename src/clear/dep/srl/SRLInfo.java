@@ -39,6 +39,7 @@ public class SRLInfo
 	
 	public String         rolesetId;
 	public ArrayList<SRLHead> heads;
+	public ArrayList<SRLSpan> spans;
 	
 	public SRLInfo()
 	{
@@ -86,6 +87,14 @@ public class SRLInfo
 	public void addHead(int headId, String label, double score)
 	{
 		heads.add(new SRLHead(headId, label, score));
+	}
+	
+	public void setSpan(String spans)
+	{
+		this.spans = new ArrayList<SRLSpan>();
+		
+		for (String span : spans.split(DELIM_ARG))
+			this.spans.add(new SRLSpan(span));
 	}
 
 //	============================ Boolean ============================

@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 
 import clear.ftr.FtrLib;
+import clear.propbank.PBLoc;
 import clear.reader.AbstractReader;
 import clear.treebank.TBEnLib;
 import clear.util.JArrays;
@@ -53,6 +54,7 @@ public class SRLNode implements Comparable<SRLNode>
 	public ArrayList<SRLArg>  sArgs;
 	public SRLNode prevNode;			// previous token
 	public SRLNode nextNode;			// next token
+	public PBLoc   pbLoc = null;
 	
 	public SRLNode()
 	{
@@ -210,15 +212,19 @@ public class SRLNode implements Comparable<SRLNode>
 		buff.append(JString.getNormalizedForm(id));
 		buff.append(AbstractReader.FIELD_DELIM);
 		
-		buff.append(form);		buff.append(AbstractReader.FIELD_DELIM);
-		buff.append(lemma);		buff.append(AbstractReader.FIELD_DELIM);
-		buff.append(pos);		buff.append(AbstractReader.FIELD_DELIM);
-		buff.append(dHead);		buff.append(AbstractReader.FIELD_DELIM);
-		buff.append(roleset);	buff.append(AbstractReader.FIELD_DELIM);
-		
-		if (anteId > 0)			buff.append(JString.getNormalizedForm(anteId));
-		else					buff.append(SRLLib.FIELD_BLANK);
+		buff.append(form);	buff.append(AbstractReader.FIELD_DELIM);
+		buff.append(lemma);	buff.append(AbstractReader.FIELD_DELIM);
+		buff.append(pos);	buff.append(AbstractReader.FIELD_DELIM);
+		buff.append("_");	buff.append(AbstractReader.FIELD_DELIM);	// feat
+		buff.append(JString.getNormalizedForm(dHead.headId));
 		buff.append(AbstractReader.FIELD_DELIM);
+		buff.append(dHead.label);
+		buff.append(AbstractReader.FIELD_DELIM);
+		buff.append(roleset);		buff.append(AbstractReader.FIELD_DELIM);
+		
+	/*	if (anteId > 0)			buff.append(JString.getNormalizedForm(anteId));
+		else					buff.append(SRLLib.FIELD_BLANK);
+		buff.append(AbstractReader.FIELD_DELIM);*/
 		
 		if (sHeads.isEmpty())
 			buff.append(SRLLib.FIELD_BLANK);
@@ -234,6 +240,8 @@ public class SRLNode implements Comparable<SRLNode>
 		}
 		buff.append(AbstractReader.FIELD_DELIM);
 		
+		SRLArg arg;
+		
 		if (sArgs.isEmpty())
 			buff.append(SRLLib.FIELD_BLANK);
 		else
@@ -242,10 +250,19 @@ public class SRLNode implements Comparable<SRLNode>
 			
 			for (int i=0; i<sArgs.size(); i++)
 			{
-				if (i > 0)	buff.append(SRLLib.HEAD_DELIM);
-				buff.append(sArgs.get(i));
+				arg = sArgs.get(i);
+				
+				if (arg.ids.length > 0)
+				{
+					buff.append(sArgs.get(i));
+					buff.append(SRLLib.HEAD_DELIM);
+				}
 			}
 		}
+		
+		buff.append(AbstractReader.FIELD_DELIM);
+		if (pbLoc == null)	buff.append(SRLLib.FIELD_BLANK);	
+		else				buff.append(pbLoc.toString());
 		
 		return buff.toString();
 	}

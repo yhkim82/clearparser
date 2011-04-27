@@ -30,6 +30,8 @@ import java.util.HashSet;
 import clear.ftr.map.DepFtrMap;
 import clear.ftr.xml.DepFtrXml;
 
+import com.carrotsearch.hppc.IntOpenHashSet;
+
 /**
  * Dependency tree.
  * @see DepNode
@@ -518,6 +520,25 @@ public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
 		}
 		
 		return null;
+	}
+	
+	public IntOpenHashSet getSubIdSet(int currId)
+	{
+		IntOpenHashSet set = new IntOpenHashSet();
+	
+		getSubIdSetAux(currId, set);
+		return set;
+	}
+	
+	private void getSubIdSetAux(int currId, IntOpenHashSet set)
+	{
+		set.add(currId);
+		
+		for (DepNode node : getDependents(currId))
+		{
+			set.add(node.id);
+			getSubIdSetAux(node.id, set);
+		}
 	}
 		
 	/** @return the score of the tree. */
