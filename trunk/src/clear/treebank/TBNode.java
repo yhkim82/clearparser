@@ -28,9 +28,8 @@ import java.util.BitSet;
 import java.util.HashSet;
 import java.util.StringTokenizer;
 
+import clear.dep.srl.SRLHead;
 import clear.propbank.PBLoc;
-import clear.srl.SRLArg;
-import clear.srl.SRLHead;
 
 import com.carrotsearch.hppc.IntOpenHashSet;
 
@@ -72,7 +71,7 @@ public class TBNode
 	/** PropBank heads */
 	protected ArrayList<SRLHead> pb_heads;
 	/** PropBank arguments (if this node is a predicate) */
-	protected ArrayList<SRLArg>	pb_args;
+//	protected ArrayList<SRLArg>	pb_args;
 	
 	/** Initializes the node with its parent node and pos-tag. */
 	public TBNode(TBNode parent, String postag)
@@ -91,7 +90,7 @@ public class TBNode
 		nd_parent   = parent;
 		ls_children = null;
 		pb_heads    = null;
-		pb_args     = null;
+	//	pb_args     = null;
 		init(postag);
 	}
 	
@@ -380,7 +379,25 @@ public class TBNode
 		
 		for (TBNode child : ls_children)
 		{
+			build.append(child.pos+"-"+child.tags);
+			build.append(" ");
+		}
+		
+		return build.toString();
+	}
+	
+	/** @return pos-tags of the node's children. */
+	public String toPosWords()
+	{
+		StringBuilder build = new StringBuilder();
+		
+		for (TBNode child : ls_children)
+		{
+			build.append("(");
 			build.append(child.pos);
+			build.append(" ");
+			build.append(child.toWords());
+			build.append(")");
 			build.append(" ");
 		}
 		
@@ -530,7 +547,7 @@ public class TBNode
 		return pb_heads.add(sHead);
 	}
 	
-	public boolean addPBArg(SRLArg sArg)
+/*	public boolean addPBArg(SRLArg sArg)
 	{
 		if (pb_args == null)
 			pb_args = new ArrayList<SRLArg>();
@@ -542,7 +559,7 @@ public class TBNode
 		}
 		
 		return pb_args.add(sArg);
-	}
+	}*/
 	
 	public String getSentenceGroup()
 	{
@@ -602,4 +619,15 @@ public class TBNode
 	{
 		return antecedent != null;
 	}
+	
+	public TBNode getIncludedEmptyCategory()
+	{
+		for (TBNode node : getSubTerminalNodes())
+		{
+			if (node.isEmptyCategory())
+				return node;
+		}
+		
+		return null;
+	}	
 }

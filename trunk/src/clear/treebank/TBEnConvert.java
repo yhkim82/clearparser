@@ -31,33 +31,43 @@ import java.util.HashSet;
 import clear.dep.DepLib;
 import clear.dep.DepNode;
 import clear.dep.DepTree;
+import clear.dep.srl.SRLHead;
+import clear.dep.srl.SRLInfo;
 import clear.morph.MorphEnAnalyzer;
+import clear.propbank.PBLoc;
 
 /**
  * This class provides APIs to convert phrase structure trees to dependency trees in English.
  * @author Jinho D. Choi
  * <b>Last update:</b> 9/1/2010
  */
-public class TBEnConvert
+public class TBEnConvert extends AbstractTBConvert
 {
-	private TBTree  p_tree;
-	private DepTree d_tree;
 	private boolean b_funcTag;
+	private boolean b_ec;
 	private boolean b_reverseVC;
+	private MorphEnAnalyzer g_morph;
+	
+	public TBEnConvert(TBHeadRules headrules, MorphEnAnalyzer morph, boolean funcTag, boolean ec, boolean reverseVC)
+	{
+		g_headrules = headrules;
+		g_morph     = morph;
+		b_funcTag   = funcTag;
+		b_ec        = ec;
+		b_reverseVC = reverseVC;
+	}
 	
 	/** @return a dependency tree converted from <code>pTree</cdoe>. */
-	public DepTree toDepTree(TBTree pTree, TBHeadRules headrules, MorphEnAnalyzer morph, boolean funcTag, boolean ec, boolean reverseVC)
+	public DepTree toDepTree(TBTree pTree)
 	{
-		p_tree      = pTree;
-		d_tree      = new DepTree();
-		b_funcTag   = funcTag;
-		b_reverseVC = reverseVC;
+		p_tree = pTree;
+		d_tree = new DepTree();
 		
-		initDepTree(morph, pTree.getRootNode());
-		setDepHeads(pTree.getRootNode(), headrules);
+		initDepTree(pTree.getRootNode());
+		setDepHeads(pTree.getRootNode());
 		setDepRoot();
 		
-		if (ec)
+		if (b_ec)
 		{
 			d_tree.checkTree();
 			return d_tree;
@@ -73,13 +83,34 @@ public class TBEnConvert
 		}
 	}
 	
+	/** @return a semantic role labeling tree converted from <code>pTree</code>. */
+	public DepTree toSRLTree(TBTree pTree)
+	{
+		p_tree = pTree;
+		d_tree = new DepTree();
+		
+		reconfigureAntecedents();
+		initSRLTree(pTree.getRootNode());
+		setDepHeads(pTree.getRootNode());
+		setDepRoot();
+			
+		remapEmptyCategory();
+		p_tree.mapSRLTree(d_tree);
+		mapPBLocToDep();
+		DepTree copy = removeEmptyCategories();
+		copy.projectizePunc();
+		copy.checkTree();
+		
+		return copy;
+	}
+	
 	/** Initializes <code>tree</code> using the subtree of <code>curr</code>. */
-	private void initDepTree(MorphEnAnalyzer morph, TBNode curr)
+	private void initDepTree(TBNode curr)
 	{
 		if (curr.isPhrase())
 		{
 			for (TBNode child : curr.getChildren())
-				initDepTree(morph, child);
+				initDepTree(child);
 		}
 		else
 		{
@@ -88,30 +119,48 @@ public class TBEnConvert
 			node.id    = curr.terminalId + 1;
 			node.form  = curr.form;
 			node.pos   = curr.pos;
-			node.lemma = (morph != null) ? morph.getLemma(curr.form, curr.pos) : node.form.toLowerCase();
+			node.lemma = (g_morph != null) ? g_morph.getLemma(curr.form, curr.pos) : node.form.toLowerCase();
 			
 			d_tree.add(node);
 		}
 	}
 	
+	private void initSRLTree(TBNode curr)
+	{
+		initDepTree(curr);
+		
+		DepNode node;
+		
+		for (int i=1; i<d_tree.size(); i++)
+		{
+			node = d_tree.get(i);
+			node.srlInfo = new SRLInfo();
+			node.pbLoc   = new PBLoc[2];
+			node.pbLoc[0] = new PBLoc("", -1, -1);
+			node.pbLoc[1] = new PBLoc("", -1, -1);
+		}
+	}
+	
 	/** Finds heads for all phrases. */
-	private void setDepHeads(TBNode curr, TBHeadRules headrules)
+	private void setDepHeads(TBNode curr)
 	{
 		if (!curr.isPhrase())			return;
 		
 		// traverse all subtrees
 		for (TBNode child : curr.getChildren())
-			setDepHeads(child, headrules);
+			setDepHeads(child);
 
 		// top-level constituent
 		if (curr.isPos(TBLib.POS_TOP))	return;
 		
 		// find heads of all subtrees
-		findHeads(curr, headrules);
+		findHeads(curr);
+		
 		if (isCoordination(curr))
 			setCoordination(curr);
 		else if (curr.isPos(TBEnLib.POS_NP+"|"+TBEnLib.POS_NX+"|"+TBEnLib.POS_NML))
-			setApposition  (curr);
+			setApposition(curr);
+		
 		setGap(curr);		
 		reconfigureHead(curr);
 		setDepHeadsAux (curr);
@@ -121,9 +170,9 @@ public class TBEnConvert
 	 * Finds heads of all phrases under <code>curr</code> using <code>headrules</code>.
 	 * <code>beginId</code> inclusive, <code>endId</code> exclusive.
 	 */
-	private void findHeads(TBNode curr, TBHeadRules headrules)
+	private void findHeads(TBNode curr)
 	{
-		TBHeadRule        headrule = headrules.getHeadRule(curr.pos);
+		TBHeadRule        headrule = g_headrules.getHeadRule(curr.pos);
 		ArrayList<TBNode> children = curr.getChildren();
 		
 		if (children.size() == 1)
@@ -131,7 +180,13 @@ public class TBEnConvert
 			curr.headId = children.get(0).headId;
 			return;
 		}
-			
+		
+		if (headrule == null)
+		{
+			System.err.println("Rules not found for [POS="+curr.pos+"]");
+			return;
+		}
+		
 		for (String rule : headrule.rules)
 		{
 			if (headrule.dir == -1)
@@ -638,6 +693,13 @@ public class TBEnConvert
 			{
 				node.id     = map.get(node.id);
 				node.headId = map.get(node.headId);
+				
+				if (node.srlInfo != null)
+				{
+					for (SRLHead head : node.srlInfo.heads)
+						head.headId = map.get(head.headId);
+				}
+				
 				copy.add(node);
 			}
 		}
@@ -655,5 +717,75 @@ public class TBEnConvert
 	private boolean hasHead(int currId)
 	{
 		return d_tree.get(currId+1).hasHead;
+	}
+	
+	
+//	=========================== SRL conversion ===========================
+	
+	private void reconfigureAntecedents()
+	{
+		ArrayList<TBNode> terminalNodes = p_tree.getTerminalNodes();
+		TBNode node, ante;
+		
+		for (int i=0; i<terminalNodes.size(); i++)
+		{
+			node = terminalNodes.get(i);
+			if (!node.hasAntecedent())	continue;
+			
+			ante = node.antecedent;
+			
+			while (ante.isEmptyCategoryRec())
+			{
+				if (ante.isPhrase())
+					ante = p_tree.getTerminalNode(ante.pbLoc.terminalId);
+				
+				if (ante.hasAntecedent())
+					ante = ante.antecedent;
+				else
+					break;
+			}
+			
+			node.antecedent = ante;
+		}
+	}
+	
+	private void mapPBLocToDep()
+	{
+		setPBLocInDepAux(p_tree.getRootNode());
+	}
+	
+	private void setPBLocInDepAux(TBNode tNode)
+	{
+		if (tNode.headId >= 0)
+		{
+			DepNode dNode = d_tree.get(tNode.headId+1);
+			
+			if (dNode.pbLoc[1].terminalId < 0 && !containsPredicate(tNode, dNode))
+				dNode.pbLoc[1].set("", tNode.pbLoc.terminalId, tNode.pbLoc.height);
+		}
+		
+		if (tNode.isPhrase())
+		{
+			for (TBNode child : tNode.getChildren())
+				setPBLocInDepAux(child);
+		}
+		else
+		{
+			DepNode dNode = d_tree.get(tNode.terminalId+1);
+			dNode.pbLoc[0].set("", tNode.pbLoc.terminalId, tNode.pbLoc.height);
+		}
+	}
+	
+	private boolean containsPredicate(TBNode tNode, DepNode dNode)
+	{
+		BitSet set = tNode.getSubTerminalBitSet();
+		
+		for (SRLHead head : dNode.srlInfo.heads)
+		{
+			if (set.get(head.headId-1))
+				return true;
+		}
+		
+		return false;
 	}
 }

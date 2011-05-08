@@ -25,7 +25,6 @@ package clear.reader;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.util.StringTokenizer;
 
 import clear.dep.ITree;
 import clear.util.IOUtil;
@@ -45,6 +44,8 @@ abstract public class AbstractReader<NodeType, TreeType>
 	static public final String LANG_HI = "hi";
 	/** Flag for Czech */
 	static public final String LANG_CZ = "cz";
+	/** Flag for Korean */
+	static public final String LANG_KR = "kr";
 	
 	/** Flag for raw format */
 	static public final String FORMAT_RAW    = "raw";
@@ -105,8 +106,7 @@ abstract public class AbstractReader<NodeType, TreeType>
 	/** @return true if <code>line</code> is empty */
 	protected boolean isSkip(String line)
 	{
-		StringTokenizer tok = new StringTokenizer(line);
-		return (!tok.hasMoreTokens());
+		return line.startsWith(";") || line.trim().isEmpty();
 	}
 	
 	/** 

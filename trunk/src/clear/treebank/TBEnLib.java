@@ -44,6 +44,7 @@ public class TBEnLib extends TBLib
 	static final public String POS_CIT     = "CIT";
 	static final public String POS_CONJP   = "CONJP";
 	static final public String POS_EDITED  = "EDITED";
+	static final public String POS_EMBED   = "EMBED";
 	static final public String POS_FRAG    = "FRAG";
 	static final public String POS_INTJ    = "INTJ";
 	static final public String POS_LST     = "LST";

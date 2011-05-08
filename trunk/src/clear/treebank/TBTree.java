@@ -25,11 +25,11 @@ package clear.treebank;
 
 import java.util.ArrayList;
 
+import clear.dep.DepNode;
+import clear.dep.DepTree;
+import clear.dep.srl.SRLHead;
 import clear.propbank.PBLib;
 import clear.propbank.PBLoc;
-import clear.srl.SRLHead;
-import clear.srl.SRLNode;
-import clear.srl.SRLTree;
 import clear.util.tuple.JIntIntTuple;
 
 /**
@@ -172,7 +172,10 @@ public class TBTree
 			
 			ante = getAntecedent(coIndex);
 			if (ante == null)
+			{
+			//	if (!node.isForm("\\*PRO\\*.*") && !node.getParent().isPos("WH.*"))
 				System.err.println("Missing antecedent "+coIndex+": "+node.form);//+"\n"+toTree());
+			}
 			else
 			{
 				ante.pbLoc.type = PBLib.PROP_OP_ANTE;
@@ -265,23 +268,26 @@ public class TBTree
 		return true;
 	}
 	
-	public void mapSRLTree(SRLTree tree)
+	public void mapSRLTree(DepTree tree)
 	{
 		mapSRLTreeAux(tree, getRootNode());
 		mapSRLTreeAuxClean(tree);
 	}
 	
-	private void mapSRLTreeAux(SRLTree tree, TBNode tNode)
+	private void mapSRLTreeAux(DepTree tree, TBNode tNode)
 	{
-		SRLNode sNode = tree.get(tNode.headId+1);
-		
-		if (tNode.pb_heads != null)
-			sNode.addSRLHeads(tNode.pb_heads);
-		else if (tNode.rolesetId != null)
+		if (tNode.headId >= 0)
 		{
-			sNode.roleset = tNode.rolesetId;
-			if (tNode.pb_args != null)
-				sNode.addSRLArgs(tNode.pb_args);
+			DepNode dNode = tree.get(tNode.headId+1);
+			
+			if (tNode.pb_heads != null)
+			{
+				dNode.addSRLHeads(tNode.pb_heads);
+			}
+			else if (tNode.rolesetId != null)
+			{
+				dNode.setRolesetId(tNode.rolesetId);
+			}			
 		}
 		
 		if (tNode.isPhrase())
@@ -291,21 +297,21 @@ public class TBTree
 		}
 	}
 	
-	private void mapSRLTreeAuxClean(SRLTree tree)
+	private void mapSRLTreeAuxClean(DepTree tree)
 	{
-		SRLNode node = tree.getRootNode(), head;
 		ArrayList<SRLHead> list = new ArrayList<SRLHead>();
+		DepNode node, head;
 		
-		while (node.nextNode != null)
+		for (int i=1; i<tree.size(); i++)
 		{
-			node = node.nextNode;
-			head = tree.get(node.getDepHeadId());
+			node = tree.get(i);
+			head = tree.get(node.headId);
 			list = new ArrayList<SRLHead>();
 			
 			while (!head.isRoot())
 			{
-				list.addAll(head.sHeads);
-				head = tree.get(head.getDepHeadId());
+				list.addAll(head.srlInfo.heads);
+				head = tree.get(head.headId);
 			}
 			
 			node.removeSRLHeads(list);

@@ -33,8 +33,10 @@ import org.kohsuke.args4j.Option;
 import clear.dep.DepTree;
 import clear.morph.MorphEnAnalyzer;
 import clear.reader.AbstractReader;
+import clear.treebank.AbstractTBConvert;
 import clear.treebank.TBEnConvert;
 import clear.treebank.TBHeadRules;
+import clear.treebank.TBKrConvert;
 import clear.treebank.TBReader;
 import clear.treebank.TBTree;
 import clear.util.IOUtil;
@@ -49,7 +51,7 @@ public class PhraseToDep
 	String s_headruleFile;
 	@Option(name="-m", usage="name of a file containing dictionaries for morphological analyzer", metaVar="OPTIONAL")
 	String s_dictFile = null;
-	@Option(name="-l", usage="language ::= "+AbstractReader.LANG_CH+" | "+AbstractReader.LANG_EN+" (default)", metaVar="OPTIONAL")
+	@Option(name="-l", usage="language ::= "+AbstractReader.LANG_EN+" (default) | "+AbstractReader.LANG_KR, metaVar="OPTIONAL")
 	String s_language = AbstractReader.LANG_EN;
 	@Option(name="-n", usage="minimum sentence length (inclusive; default = 0)", metaVar="OPTIONAL")
 	int n_length = 0;
@@ -83,7 +85,12 @@ public class PhraseToDep
 		MorphEnAnalyzer morph     = (s_dictFile != null) ? new MorphEnAnalyzer(s_dictFile) : null;
 		PrintStream     fout      = IOUtil.createPrintFileStream(s_outputFile);
 		TBTree          tree;
-		TBEnConvert     converter = new TBEnConvert();
+		AbstractTBConvert       converter;
+		
+		if (s_language.equals(AbstractReader.LANG_KR))
+			converter = new TBKrConvert(headrules);
+		else
+			converter = new TBEnConvert(headrules, morph, b_funcTag, b_ec, b_reverseVC);
 
 		String filename = s_inputFile.substring(s_inputFile.lastIndexOf(File.separator)+1);
 		int i = 0;
@@ -92,7 +99,7 @@ public class PhraseToDep
 		
 		while ((tree = reader.nextTree()) != null)
 		{
-			DepTree dTree = converter.toDepTree(tree, headrules, morph, b_funcTag, b_ec, b_reverseVC);
+			DepTree dTree = converter.toDepTree(tree);
 			if (dTree.size() > n_length){ fout.println(dTree+"\n");	i++; }
 			if (i%1000 == 0)	System.out.print("\r"+filename+": "+i);
 		}
