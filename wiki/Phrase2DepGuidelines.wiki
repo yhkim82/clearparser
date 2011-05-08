@@ -1,22 +1,24 @@
-#summary Phrase-to-dependency converter: guidelines
+#summary Penn-to-dependency converter: guidelines
 
-= Clear constituent-to-dependency converter =
+= Clear penn-to-dependency converter =
 
-_Clear constituent-to-dependency converter_ takes phrase structure trees in the [http://www.cis.upenn.edu/~treebank/ Penn Treebank format] as input and generates corresponding dependency trees in the [DataFormat Clear format] as output.  The tool allows users to customize head-percolation rules.  It currently supports only English (supports for Chinese and Hindi are expected soon).
+_Clear penn-to-dependency converter_ takes phrase structure trees in the [http://www.cis.upenn.edu/~treebank/ Penn Treebank format] as input and generates corresponding dependency trees in the [DataFormat Clear format] as output.  The converter allows users to customize head-percolation rules.  It currently supports English and Korean.
 
 == How to run ==
 
 On the terminal, type the following command.
 
 {{{
-java clear.engine.PhraseToDep -i <input-file> -o <output-file> -h <headrule-file> -m <dictionary-file> -n <minimum sentence length>
-java clear.engine.PhraseToDep -i dat/sample.phrase -o dat/sample.dep -h config/en_choi.headrules -m lib/en_dict-1.0.jar -n 2
+java clear.engine.PhraseToDep -i <input-file> -o <output-file> -h <headrule-file> -m <dictionary-file> -n <minimum sentence length> -l <language> -f
+java clear.engine.PhraseToDep -i dat/sample.phrase -o dat/sample.dep -h config/en_ontonotes.headrules -m lib/en_dict-1.0.jar -n 2 -l en -f
 }}}
 
- * input file: name of a file containing phrase structure trees ([http://code.google.com/p/clearparser/source/browse/trunk/dat/sample.phrase dat/sample.phrase]).
- * output file: name of a file containing dependency trees converted from the input file ([http://code.google.com/p/clearparser/source/browse/trunk/dat/sample.dep dat/sample.dep]).
- * headrule file: name of a file containing head-percolation rules ([http://code.google.com/p/clearparser/source/browse/trunk/config/en_choi.headrules config/en_choi.headrules]).
- * dictionary file: path of a dictionary file for [MorphAnalyzerGuidelines Clear morphological analyzer] ([http://code.google.com/p/clearparser/source/browse/#svn/trunk/lib/en_dict-1.0.jar lib/en_dict-1.0.jar]).
+ * input file (required): name of a file containing phrase structure trees ([http://code.google.com/p/clearparser/source/browse/trunk/dat/sample.phrase dat/sample.phrase]).
+ * output file (required): name of a file containing dependency trees converted from the input file ([http://code.google.com/p/clearparser/source/browse/trunk/dat/sample.dep dat/sample.dep]).
+ * headrule file (required): name of a file containing head-percolation rules ([http://code.google.com/p/clearparser/source/browse/trunk/config/en_ontonotes.headrules config/en_ontonotes.headrules]).
+ * dictionary file (optional): path of a dictionary file for [MorphAnalyzerGuidelines Clear morphological analyzer] ([http://code.google.com/p/clearparser/source/browse/#svn/trunk/lib/en_dict-1.0.jar lib/en_dict-1.0.jar]).
+ * language (optional): en: English (default), kr: Korean.
+ * -f: if exist, use function tags as dependency labels.
 
 == Input file ==
 
