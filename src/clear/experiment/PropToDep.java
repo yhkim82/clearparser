@@ -8,19 +8,20 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 
+import clear.dep.DepNode;
+import clear.dep.DepTree;
+import clear.dep.srl.SRLHead;
+import clear.dep.srl.SRLInfo;
 import clear.morph.MorphEnAnalyzer;
 import clear.propbank.PBArg;
 import clear.propbank.PBInstance;
 import clear.propbank.PBLib;
 import clear.propbank.PBLoc;
 import clear.propbank.PBReader;
-import clear.srl.SRLArg;
-import clear.srl.SRLHead;
-import clear.srl.SRLTree;
+import clear.treebank.TBEnConvert;
 import clear.treebank.TBEnLib;
 import clear.treebank.TBHeadRules;
 import clear.treebank.TBNode;
-import clear.treebank.TBPBEnConvert;
 import clear.treebank.TBReader;
 import clear.treebank.TBTree;
 import clear.util.IOUtil;
@@ -28,19 +29,20 @@ import clear.util.JSet;
 
 import com.carrotsearch.hppc.IntOpenHashSet;
 
-public class MergeTreePropBank
+public class PropToDep
 {
-	final String PARSE_EXT = ".parse";
+//	final String PARSE_EXT = ".parse";
+	final String PARSE_EXT = "";
 	final String SRL_EXT   = ".srl";
 	HashMap<String,PBInstance> m_pbInstances;
 	
-	public MergeTreePropBank(String propFile, String treeDir, String mergeDir, String headruleFile, String dictDir)
+	public PropToDep(String propFile, String treeDir, String mergeDir, String headruleFile, String dictDir)
 	{
 		readPBInstances(propFile);
 		merge(treeDir, mergeDir, headruleFile, dictDir);
 	}
 	
-	/** Reads all PropBank instances and stores them to {@link MergeTreePropBank#m_pbInstances}. */
+	/** Reads all PropBank instances and stores them to {@link PropToDep#m_pbInstances}. */
 	public void readPBInstances(String propFile)
 	{
 		PBReader   reader = new PBReader(propFile);
@@ -94,10 +96,12 @@ public class MergeTreePropBank
 		int         treeIndex;
 		String      mergeFile;
 	 	PrintStream fout;
+	 	DepTree     dTree;
+	 	DepNode     dNode;
 		
-		TBPBEnConvert   convert   = new TBPBEnConvert();
 		TBHeadRules     headrules = new TBHeadRules(headruleFile);
 		MorphEnAnalyzer morph     = (dictDir != null) ? new MorphEnAnalyzer(dictDir) : null;
+		TBEnConvert     convert   = new TBEnConvert(headrules, morph, true, false, false);
 		
 	 	treeDir  = treeDir  + File.separator;
 		mergeDir = mergeDir + File.separator;
@@ -116,21 +120,30 @@ public class MergeTreePropBank
 			{
 				list = getPBInstances(treePath, treeIndex);
 			//	removeAdjectivalPredicates(tree, list);
-				if (list.isEmpty())	continue;
 				
-				tree.setPBLocs();
-				tree.setAntecedents();
-				
-				for (PBInstance instance : list)
-					mergeAux(instance, tree);
-				
-				if (isCyclic(list, tree))
-					System.err.println("Cyclic relation: "+treePath+" "+treeIndex);
+				if (list.isEmpty())
+				{
+					dTree = convert.toDepTree(tree);
+					
+					for (int i=1; i<dTree.size(); i++)
+					{
+						dNode = dTree.get(i);
+						dNode.srlInfo = new SRLInfo();
+					}
+				}
 				else
 				{
-					SRLTree sTree = convert.toSrlTree(tree, headrules, morph);
-					fout.println(sTree+"\n");
+					tree.setPBLocs();
+					tree.setAntecedents();
+					
+					for (PBInstance instance : list)
+						mergeAux(instance, tree);
+					
+					dTree = convert.toSRLTree(tree);
 				}
+				
+				fout.println(";"+treePath+" "+treeIndex);
+				fout.println(dTree+"\n");
 			}
 			
 			fout.close();
@@ -159,6 +172,12 @@ public class MergeTreePropBank
 		
 		for (PBArg pbArg : pbArgs)
 		{
+			if (!processEmtpyCategories(pbArg, tree))
+				System.err.println("Wrong location in "+pbArg.label+": "+instance.toString());
+		}
+		
+		for (PBArg pbArg : pbArgs)
+		{
 			if (pbArg.isLabel("rel.*"))
 			{
 				if (processRels(pbArg, instance.predicateId))
@@ -179,12 +198,6 @@ public class MergeTreePropBank
 		
 		pbArgs.removeAll(delArgs);
 		if (pbArgs.isEmpty())	return;
-		
-		for (PBArg pbArg : pbArgs)
-		{
-			if (!processEmtpyCategories(pbArg, tree))
-				System.err.println("Wrong location in "+pbArg.label+": "+instance.toString());
-		}
 		
 		if (!instance.rolesetId.endsWith(".DP"))
 			tree.getNode(instance.predicateId, 0).rolesetId = instance.rolesetId;
@@ -281,7 +294,9 @@ public class MergeTreePropBank
 						comp.antecedent = tree.getNode(anteLoc.terminalId, anteLoc.height);
 					}
 					else
+					{
 						pbArg.putLoc(comp.antecedent.pbLoc);
+					}
 				}
 		
 				return true;
@@ -295,7 +310,7 @@ public class MergeTreePropBank
 	private boolean processEmtpyCategories(PBArg pbArg, TBTree tree)
 	{
 		ArrayList<PBLoc> addLocs = new ArrayList<PBLoc>();
-		ArrayList<PBLoc> delLocs = new ArrayList<PBLoc>();
+	//	ArrayList<PBLoc> delLocs = new ArrayList<PBLoc>();
 		TBNode curr, node;
 		
 		for (PBLoc pbLoc : pbArg.getLocs())
@@ -315,13 +330,28 @@ public class MergeTreePropBank
 			}
 			else if (curr.isEmptyCategoryRec())
 			{
-				if (curr.isPhrase())
-					curr = tree.getNode(pbLoc.terminalId, 0);
+				do
+				{
+					pbLoc.height = 0;
+					
+					if (curr.isPhrase())
+						curr = tree.getNode(pbLoc.terminalId, 0);
+					
+					if (curr.hasAntecedent())
+					{
+						pbLoc = curr.antecedent.pbLoc;
+						addLocs.add(pbLoc);
+					}
+					else	break;
+					
+					curr = tree.getNode(pbLoc.terminalId, pbLoc.height);					
+				}
+				while (curr.isEmptyCategoryRec());
 				
-				if (curr.isForm("\\*T\\*.*"))
+			/*	if (curr.isForm("\\*T\\*.*"))
 				{
 					delLocs.add(pbLoc);
-					if (curr.antecedent != null)	addLocs.add(curr.antecedent.pbLoc);
+					if (curr.hasAntecedent())	addLocs.add(curr.antecedent.pbLoc);
 				}
 				else if (curr.isForm("\\*PRO\\*.*|\\*|\\*-\\d"))
 				{
@@ -332,22 +362,22 @@ public class MergeTreePropBank
 					}
 					else
 						delLocs.add(pbLoc);
-				}
+				}*/
 			}
 		}
 		
 		for (PBLoc pbLoc: addLocs)
 			pbArg.putLoc(pbLoc);
 		
-		for (PBLoc pbLoc: delLocs)
-			pbArg.removeLocs(pbLoc);
+	//	for (PBLoc pbLoc: delLocs)
+	//		pbArg.removeLocs(pbLoc);
 		
-		trimEmptyCategories(pbArg, tree);
+	//	trimEmptyCategories(pbArg, tree);
 		
 		return true;
 	}
 	
-	private void trimEmptyCategories(PBArg pbArg, TBTree tree)
+	void trimEmptyCategories(PBArg pbArg, TBTree tree)
 	{
 		ArrayList<PBLoc> pbLocs  = pbArg.getLocs();
 		ArrayList<PBLoc> delLocs = new ArrayList<PBLoc>();
@@ -393,7 +423,7 @@ public class MergeTreePropBank
 		pbLocs.removeAll(delLocs);
 	}
 	
-	private boolean isCyclic(ArrayList<PBInstance> pbInstances, TBTree tree)
+	protected boolean isCyclic(ArrayList<PBInstance> pbInstances, TBTree tree)
 	{
 		ArrayList<IntOpenHashSet> list = new ArrayList<IntOpenHashSet>();
 		TBNode node;
@@ -441,7 +471,10 @@ public class MergeTreePropBank
 		IntOpenHashSet   delIDs = new IntOpenHashSet();
 		PBLoc            rLoc   = null;
 		TBNode           node, tmp;
-		String label = "A"+pbArg.label.substring(3);
+		String label;
+		
+		if (pbArg.label.matches("rel.*"))	label = "C-V";
+		else								label = "A"+pbArg.label.substring(3);
 		
 		// retrieve all terminal IDs
 		for (PBLoc pbLoc : pbLocs)
@@ -465,16 +498,17 @@ public class MergeTreePropBank
 		if (addIDs.isEmpty())	return true;
 		
 		// add terminal IDs
-		int[] ids = addIDs.toArray();
+	/*	int[] ids = addIDs.toArray();
 		Arrays.sort(ids);
 		
 		TBNode pred = tree.getTerminalNode(pbArg.predicateId);
-		pred.addPBArg(new SRLArg(label, ids));
+		pred.addPBArg(new SRLArg(label, ids));*/
 		
 		// add each argument
 		addIDs.removeAll(delIDs);
 		int terminalId, height;
 		String prefix = "";
+		int[] ids;
 		
 		while (!addIDs.isEmpty())
 		{
@@ -492,7 +526,7 @@ public class MergeTreePropBank
 					node = tree.getNode(terminalId, height);
 					node.addPBHead(new SRLHead(pbArg.predicateId+1, prefix+label));
 					addIDs.removeAll(node.getSubTermainlIDs());
-					if (!node.isEmptyCategoryRec())	prefix = "C-";
+					if (!node.isEmptyCategoryRec() && !label.startsWith("AM"))	prefix = "C-";
 					break;
 				}
 				
@@ -507,7 +541,7 @@ public class MergeTreePropBank
 			node = tree.getNode(rLoc);
 			ids  = node.getSubTermainlIDs().toArray();
 			Arrays.sort(ids);
-			pred.addPBArg(new SRLArg(prefix+label, ids));
+		//	pred.addPBArg(new SRLArg(prefix+label, ids));
 			
 			node.addPBHead(new SRLHead(pbArg.predicateId+1, prefix+label));
 		}
@@ -523,6 +557,6 @@ public class MergeTreePropBank
 		String headruleFile = args[3];
 		String dictDir  = args[4];
 		
-		new MergeTreePropBank(propFile, treeDir, mergeDir, headruleFile, dictDir);
+		new PropToDep(propFile, treeDir, mergeDir, headruleFile, dictDir);
 	}
 }

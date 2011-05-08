@@ -60,7 +60,7 @@ public class PBReader
 		String[] str  = line.split(PBLib.FIELD_DELIM);
 		
 		PBInstance instance  = new PBInstance();
-		instance.treePath    = str[0].split("@")[0];
+		instance.treePath    = str[0];
 		instance.treeIndex   = Integer.parseInt(str[1]);
 		instance.predicateId = Integer.parseInt(str[2]);
 		instance.annotator   = str[3];

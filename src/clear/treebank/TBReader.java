@@ -23,7 +23,12 @@
 */
 package clear.treebank;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+
 import clear.util.JFileTokenizer;
+
+import com.carrotsearch.hppc.IntObjectOpenHashMap;
 
 /**
  * Treebank reader
@@ -102,19 +107,21 @@ public class TBReader
 			{
 				curr.setForm(str);						// str = word
 				curr.terminalId = curr.headId = terminalIndex++;
+				
 				if (!curr.isEmptyCategory())
 					curr.tokenId = tokenIndex++;
-				else if (curr.isForm("\\*T\\*|\\*ICH\\*|\\*RNR\\*") && curr.getParent().coIndex != -1)
+			/*	else if (curr.isForm("\\*T\\*|\\*ICH\\*|\\*RNR\\*") && curr.getParent().coIndex != -1)
 				{
 					curr.form += "-"+curr.getParent().coIndex;
 					curr.getParent().coIndex = -1;
-				}
+				}*/
 					
 				tree.addTerminalNode(curr);					// add 'curr' as a leaf
 			}
 		}
 		
 		TBNode top = head.getChildren().get(0);
+	//	normalizeEC(top);
 		
 		if (top.isPos(TBEnLib.POS_TOP))
 		{
@@ -127,6 +134,78 @@ public class TBReader
 		}
 		
 		return tree;
+	}
+	
+	public void normalizeEC(TBNode root)
+	{
+		IntObjectOpenHashMap<ArrayList<TBNode>> map = new IntObjectOpenHashMap<ArrayList<TBNode>>();
+		retrieveCoIndexMap(root, map);
+		if (map.isEmpty())	return;
+		
+		int[] keys = map.keySet().toArray();
+		ArrayList<TBNode> list;
+		Arrays.sort(keys);
+		
+		int coIndex = 1, i;
+		TBNode curr, ec;
+		boolean isFirst;
+		
+		for (int key : keys)
+		{
+			list    = map.get(key);
+			isFirst = false;
+			
+			for (i=list.size()-1; i>=0; i--)
+			{
+				curr = list.get(i);
+				
+				if (curr.isEmptyCategoryRec() && i > 0)
+				{
+					ec = curr.getSubTerminalNodes().get(0);
+					
+					if (isFirst || ec.isForm("\\*ICH\\*|\\*RNR\\*"))
+					{
+						curr.coIndex = -1;
+						ec.form += "-"+coIndex;
+						isFirst = false;
+					}
+					else
+					{
+						curr.coIndex = coIndex++;
+						ec.form += "-"+coIndex;
+					}
+				}
+				else
+					curr.coIndex = coIndex;
+			}
+			
+			coIndex++;
+		}
+	}
+	
+	private void retrieveCoIndexMap(TBNode node, IntObjectOpenHashMap<ArrayList<TBNode>> map)
+	{
+		if (node.isPhrase())
+		{
+			if (node.coIndex != -1)
+			{
+				int key = node.coIndex;
+				ArrayList<TBNode> list;
+				
+				if (map.containsKey(key))
+					list = map.get(key);
+				else
+				{
+					list = new ArrayList<TBNode>();
+					map.put(key, list);
+				}
+				
+				list.add(node);
+			}
+			
+			for (TBNode child : node.getChildren())
+				retrieveCoIndexMap(child, map);
+		}
 	}
 	
 	/**
