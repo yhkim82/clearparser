@@ -64,6 +64,7 @@ public class SRLEval
 		ArrayList<SRLHead> gHeads = gNode.srlInfo.heads;
 		ArrayList<SRLHead> sHeads = sNode.srlInfo.heads;
 		int[] total = m_score.get(TOTAL);
+	//	int[] local = new int[4];
 		int[] gArg, sArg;
 		
 		for (SRLHead gHead : gHeads)
@@ -78,10 +79,12 @@ public class SRLEval
 				if (sHead.equals(gHead.headId))
 				{
 					total[0]++;
+				//	local[0]++;
 					
 					if (sHead.equals(gHead.label))
 					{
 						total[1]++;
+				//		local[1]++;
 						gArg [0]++;
 					}
 					
@@ -94,6 +97,8 @@ public class SRLEval
 		
 		total[2] += sHeads.size();	// precision
 		total[3] += gHeads.size();	// recall
+	//	local[2] += sHeads.size();
+	//	local[3] += gHeads.size();
 
 		for (SRLHead sHead : sHeads)
 		{
@@ -104,6 +109,19 @@ public class SRLEval
 			
 			sArg[1]++;		// precision
 		}
+		
+	/*	if (local[3] > 0)
+		{
+			double p = (local[2] > 0) ? 100d * local[0] / local[2] : 0d;
+			double r = (local[3] > 0) ? 100d * local[0] / local[3] : 0d;
+			double fai = (p+r > 0) ? getF1(p, r) : 0d;
+			
+			p = (local[2] > 0) ? 100d * local[1] / local[2] : 0d;
+			r = (local[3] > 0) ? 100d * local[1] / local[3] : 0d;
+			double fac = (p+r > 0) ? getF1(p, r) : 0d;
+			
+			System.out.println(fai+"\t"+fac);			
+		}*/
 	}
 	
 	private int[] getArray(String label)
