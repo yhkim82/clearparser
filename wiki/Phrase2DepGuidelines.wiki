@@ -9,7 +9,7 @@ _Clear penn-to-dependency converter_ takes phrase structure trees in the [http:/
 On the terminal, type the following command.
 
 {{{
-java clear.engine.PhraseToDep -i <input-file> -o <output-file> -h <headrule-file> -m <dictionary-file> -n <minimum sentence length> -l <language> -f
+java clear.engine.PhraseToDep -i <input-file> -o <output-file> -h <headrule-file> p-m <dictionary-file> -n <minimum sentence length> -l <language> -f -e]
 java clear.engine.PhraseToDep -i dat/sample.phrase -o dat/sample.dep -h config/en_ontonotes.headrules -m lib/en_dict-1.0.jar -n 2 -l en -f
 }}}
 
@@ -18,7 +18,8 @@ java clear.engine.PhraseToDep -i dat/sample.phrase -o dat/sample.dep -h config/e
  * headrule file (required): name of a file containing head-percolation rules ([http://code.google.com/p/clearparser/source/browse/trunk/config/en_ontonotes.headrules config/en_ontonotes.headrules]).
  * dictionary file (optional): path of a dictionary file for [MorphAnalyzerGuidelines Clear morphological analyzer] ([http://code.google.com/p/clearparser/source/browse/#svn/trunk/lib/en_dict-1.0.jar lib/en_dict-1.0.jar]).
  * language (optional): en: English (default), kr: Korean.
- * -f: if exist, use function tags as dependency labels.
+ * -f: if set, use function tags as dependency labels.
+ * -e: if set, include empty categories
 
 == Input file ==
 
