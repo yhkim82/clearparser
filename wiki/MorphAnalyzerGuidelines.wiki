@@ -12,7 +12,7 @@ java clear.engine.MorphAnalyze -i dat/morph.in -o dat/morph.out -d lib/en_dict-1
 
 == Input file  ==
 
- * The input file needs to be in the [DataFormat part-of-speech] format without blank lines.  A sample input file can be found from '[http://clearparser.googlecode.com/svn/trunk/dat/morph.in dat/morph.in]'.
+ * The input file needs to be in the [DataFormat part-of-speech] format with or without blank lines.  A sample input file can be found from '[http://clearparser.googlecode.com/svn/trunk/dat/morph.in dat/morph.in]'.
 
 == Output file ==
 
