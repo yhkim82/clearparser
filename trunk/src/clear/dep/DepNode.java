@@ -23,8 +23,12 @@
 */
 package clear.dep;
 
+import java.util.ArrayList;
+
+import clear.dep.srl.SRLHead;
 import clear.dep.srl.SRLInfo;
 import clear.ftr.FtrLib;
+import clear.propbank.PBLoc;
 import clear.reader.AbstractReader;
 
 /**
@@ -66,6 +70,8 @@ public class DepNode
 	public boolean isSkip;
 	/** SRL information */
 	public SRLInfo srlInfo;
+	/** For PropToDep only */
+	public PBLoc[] pbLoc = null;
 	
 	/** Initializes the node as a null node. */
 	public DepNode()
@@ -143,6 +149,14 @@ public class DepNode
 		{
 			buff.append(AbstractReader.FIELD_DELIM);
 			buff.append(srlInfo.toString());
+		}
+		
+		if (pbLoc != null)
+		{
+			buff.append(AbstractReader.FIELD_DELIM);
+			buff.append(pbLoc[0].terminalId);
+			buff.append(";");
+			buff.append(pbLoc[1].toString());
 		}
 		
 		return buff.toString();
@@ -249,6 +263,11 @@ public class DepNode
 		this.hasHead = true;
 	}
 	
+	public void setRolesetId(String rolesetId)
+	{
+		srlInfo.setRolesetId(rolesetId);
+	}
+	
 	public void addSRLHead(int headId, String label)
 	{
 		srlInfo.addHead(headId, label);
@@ -259,8 +278,32 @@ public class DepNode
 		srlInfo.addHead(headId, label, score);
 	}
 	
+	public void addSRLHeads(ArrayList<SRLHead> heads)
+	{
+		srlInfo.addHeads(heads);
+	}
+	
 	public void clearSRLHeads()
 	{
 		srlInfo.heads.clear();
+	}
+	
+	public void removeSRLHeads(ArrayList<SRLHead> sHeads)
+	{
+		ArrayList<SRLHead> delList = new ArrayList<SRLHead>();
+		
+		for (SRLHead tHead : this.srlInfo.heads)
+		{
+			for (SRLHead pHead : sHeads)
+			{
+				if (tHead.equals(pHead))
+				{
+					delList.add(tHead);
+					break;
+				}
+			}
+		}
+		
+		srlInfo.heads.removeAll(delList);
 	}
 }

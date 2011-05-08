@@ -89,6 +89,11 @@ public class SRLInfo
 		heads.add(new SRLHead(headId, label, score));
 	}
 	
+	public void addHeads(ArrayList<SRLHead> heads)
+	{
+		this.heads.addAll(heads);
+	}
+	
 	public void setSpan(String spans)
 	{
 		this.spans = new ArrayList<SRLSpan>();
