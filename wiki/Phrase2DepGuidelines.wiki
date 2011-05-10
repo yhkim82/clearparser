@@ -9,8 +9,8 @@
 On the terminal, type the following command.
 
 {{{
-java clear.engine.PhraseToDep -i <input file> -o <output file> -h <headrule file> [-m <dictionary-file> -n <minimum sentence length> -l <language> -f -e]
-java clear.engine.PhraseToDep -i dat/sample.phrase -o dat/sample.dep -h config/en_ontonotes.headrules -m lib/en_dict-1.0.jar -n 2 -l en -f
+java clear.engine.PennToDep -i <input file> -o <output file> -h <headrule file> [-m <dictionary-file> -n <minimum sentence length> -l <language> -f -e]
+java clear.engine.PennToDep -i dat/sample.phrase -o dat/sample.dep -h config/en_ontonotes.headrules -m lib/en_dict-1.0.jar -n 2 -l en -f
 }}}
 
  * *input file* (required) - name of a file containing phrase structure trees ([http://code.google.com/p/clearparser/source/browse/trunk/dat/sample.phrase dat/sample.phrase]).
