@@ -69,9 +69,9 @@ java clear.engine.PhraseToDep -i dat/sample.phrase -o dat/sample.dep -h config/e
 {{{
 <pos-tag><tab><direction=l|r><tab><rule>(;<rule>)*
 }}}
- * pos-tag: phrasal or clausal level [http://bulba.sdsu.edu/jeanette/thesis/PennTags.html part-of-speech tag]
- * direction: `l` - find the leftmost head, `r` - find the rightmost head
- * rule: pos-tag/function-tag rules in [http://download.oracle.com/javase/6/docs/api/java/util/regex/Pattern.html Java regular expression format]
+ * *pos-tag*: phrasal or clausal level [http://bulba.sdsu.edu/jeanette/thesis/PennTags.html part-of-speech tag]
+ * *direction*: `l` - find the leftmost head, `r` - find the rightmost head
+ * *rule*: pos-tag/function-tag rules in [http://download.oracle.com/javase/6/docs/api/java/util/regex/Pattern.html Java regular expression format]
 
 Here are sample rules for noun-phrases (`NP`) and verb-phrases (`VP`).
 
