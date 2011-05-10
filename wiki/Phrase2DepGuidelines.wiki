@@ -2,29 +2,29 @@
 
 = Clear penn-to-dependency converter =
 
-_Clear penn-to-dependency converter_ takes phrase structure trees in the [http://www.cis.upenn.edu/~treebank/ Penn Treebank format] as input and generates corresponding dependency trees in the [DataFormat Clear format] as output.  The converter allows users to customize head-percolation rules.  It currently supports English and Korean.
+*Clear penn-to-dependency converter* takes phrase structure trees in the [http://www.cis.upenn.edu/~treebank/ Penn Treebank format] as input and generates dependency trees in the [DataFormat dep format] as output.  The converter allows users to customize head-percolation rules.  It currently supports English and Korean.
 
 == How to run ==
 
 On the terminal, type the following command.
 
 {{{
-java clear.engine.PhraseToDep -i <input-file> -o <output-file> -h <headrule-file> [-m <dictionary-file> -n <minimum sentence length> -l <language> -f -e]
+java clear.engine.PhraseToDep -i <input file> -o <output file> -h <headrule file> [-m <dictionary-file> -n <minimum sentence length> -l <language> -f -e]
 java clear.engine.PhraseToDep -i dat/sample.phrase -o dat/sample.dep -h config/en_ontonotes.headrules -m lib/en_dict-1.0.jar -n 2 -l en -f
 }}}
 
- * input file (required): name of a file containing phrase structure trees ([http://code.google.com/p/clearparser/source/browse/trunk/dat/sample.phrase dat/sample.phrase]).
- * output file (required): name of a file containing dependency trees converted from the input file ([http://code.google.com/p/clearparser/source/browse/trunk/dat/sample.dep dat/sample.dep]).
- * headrule file (required): name of a file containing head-percolation rules ([http://code.google.com/p/clearparser/source/browse/trunk/config/en_ontonotes.headrules config/en_ontonotes.headrules]).
- * dictionary file (optional): path of a dictionary file for [MorphAnalyzerGuidelines Clear morphological analyzer] ([http://code.google.com/p/clearparser/source/browse/#svn/trunk/lib/en_dict-1.0.jar lib/en_dict-1.0.jar]).
- * minimum sentence length (optional): minimum number of word-tokens in each sentence (inclusive, default = 1)
- * language (optional): en: English (default), kr: Korean.
- * -f (optional): if set, use function tags as dependency labels.
- * -e (optional): if set, include empty categories
+ * *input file* (required) - name of a file containing phrase structure trees ([http://code.google.com/p/clearparser/source/browse/trunk/dat/sample.phrase dat/sample.phrase]).
+ * *output file* (required) - name of a file containing dependency trees converted from the input file ([http://code.google.com/p/clearparser/source/browse/trunk/dat/sample.dep dat/sample.dep]).
+ * *headrule file* (required) - name of a file containing head-percolation rules ([http://code.google.com/p/clearparser/source/browse/trunk/config/en_ontonotes.headrules config/en_ontonotes.headrules]).
+ * *dictionary file* (optional) - name of a dictionary file for [MorphAnalyzerGuidelines Clear morphological analyzer] ([http://code.google.com/p/clearparser/source/browse/#svn/trunk/lib/en_dict-1.0.jar lib/en_dict-1.0.jar]).
+ * *minimum sentence length* (optional) - minimum number of word-tokens in each sentence (inclusive, default = 1)
+ * *language* (optional) - en: English (default), kr: Korean.
+ * *-f* (optional) - if set, use function tags as dependency labels.
+ * *-e* (optional) - if set, include empty categories
 
 == Input file ==
 
-_Input file_ contains [http://www.cis.upenn.edu/~treebank/ Penn Treebank style] phrase structure trees.  Each tree must start with either an empty phrase (example 1) or a `TOP`-phrase (example 2).
+*Input file* contains [http://www.cis.upenn.edu/~treebank/ Penn Treebank style] phrase structure trees.  Each tree must start with either an empty phrase (example 1) or a `TOP`-phrase (example 2).
 
  * Example 1
 {{{
@@ -64,7 +64,7 @@ _Input file_ contains [http://www.cis.upenn.edu/~treebank/ Penn Treebank style] 
 
 == Headrule file ==
 
-_Headrule file_ contains head-percolation rules for all phrases/clauses.  Each line consists of rules for a phrase/clause.  The following shows a format of each line.
+*Headrule file* contains head-percolation rules for all phrases/clauses.  Each line consists of rules for a phrase/clause.  The following shows a format of each line.
 
 {{{
 <pos-tag><tab><direction=l|r><tab><rule>(;<rule>)*
