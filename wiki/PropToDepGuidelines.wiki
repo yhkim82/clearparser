@@ -2,7 +2,7 @@
 
 = Clear prop-to-dependency converter =
 
-*Clear prop-to-dependency converter* takes PropBank instances and generates CoNLL style dependency trees with semantic roles. The converter uses the [Phrase2DepGuidelines Clear penn-to-dependency converter] for the dependency conversion.  It currently supports Arabic, Chinese, and English.
+*Clear prop-to-dependency converter* takes PropBank instances and generates [http://ufal.mff.cuni.cz/conll2009-st/task-description.html CoNLL style] dependency trees with semantic roles. The converter uses the [Phrase2DepGuidelines Clear penn-to-dependency converter] for the dependency conversion.  It currently supports Arabic, Chinese, and English.
 
 == How to run ==
 
@@ -71,7 +71,6 @@ wsj_0001.parse 0 8 gold join-v join.01 ----- 8:0-rel 0:2-ARG0 7:0-ARGM-MOD 9:1-A
 17    29              0               CD     _    16    NMOD    _          _
 18   .                .               .      _    8     P       _          _
 }}}
-
 
 == Headrule file ==
 
