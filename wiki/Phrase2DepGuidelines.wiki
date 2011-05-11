@@ -2,7 +2,7 @@
 
 = Clear penn-to-dependency converter =
 
-*Clear penn-to-dependency converter* takes phrase structure trees in the [http://www.cis.upenn.edu/~treebank/ Penn Treebank format] as input and generates dependency trees in the [DataFormat dep format] as output.  The converter allows users to customize head-percolation rules.  It currently supports English and Korean.
+*Clear penn-to-dependency converter* takes [http://www.cis.upenn.edu/~treebank/ Penn Treebank format] phrase structure trees and generates [http://ilk.uvt.nl/conll/#dataformat CoNLL style] dependency trees.  The converter allows users to customize head-percolation rules.  It currently supports English and Korean.
 
 == How to run ==
 
@@ -24,7 +24,7 @@ java clear.engine.PennToDep -i dat/sample.phrase -o dat/sample.dep -h config/en_
 
 == Input file ==
 
-*Input file* contains [http://www.cis.upenn.edu/~treebank/ Penn Treebank style] phrase structure trees.  Each tree must start with either an empty phrase (example 1) or a `TOP`-phrase (example 2).
+*Input file* contains [http://www.cis.upenn.edu/~treebank/ Penn Treebank style] phrase structure trees ([http://code.google.com/p/clearparser/source/browse/trunk/dat/sample.phrase dat/sample.phrase]).  Each tree must start with either an empty phrase (example 1) or a `TOP`-phrase (example 2).
 
  * Example 1
 {{{
@@ -60,6 +60,27 @@ java clear.engine.PennToDep -i dat/sample.phrase -o dat/sample.dep -h config/en_
                             (NN public)))
                 (ADVP-LOC (RB here))))
         (. .)))
+}}}
+
+== Output file ==
+
+*Output file* contains CoNLL style dependency trees in [DataFormat dep format] ([http://code.google.com/p/clearparser/source/browse/trunk/dat/sample.dep dat/sample.dep]).  Each tree is delimited by a blank line.
+
+{{{
+1     The          the          DT     4     NMOD
+2     most         most         RBS    3     AMOD
+3     important    important    JJ     4     NMOD
+4     thing        thing        NN     7     SBJ
+5     about        about        IN     4     NMOD
+6     Disney       disney       NNP    5     PMOD
+7     is           be           VBZ    0     ROOT
+8     that         that         IN     7     PRD
+9     it           it           PRP    10    SBJ
+10    is           be           VBZ    8     SUB
+11    a            a            DT     13    NMOD
+12    global       global       JJ     13    NMOD
+13    brand        brand        NN     10    PRD
+14    .            .            .      7     P
 }}}
 
 == Headrule file ==
