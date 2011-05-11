@@ -67,20 +67,20 @@ java clear.engine.PennToDep -i dat/sample.phrase -o dat/sample.dep -h config/en_
 *Output file* contains CoNLL style dependency trees in [DataFormat dep format] ([http://code.google.com/p/clearparser/source/browse/trunk/dat/sample.dep dat/sample.dep]).  Each tree is delimited by a blank line.
 
 {{{
-1     The          the          DT     4     NMOD
-2     most         most         RBS    3     AMOD
-3     important    important    JJ     4     NMOD
-4     thing        thing        NN     7     SBJ
-5     about        about        IN     4     NMOD
-6     Disney       disney       NNP    5     PMOD
-7     is           be           VBZ    0     ROOT
-8     that         that         IN     7     PRD
-9     it           it           PRP    10    SBJ
-10    is           be           VBZ    8     SUB
-11    a            a            DT     13    NMOD
-12    global       global       JJ     13    NMOD
-13    brand        brand        NN     10    PRD
-14    .            .            .      7     P
+1     The          the          DT     _    4     NMOD
+2     most         most         RBS    _    3     AMOD
+3     important    important    JJ     _    4     NMOD
+4     thing        thing        NN     _    7     SBJ
+5     about        about        IN     _    4     NMOD
+6     Disney       disney       NNP    _    5     PMOD
+7     is           be           VBZ    _    0     ROOT
+8     that         that         IN     _    7     PRD
+9     it           it           PRP    _    10    SBJ
+10    is           be           VBZ    _    8     SUB
+11    a            a            DT     _    13    NMOD
+12    global       global       JJ     _    13    NMOD
+13    brand        brand        NN     _    10    PRD
+14    .            .            .      _    7     P
 }}}
 
 == Headrule file ==
