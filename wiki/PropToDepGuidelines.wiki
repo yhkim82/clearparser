@@ -2,7 +2,7 @@
 
 = Clear prop-to-dependency converter =
 
-*Clear prop-to-dependency converter* takes PropBank instances and generates CoNLL style dependency trees with semantic roles. The converter uses the Clear penn-to-dependency converter for the dependency conversion.  It currently supports Arabic, Chinese, and English.
+*Clear prop-to-dependency converter* takes PropBank instances and generates CoNLL style dependency trees with semantic roles. The converter uses the [Phrase2DepGuidelines Clear penn-to-dependency converter] for the dependency conversion.  It currently supports Arabic, Chinese, and English.
 
 == How to run ==
 
