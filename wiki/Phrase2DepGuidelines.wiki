@@ -17,10 +17,10 @@ java clear.engine.PennToDep -i dat/sample.phrase -o dat/sample.dep -h config/en_
  * *output file* (required) - name of a file containing dependency trees converted from the input file ([http://code.google.com/p/clearparser/source/browse/trunk/dat/sample.dep dat/sample.dep]).
  * *headrule file* (required) - name of a file containing head-percolation rules ([http://code.google.com/p/clearparser/source/browse/trunk/config/en_ontonotes.headrules config/en_ontonotes.headrules]).
  * *dictionary file* (optional) - name of a dictionary file for [MorphAnalyzerGuidelines Clear morphological analyzer] ([http://code.google.com/p/clearparser/source/browse/trunk/lib/en_dict-1.0.jar lib/en_dict-1.0.jar]).
- * *minimum sentence length* (optional) - minimum number of word-tokens in each sentence (inclusive, default = 1)
+ * *minimum sentence length* (optional) - minimum number of word-tokens in each sentence (inclusive, default = 1).
  * *language* (optional) - en: English (default), kr: Korean.
  * *-f* (optional) - if set, use function tags as dependency labels.
- * *-e* (optional) - if set, include empty categories
+ * *-e* (optional) - if set, include empty categories.
 
 == Input file ==
 
