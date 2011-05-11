@@ -49,7 +49,7 @@ wsj_0001.parse 0 8 gold join-v join.01 ----- 8:0-rel 0:2-ARG0 7:0-ARGM-MOD 9:1-A
 
 == Output file ==
 
-*Output file* contains dependency trees with semantic roles in [DataFormat SRL format] ([http://code.google.com/p/clearparser/source/browse/trunk/dat/wsj_0001.parse.srl dat/wsj_0001.parse.srl]).
+*Output file* contains dependency trees with semantic roles in [DataFormat srl format] ([http://code.google.com/p/clearparser/source/browse/trunk/dat/wsj_0001.parse.srl dat/wsj_0001.parse.srl]).
 
 {{{
 1	Pierre	pierre	NNP	_	2	NMOD	_	_
