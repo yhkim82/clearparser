@@ -24,7 +24,7 @@ java clear.engine.PropToDep -i dat/sample.prop -o dat/ -p dat/ -h config/en_onto
 
 == Input file ==
 
-*Input file* contains PropBank instances.  Each PropBank instance follows the following format.
+*Input file* contains PropBank instances ([http://code.google.com/p/clearparser/source/browse/trunk/dat/sample.prop dat/sample.prop]).  Each PropBank instance follows the following format.
 
 {{{
 <parse file> <tree ID> <predicate ID> <annotator ID> <lemma-pos> <frameset ID> <aspects>( <argument>)+
