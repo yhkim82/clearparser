@@ -1,7 +1,13 @@
 #summary Pre-trained models
 
-== Dependency Parsing ==
+== [http://www.ldc.upenn.edu/Catalog/docs/LDC2011T03/OntoNotes-Release-4.0.pdf OntoNotes v4.0] ==
 
-|| *Language* || *Algorithm* || *Description* || *HDD* || *RAM* || *Download* ||
-|| English    || shift-pop   || Trained on the [http://www.ldc.upenn.edu/Catalog/docs/LDC2011T03/OntoNotes-Release-4.0.pdf OntoNotes v4.0]+. || 250MB || 6GB || [http://verbs.colorado.edu/~choijd/clearparser/models/en-dep-ontonotes.mod en-dep-ontonotes.mod] ||
-|| English    || shift-pop   || Trained on the [http://ufal.mff.cuni.cz/conll2009-st/train-dev-data.html CoNLL'09 data] (WSJ). || 250MB || 6GB || [http://verbs.colorado.edu/~choijd/clearparser/models/en-dep-conll09.mod en-dep-conll09.mod] ||
+ * Broadcasting news: 14,413 sentences
+ * Broadcasting conversations:11,812 sentences
+ * News magazines: 7,568 sentences
+ * Newswires: 38,112 sentences
+ * Web-texts: 10,487 sentences
+
+|| *Language* || *Usage* || *Algorithm* || *HDD* || *RAM* || *Date* || *Download* ||
+|| English || POS tagging || maxent || 6.4MB || 100MB || 05/20/2011 || [http://verbs.colorado.edu/~choijd/clearparser/models/en-dep-ontonotes.mod en-pos-ontonotes.mod] ||
+|| English || Dependency parsing || shift-pop || 250MB || 6GB || 05/20/2011 || [http://verbs.colorado.edu/~choijd/clearparser/models/en-dep-ontonotes.mod en-dep-ontonotes.mod] ||
