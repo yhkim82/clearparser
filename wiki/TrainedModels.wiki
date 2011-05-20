@@ -1,0 +1,7 @@
+#summary Pre-trained models
+
+== Dependency Parsing ==
+
+|| *Language* || *Algorithm* || *Description* || *HDD* || *RAM* || *Download* ||
+|| English    || shift-pop   || Trained on the [http://www.ldc.upenn.edu/Catalog/docs/LDC2011T03/OntoNotes-Release-4.0.pdf OntoNotes v4.0]+. || 250MB || 6GB || [http://verbs.colorado.edu/~choijd/clearparser/models/en-dep-ontonotes.mod en-dep-ontonotes.mod] ||
+|| English    || shift-pop   || Trained on the [http://ufal.mff.cuni.cz/conll2009-st/train-dev-data.html CoNLL'09 data] (WSJ). || 250MB || 6GB || [http://verbs.colorado.edu/~choijd/clearparser/models/en-dep-conll09.mod en-dep-conll09.mod] ||
