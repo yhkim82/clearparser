@@ -9,5 +9,5 @@
  * Web-texts: 10,487 sentences
 
 || *Language* || *Usage* || *Algorithm* || *HDD* || *RAM* || *Date* || *Download* ||
-|| English || POS tagging || maxent || 6.4MB || 100MB || 05/20/2011 || [http://verbs.colorado.edu/~choijd/clearparser/models/en-dep-ontonotes.mod en-pos-ontonotes.mod] ||
-|| English || Dependency parsing || shift-pop || 250MB || 6GB || 05/20/2011 || [http://verbs.colorado.edu/~choijd/clearparser/models/en-dep-ontonotes.mod en-dep-ontonotes.mod] ||
+|| English || POS tagging || maxent || 6.4MB || 100MB || 05/20/2011 || [http://verbs.colorado.edu/~choijd/clearparser/models/en-dep-ontonotes.jar en-pos-ontonotes.jar] ||
+|| English || Dependency parsing || shift-pop || 250MB || 6GB || 05/20/2011 || [http://verbs.colorado.edu/~choijd/clearparser/models/en-dep-ontonotes.jar en-dep-ontonotes.jar] ||
