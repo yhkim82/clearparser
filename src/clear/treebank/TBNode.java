@@ -595,6 +595,9 @@ public class TBNode
 	 */
 	public TBNode getComplementizer()
 	{
+		if (isPos("WH.*"))
+			return this;
+		
 		for (TBNode node : getSubTerminalNodes())
 		{
 			if (node.isPos("W.*|-NONE-") || TBEnLib.isComplementizer(node.form))

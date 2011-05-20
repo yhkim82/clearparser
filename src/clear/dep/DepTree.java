@@ -30,6 +30,7 @@ import java.util.HashSet;
 import clear.ftr.map.DepFtrMap;
 import clear.ftr.xml.DepFtrXml;
 
+import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntOpenHashSet;
 
 /**
@@ -500,11 +501,31 @@ public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
 	public DepNode getHighestVC(int currId)
 	{
 		DepNode node = get(currId);
-		
+
 		while (DepLib.M_VC.matcher(node.deprel).matches())
 			node = get(node.headId);
-		
+
 		return (node.id == currId) ? null : node;
+	}
+	
+	public IntOpenHashSet getVCIdSet(int currId)
+	{
+		IntArrayList list = new IntArrayList();
+		DepNode node = get(currId);
+		
+		while (node.id > 0)
+		{
+			if (DepLib.M_VC.matcher(node.deprel).matches())
+				list.add(node.headId);
+			
+			node = get(node.headId);
+			if (node.isPosx("VB.*"))	list.add(node.id);
+		}
+
+		if (!list.isEmpty())
+			list.add(get(list.get(list.size()-1)).headId);
+		
+		return new IntOpenHashSet(list);
 	}
 	
 	public String getPRT(int predId)
@@ -586,6 +607,12 @@ public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
 	{	
 		DepNode curr = get(currId);
 		curr.setHead(headId, deprel, score);
+	}
+	
+	public void clearDepHeads()
+	{
+		for (int i=1; i<size(); i++)
+			get(i).clearDepHead();
 	}
 	
 	public void clearSRLHeads()

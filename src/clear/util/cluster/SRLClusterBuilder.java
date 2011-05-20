@@ -70,7 +70,7 @@ public class SRLClusterBuilder
 		
 		for (ObjectDoubleOpenHashMap<String> map : cluster)
 		{
-			for (ObjectCursor<String> cur : map.keySet())
+			for (ObjectCursor<String> cur : map.keys())
 			{
 				key = cur.value;
 				centroid.put(key, centroid.get(key)+map.get(key));
@@ -79,7 +79,7 @@ public class SRLClusterBuilder
 		
 		int size = cluster.size();
 		
-		for (ObjectCursor<String> cur : centroid.keySet())
+		for (ObjectCursor<String> cur : centroid.keys())
 		{
 			key = cur.value;
 			centroid.put(key, centroid.get(key)/size);
@@ -112,7 +112,7 @@ public class SRLClusterBuilder
 		double dot = 0, scala1 = 0, scala2 = 0, val;
 		String key;
 		
-		for (ObjectCursor<String> cur : map1.keySet())
+		for (ObjectCursor<String> cur : map1.keys())
 		{
 			key = cur.value;
 			val = map1.get(key);
@@ -123,7 +123,7 @@ public class SRLClusterBuilder
 			scala1 += (val * val);
 		}
 		
-		for (ObjectCursor<String> cur : map2.keySet())
+		for (ObjectCursor<String> cur : map2.keys())
 		{
 			val = map2.get(cur.value);
 			scala2 += (val * val);
@@ -207,7 +207,6 @@ public class SRLClusterBuilder
 	}
 	
 	/** @return true if clustering is performed. */
-	@SuppressWarnings("unchecked")
 	private boolean hmClusterAux()
 	{
 		ArrayList<JObjectDoubleTuple<JIntIntTuple>> list = new ArrayList<JObjectDoubleTuple<JIntIntTuple>>();
@@ -352,7 +351,7 @@ public class SRLClusterBuilder
 			cluster = new ProbCluster(key);
 			lmap    = map.getProb2dMap(key);
 			
-			for (ObjectCursor<String> cur : lmap.keySet())
+			for (ObjectCursor<String> cur : lmap.keys())
 			{
 				if ((weight = mWeights.get(cur.value)) > 0)
 					lmap.put(cur.value, lmap.get(cur.value)*weight);

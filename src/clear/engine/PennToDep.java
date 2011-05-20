@@ -41,7 +41,7 @@ import clear.treebank.TBReader;
 import clear.treebank.TBTree;
 import clear.util.IOUtil;
 
-public class PhraseToDep
+public class PennToDep
 {
 	@Option(name="-i", usage="name of a file containing phrase structure tree", required=true, metaVar="REQUIRED")
 	String s_inputFile;
@@ -53,8 +53,8 @@ public class PhraseToDep
 	String s_dictFile = null;
 	@Option(name="-l", usage="language ::= "+AbstractReader.LANG_EN+" (default) | "+AbstractReader.LANG_KR, metaVar="OPTIONAL")
 	String s_language = AbstractReader.LANG_EN;
-	@Option(name="-n", usage="minimum sentence length (inclusive; default = 0)", metaVar="OPTIONAL")
-	int n_length = 0;
+	@Option(name="-n", usage="minimum sentence length (inclusive; default = 1)", metaVar="OPTIONAL")
+	int n_length = 1;
 	@Option(name="-f", usage="if set, include function tags", metaVar="OPTIONAL")
 	boolean b_funcTag = false;
 	@Option(name="-e", usage="if set, include empty categories", metaVar="OPTIONAL")
@@ -62,7 +62,7 @@ public class PhraseToDep
 	@Option(name="-r", usage="if set, reverse dependencies of auxiliaries and modals", metaVar="OPTIONAL")
 	boolean b_reverseVC = false;
 	
-	public PhraseToDep(String[] args)
+	public PennToDep(String[] args)
 	{
 		CmdLineParser cmd = new CmdLineParser(this);
 		
@@ -100,7 +100,7 @@ public class PhraseToDep
 		while ((tree = reader.nextTree()) != null)
 		{
 			DepTree dTree = converter.toDepTree(tree);
-			if (dTree.size() > n_length){ fout.println(dTree+"\n");	i++; }
+			if (dTree.size() >= n_length){ fout.println(dTree+"\n");	i++; }
 			if (i%1000 == 0)	System.out.print("\r"+filename+": "+i);
 		}
 		
@@ -110,6 +110,6 @@ public class PhraseToDep
 	
 	static public void main(String[] args)
 	{
-		new PhraseToDep(args);
+		new PennToDep(args);
 	}
 }

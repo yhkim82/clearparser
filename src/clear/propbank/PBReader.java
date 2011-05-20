@@ -53,10 +53,14 @@ public class PBReader
 	 */
 	public PBInstance nextInstance()
 	{
+		String line;
+		
 		if (!f_prop.hasNextLine())
 		{	f_prop.close();	return null;	}
 		
-		String   line = f_prop.nextLine();
+		if ((line = f_prop.nextLine().trim()).isEmpty())
+		{	f_prop.close();	return null;	}
+		
 		String[] str  = line.split(PBLib.FIELD_DELIM);
 		
 		PBInstance instance  = new PBInstance();

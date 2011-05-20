@@ -24,7 +24,7 @@
 package clear.util.tuple;
 
 @SuppressWarnings("unchecked")
-public class JObjectIntTuple<ObjectType> implements Comparable
+public class JObjectIntTuple<ObjectType> implements Comparable<Object>
 {
 	public ObjectType object;
 	public int        integer;
