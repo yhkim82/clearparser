@@ -158,13 +158,12 @@ public class SRLProbE
 		}
 	}
 	
-	@SuppressWarnings("unchecked")
 	public ArrayList<JObjectDoubleTuple<String>> trimTopics(double threshold, String argKey)
 	{
 		ArrayList<JObjectDoubleTuple<String>> topics = new ArrayList<JObjectDoubleTuple<String>>();
 		String topic;	double prob, total = 0;
 		
-		for (ObjectCursor<String> cur : m_topicsT_VA.keySet())
+		for (ObjectCursor<String> cur : m_topicsT_VA.keys())
 		{
 			topic = cur.value;
 			prob  = m_topicsT_VA.getProb(topic) * m_topicsA_VT.get1dProb(topic, argKey) * m_topicsT_V.getProb(topic);
@@ -257,7 +256,7 @@ public class SRLProbE
 		{
 			map = m_prob.get(verb);
 			
-			for (ObjectCursor<String> arg : map.keySet())
+			for (ObjectCursor<String> arg : map.keys())
 			{
 				label = arg.value;
 				

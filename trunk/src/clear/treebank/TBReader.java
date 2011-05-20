@@ -142,7 +142,7 @@ public class TBReader
 		retrieveCoIndexMap(root, map);
 		if (map.isEmpty())	return;
 		
-		int[] keys = map.keySet().toArray();
+		int[] keys = map.keys().toArray();
 		ArrayList<TBNode> list;
 		Arrays.sort(keys);
 		

@@ -169,7 +169,7 @@ public class DepEval
 		System.out.println("--------------------------------------------------");
 		
 		ArrayList<String> labels = new ArrayList<String>(m_dep.size());
-		for (ObjectCursor<String> cur : m_dep.keySet())
+		for (ObjectCursor<String> cur : m_dep.keys())
 			labels.add(cur.value);
 			
 		Collections.sort(labels);

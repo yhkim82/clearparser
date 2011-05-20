@@ -34,19 +34,18 @@ public class Prob1dMap extends ObjectIntOpenHashMap<String>
 	{
 		ObjectDoubleOpenHashMap<String> map = new ObjectDoubleOpenHashMap<String>(size());
 		
-		for (ObjectCursor<String> cur : keySet())
+		for (ObjectCursor<String> cur : keys())
 			map.put(cur.value, getProb(cur.value));
 
 		return map;
 	}
 	
 	/** @return sorted list generated from a map: P(1D) */
-	@SuppressWarnings("unchecked")
 	public ArrayList<JObjectDoubleTuple<String>> getProbList()
 	{
 		ArrayList<JObjectDoubleTuple<String>> list = new ArrayList<JObjectDoubleTuple<String>>(size());
 		
-		for (ObjectCursor<String> cur : keySet())
+		for (ObjectCursor<String> cur : keys())
 			list.add(new JObjectDoubleTuple<String>(cur.value, getProb(cur.value)));
 
 		Collections.sort(list);

@@ -93,15 +93,25 @@ public class TBEnConvert extends AbstractTBConvert
 		initSRLTree(pTree.getRootNode());
 		setDepHeads(pTree.getRootNode());
 		setDepRoot();
-			
-		remapEmptyCategory();
-		p_tree.mapSRLTree(d_tree);
-		mapPBLocToDep();
-		DepTree copy = removeEmptyCategories();
-		copy.projectizePunc();
-		copy.checkTree();
 		
-		return copy;
+		if (b_ec)
+		{
+			p_tree.mapSRLTree(d_tree);
+			mapPBLocToDep();
+			d_tree.checkTree();
+			return d_tree;
+		}
+		else
+		{
+			remapEmptyCategory();
+			p_tree.mapSRLTree(d_tree);
+			mapPBLocToDep();
+			DepTree copy = removeEmptyCategories();
+			copy.projectizePunc();
+			copy.checkTree();
+			
+			return copy;
+		}
 	}
 	
 	/** Initializes <code>tree</code> using the subtree of <code>curr</code>. */
@@ -119,7 +129,14 @@ public class TBEnConvert extends AbstractTBConvert
 			node.id    = curr.terminalId + 1;
 			node.form  = curr.form;
 			node.pos   = curr.pos;
-			node.lemma = (g_morph != null) ? g_morph.getLemma(curr.form, curr.pos) : node.form.toLowerCase();
+			
+		/*	if (node.isPos("-NONE-"))
+			{
+				int idx = node.form.lastIndexOf("-");
+				if (idx > 0)	node.form = node.form.substring(0, idx);
+			}*/
+			
+			node.lemma = (g_morph != null) ? g_morph.getLemma(node.form, curr.pos) : node.form.toLowerCase();
 			
 			d_tree.add(node);
 		}
@@ -376,7 +393,7 @@ public class TBEnConvert extends AbstractTBConvert
 				
 				if ((head = siblings.get(j).getGapNode(child.gapIndex)) != null)
 				{
-					String deprel = getTagDeprel(p_tree.getTerminalNodes().get(curr.headId).getParent());
+					String deprel = getTagDeprel(p_tree.getTerminalNodes().get(curr.headId).getParent(), null);
 					
 					if (deprel == null || !isFuncTag(deprel))
 						deprel = "";
@@ -466,7 +483,7 @@ public class TBEnConvert extends AbstractTBConvert
 		TBNode p = p_tree.getTerminalNodes().get(parent.headId);
 		TBNode c = p_tree.getTerminalNodes().get(child .headId);
 		
-		if ((deprel = getTagDeprel(child)) != null)
+		if ((deprel = getTagDeprel(child, p)) != null)
 		{
 			TBNode tNode = getTagNode(parent, p, TBEnLib.TAG_SBJ);
 			
@@ -526,8 +543,11 @@ public class TBEnConvert extends AbstractTBConvert
 		return b_funcTag || deprel.matches(TBEnLib.TAG_SBJ+"|"+TBEnLib.TAG_LGS);
 	}
 	
-	private String getTagDeprel(TBNode child)
+	private String getTagDeprel(TBNode child, TBNode p)
 	{
+		if (p != null && (TBEnLib.isBe(p.form) || TBEnLib.isBecome(p.form)) && child.isTag(TBEnLib.TAG_PRD))
+			return DepLib.DEPREL_PRD;
+		
 		if (child.isTag(TBEnLib.TAG_SBJ))										return DepLib.DEPREL_SBJ;
 		if (child.isPos(TBEnLib.POS_PP) && child.containsTag(TBEnLib.TAG_LGS))	return DepLib.DEPREL_LGS;
 		if (child.isTag(TBEnLib.TAG_DTV))										return DepLib.DEPREL_DTV;

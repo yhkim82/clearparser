@@ -92,6 +92,20 @@ public class PBArg
 		return false;
 	}
 	
+	public boolean overlapsMildLocs(PBArg pbArg)
+	{
+		for (PBLoc cLoc : pb_locs)
+		{
+			for (PBLoc pLoc : pbArg.getLocs())
+			{
+				if (cLoc.terminalId == pLoc.terminalId)
+					return true;
+			}
+		}
+		
+		return false;
+	}
+	
 	/** Adds a location. */
 	public boolean addLoc(PBLoc pbLoc)
 	{

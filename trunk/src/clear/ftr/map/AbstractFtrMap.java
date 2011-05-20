@@ -144,7 +144,7 @@ abstract public class AbstractFtrMap
 		String key;	int value;
 		fout.println(countKeys(map, cutoff));
 		
-		for (ObjectCursor<String> str : map.keySet())
+		for (ObjectCursor<String> str : map.keys())
 		{
 			key   = str.value;
 			value = map.get(key);
@@ -157,7 +157,7 @@ abstract public class AbstractFtrMap
 		String key;	int value;
 		fout.println(countKeys(map, cutoff));
 		
-		for (ObjectCursor<String> str : map.keySet())
+		for (ObjectCursor<String> str : map.keys())
 		{
 			key   = str.value;
 			value = map.get(key);
@@ -170,7 +170,7 @@ abstract public class AbstractFtrMap
 		if (cutoff < 1)	return map.size();
 		int count = 0, value;
 		
-		for (ObjectCursor<String> key : map.keySet())
+		for (ObjectCursor<String> key : map.keys())
 		{
 			value = map.get(key.value);
 			if (value > cutoff)	count++;

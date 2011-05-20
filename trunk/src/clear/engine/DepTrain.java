@@ -59,8 +59,8 @@ public class DepTrain extends AbstractTrain
 	private String s_featureXml = null;
 	@Option(name="-i", usage="training file", required=true, metaVar="REQUIRED")
 	private String s_trainFile  = null;
-	@Option(name="-n", usage="bootstrapping level (default = 0)", required=false, metaVar="OPTIONAL")
-	private int    n_boot       = 0;
+	@Option(name="-n", usage="bootstrapping level (default = 2)", required=false, metaVar="OPTIONAL")
+	private int    n_boot       = 2;
 	
 	private DepFtrXml     t_xml   = null;
 	private DepFtrMap     t_map   = null;

@@ -60,7 +60,7 @@ public class Prob2dMap extends HashMap<String,Prob1dMap>
 		ObjectDoubleOpenHashMap<String> map = new ObjectDoubleOpenHashMap<String>(map1d.size());
 		double prob2d = (double)map1d.n_total / n_total;
 		
-		for (ObjectCursor<String> cur : map1d.keySet())
+		for (ObjectCursor<String> cur : map1d.keys())
 			map.put(cur.value, map1d.getProb(cur.value)*prob2d);
 		
 		return map;
@@ -78,14 +78,13 @@ public class Prob2dMap extends HashMap<String,Prob1dMap>
 		return map2list(getProb2dMap(key2d));
 	}
 	
-	@SuppressWarnings("unchecked")
 	private ArrayList<JObjectDoubleTuple<String>> map2list(ObjectDoubleOpenHashMap<String> map)
 	{
 		if (map == null)	return null;
 
 		ArrayList<JObjectDoubleTuple<String>> list = new ArrayList<JObjectDoubleTuple<String>>(map.size());
 		
-		for (ObjectCursor<String> cur : map.keySet())
+		for (ObjectCursor<String> cur : map.keys())
 			list.add(new JObjectDoubleTuple<String>(cur.value, map.get(cur.value)));
 
 		Collections.sort(list);

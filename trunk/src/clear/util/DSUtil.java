@@ -179,7 +179,7 @@ public class DSUtil
 		return arr;
 	}
 	
-	static public double[] toArray(ArrayList<Double> arrlist)
+/*	static public double[] toArray(ArrayList<Double> arrlist)
 	{
 		double[] arr = new double[arrlist.size()];
 		
@@ -187,7 +187,7 @@ public class DSUtil
 			arr[i] = arrlist.get(i);
 		
 		return arr;
-	}
+	}*/
 	
 	static public ArrayList<Integer> toArrayList(StringTokenizer tok)
 	{

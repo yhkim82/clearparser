@@ -160,7 +160,6 @@ public class AnalyzePBArgs
 		}
 	}
 	
-	@SuppressWarnings("unchecked")
 	void printNumberedAdjunct(String outputFile)
 	{
 		PrintStream fout = IOUtil.createPrintFileStream(outputFile);
@@ -173,7 +172,7 @@ public class AnalyzePBArgs
 			map  = ls_numberedAdjuncts.get(i);
 			list = new ArrayList<JObjectIntTuple<String>>();
 			
-			for (ObjectCursor<String> cur : map.keySet())
+			for (ObjectCursor<String> cur : map.keys())
 			{
 				key = cur.value;
 				if (key.equals(TOTAL))	continue;
@@ -269,7 +268,7 @@ public class AnalyzePBArgs
 		int    value;
 		String[] tmp;
 		
-		for (ObjectCursor<String> cur : m_verbPreps.keySet())
+		for (ObjectCursor<String> cur : m_verbPreps.keys())
 		{
 			key   = cur.value;
 			tmp   = key.split("_");
@@ -292,7 +291,6 @@ public class AnalyzePBArgs
 		}
 	}
 	
-	@SuppressWarnings("unchecked")
 	void printVerbPrepPMI(String outputFile)
 	{
 		PrintStream fout = IOUtil.createPrintFileStream(outputFile);
@@ -306,7 +304,7 @@ public class AnalyzePBArgs
 		nVerbTotal    = m_verbs   .get(TOTAL);
 		nVerbArgTotal = m_verbArgs.get(TOTAL);
 		
-		for (ObjectCursor<String> cur : m_verbPreps.keySet())
+		for (ObjectCursor<String> cur : m_verbPreps.keys())
 		{
 			key = cur.value;
 			tmp = key.split("_");
@@ -394,7 +392,6 @@ public class AnalyzePBArgs
 		}
 	}
 	
-	@SuppressWarnings("unchecked")
 	void printRequiredArgument(String outputFile)
 	{
 		PrintStream fout = IOUtil.createPrintFileStream(outputFile);
@@ -407,7 +404,7 @@ public class AnalyzePBArgs
 		
 		HashMap<String, ArrayList<JObjectDoubleTuple<String>>> map = new HashMap<String, ArrayList<JObjectDoubleTuple<String>>>();
 
-		for (ObjectCursor<String> cur : m_verbs.keySet())
+		for (ObjectCursor<String> cur : m_verbs.keys())
 		{
 			if (cur.value.equals(TOTAL))	continue;
 			map.put(cur.value, new ArrayList<JObjectDoubleTuple<String>>());
@@ -415,7 +412,7 @@ public class AnalyzePBArgs
 		
 		ArrayList<JObjectDoubleTuple<String>> list;
 		
-		for (ObjectCursor<String> cur : m_verbArgNs.keySet())
+		for (ObjectCursor<String> cur : m_verbArgNs.keys())
 		{
 			key  = cur.value;
 			tmp  = key.split("_");
@@ -431,7 +428,7 @@ public class AnalyzePBArgs
 		nVerbTotal = m_verbs.get(TOTAL);
 		nPrepTotal = m_preps.get(TOTAL);
 		
-		for (ObjectCursor<String> cur : m_verbArgMs.keySet())
+		for (ObjectCursor<String> cur : m_verbArgMs.keys())
 		{
 			key  = cur.value;
 			tmp  = key.split("_");

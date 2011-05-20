@@ -1,4 +1,4 @@
-package clear.experiment;
+package clear.engine;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -7,6 +7,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
+import org.kohsuke.args4j.Option;
 
 import clear.dep.DepNode;
 import clear.dep.DepTree;
@@ -31,25 +35,56 @@ import com.carrotsearch.hppc.IntOpenHashSet;
 
 public class PropToDep
 {
+	@Option(name="-i", usage="name of a file containing PropBank instances", required=true, metaVar="REQUIRED")
+	String s_propFile;
+	@Option(name="-o", usage="name of a directory for dependency output", required=true, metaVar="REQUIRED")
+	String s_srlDir;
+	@Option(name="-p", usage="name of a directory containing parse trees", required=true, metaVar="REQUIRED")
+	String s_parseDir;
+	@Option(name="-h", usage="name of a file containing head-percolation rules", required=true, metaVar="REQUIRED")
+	String s_headruleFile;
+	@Option(name="-m", usage="name of a file containing dictionaries for morphological analyzer", metaVar="OPTIONAL")
+	String s_dictFile = null;
+	@Option(name="-n", usage="minimum sentence length (inclusive; default = 1)", metaVar="OPTIONAL")
+	int n_length = 1;
+	@Option(name="-f", usage="if set, include function tags", metaVar="OPTIONAL")
+	boolean b_funcTag = false;
+	@Option(name="-e", usage="if set, include empty categories", metaVar="OPTIONAL")
+	boolean b_ec = false;
+	@Option(name="-r", usage="if set, reverse dependencies of auxiliaries and modals", metaVar="OPTIONAL")
+	boolean b_reverseVC = false;
+	
 //	final String PARSE_EXT = ".parse";
 	final String PARSE_EXT = "";
 	final String SRL_EXT   = ".srl";
 	HashMap<String,PBInstance> m_pbInstances;
 	
-	public PropToDep(String propFile, String treeDir, String mergeDir, String headruleFile, String dictDir)
+	public PropToDep(String[] args)
 	{
-		readPBInstances(propFile);
-		merge(treeDir, mergeDir, headruleFile, dictDir);
+		CmdLineParser cmd = new CmdLineParser(this);
+		
+		try
+		{
+			cmd.parseArgument(args);
+			
+			readPBInstances();
+			merge();
+		}
+		catch (CmdLineException e)
+		{
+			System.err.println(e.getMessage());
+			cmd.printUsage(System.err);
+		}
 	}
 	
 	/** Reads all PropBank instances and stores them to {@link PropToDep#m_pbInstances}. */
-	public void readPBInstances(String propFile)
+	public void readPBInstances()
 	{
-		PBReader   reader = new PBReader(propFile);
+		PBReader   reader = new PBReader(s_propFile);
 		PBInstance instance;
 		
 		m_pbInstances = new HashMap<String,PBInstance>();
-		System.out.println("Initialize: "+propFile);
+		System.out.println("Initialize: "+s_propFile);
 		
 		while ((instance = reader.nextInstance()) != null)
 		{
@@ -89,7 +124,7 @@ public class PropToDep
 		return list;
 	}
 	
-	public void merge(String treeDir, String mergeDir, String headruleFile, String dictDir)
+	public void merge()
 	{
 		TBReader    reader;
 		TBTree      tree;
@@ -99,19 +134,19 @@ public class PropToDep
 	 	DepTree     dTree;
 	 	DepNode     dNode;
 		
-		TBHeadRules     headrules = new TBHeadRules(headruleFile);
-		MorphEnAnalyzer morph     = (dictDir != null) ? new MorphEnAnalyzer(dictDir) : null;
-		TBEnConvert     convert   = new TBEnConvert(headrules, morph, true, false, false);
+		TBHeadRules     headrules = new TBHeadRules(s_headruleFile);
+		MorphEnAnalyzer morph     = (s_dictFile != null) ? new MorphEnAnalyzer(s_dictFile) : null;
+		TBEnConvert     convert   = new TBEnConvert(headrules, morph, b_funcTag, b_ec, b_reverseVC);
 		
-	 	treeDir  = treeDir  + File.separator;
-		mergeDir = mergeDir + File.separator;
+		s_parseDir = s_parseDir  + File.separator;
+		s_srlDir   = s_srlDir + File.separator;
 		
 		ArrayList<PBInstance> list;
 		
 		for (String treePath : getTreePaths())
 		{
-			mergeFile = mergeDir + treePath.substring(treePath.lastIndexOf(File.separator)+1) + SRL_EXT;
-			reader    = new TBReader(treeDir + treePath + PARSE_EXT);
+			mergeFile = s_srlDir + treePath.substring(treePath.lastIndexOf(File.separator)+1) + SRL_EXT;
+			reader    = new TBReader(s_parseDir + treePath + PARSE_EXT);
 			fout      = IOUtil.createPrintFileStream(mergeFile);
 			
 			System.out.println(mergeFile);
@@ -142,8 +177,8 @@ public class PropToDep
 					dTree = convert.toSRLTree(tree);
 				}
 				
-				fout.println(";"+treePath+" "+treeIndex);
-				fout.println(dTree+"\n");
+			//	fout.println(";"+treePath+" "+treeIndex);
+				if (dTree.size() >= n_length)	fout.println(dTree+"\n");
 			}
 			
 			fout.close();
@@ -167,6 +202,13 @@ public class PropToDep
 	
 	private void mergeAux(PBInstance instance, TBTree tree)
 	{
+		TBNode pred = tree.getNode(instance.predicateId, 0);
+		if (pred == null)
+		{
+			System.err.println("Wrong location of predicate: "+instance.treePath+" "+instance.treeIndex+" "+instance.predicateId);
+			return;
+		}
+		
 		ArrayList<PBArg> pbArgs  = instance.getArgs();
 		ArrayList<PBArg> delArgs = new ArrayList<PBArg>();
 		
@@ -200,7 +242,7 @@ public class PropToDep
 		if (pbArgs.isEmpty())	return;
 		
 		if (!instance.rolesetId.endsWith(".DP"))
-			tree.getNode(instance.predicateId, 0).rolesetId = instance.rolesetId;
+			pred.rolesetId = instance.rolesetId;
 		
 		for (PBArg pbArg : pbArgs)
 		{
@@ -228,7 +270,7 @@ public class PropToDep
 	private boolean processLink(ArrayList<PBArg> pbArgs, PBArg currArg, TBTree tree)
 	{
 		PBLoc  anchor = new PBLoc(null, -1, -1);
-		TBNode node, comp;
+		TBNode node;
 		
 		if (currArg.isLabel("LINK-SLC"))
 		{
@@ -277,33 +319,47 @@ public class PropToDep
 		{
 			if (!pbArg.isLabel("LINK.*") && pbArg.overlapsLocs(currArg))
 			{
-				pbArg.putLocs(currArg.getLocs());
-				
-				// find antecedents of complementizer
-				if (anchor.terminalId != -1)
-				{
-					node = tree.getNode(anchor.terminalId, anchor.height);
-					comp = node.getComplementizer();
-					
-					if (!comp.hasAntecedent())
-					{
-						Collections.sort(pbArg.getLocs());
-						PBLoc anteLoc = pbArg.getLocs().get(0);
-						
-						comp.pbLoc.type = PBLib.PROP_OP_COMP;
-						comp.antecedent = tree.getNode(anteLoc.terminalId, anteLoc.height);
-					}
-					else
-					{
-						pbArg.putLoc(comp.antecedent.pbLoc);
-					}
-				}
+				processLinkAux(currArg, pbArg, anchor, tree);
+				return true;
+			}
+		}
 		
+		for (PBArg pbArg : pbArgs)
+		{
+			if (!pbArg.isLabel("LINK.*") && pbArg.overlapsMildLocs(currArg))
+			{
+				processLinkAux(currArg, pbArg, anchor, tree);
 				return true;
 			}
 		}
 		
 		return false;
+	}
+	
+	private void processLinkAux(PBArg currArg, PBArg pbArg, PBLoc anchor, TBTree tree)
+	{
+		TBNode node, comp;
+		pbArg.putLocs(currArg.getLocs());
+		
+		// find antecedents of complementizer
+		if (anchor.terminalId != -1)
+		{
+			node = tree.getNode(anchor.terminalId, anchor.height);
+			comp = node.getComplementizer();
+			
+			if (!comp.hasAntecedent())
+			{
+				Collections.sort(pbArg.getLocs());
+				PBLoc anteLoc = pbArg.getLocs().get(0);
+				
+				comp.pbLoc.type = PBLib.PROP_OP_COMP;
+				comp.antecedent = tree.getNode(anteLoc.terminalId, anteLoc.height);
+			}
+			else
+			{
+				pbArg.putLoc(comp.antecedent.pbLoc);
+			}
+		}
 	}
 	
 	/** Finds empty categories' antecedents. */
@@ -551,12 +607,6 @@ public class PropToDep
 	
 	static public void main(String[] args)
 	{
-		String propFile = args[0];
-		String treeDir  = args[1];
-		String mergeDir = args[2];
-		String headruleFile = args[3];
-		String dictDir  = args[4];
-		
-		new PropToDep(propFile, treeDir, mergeDir, headruleFile, dictDir);
+		new PropToDep(args);
 	}
 }

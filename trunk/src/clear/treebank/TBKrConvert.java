@@ -25,11 +25,11 @@ package clear.treebank;
 
 import java.util.ArrayList;
 
-import com.carrotsearch.hppc.IntObjectOpenHashMap;
-
 import clear.dep.DepLib;
 import clear.dep.DepNode;
 import clear.dep.DepTree;
+
+import com.carrotsearch.hppc.IntObjectOpenHashMap;
 
 /**
  * This class provides APIs to convert phrase structure trees to dependency trees in English.
@@ -269,7 +269,7 @@ public class TBKrConvert extends AbstractTBConvert
 			}
 		}
 		
-		for (int key : map.keySet().toArray())
+		for (int key : map.keys().toArray())
 		{
 			list = map.get(key);
 			

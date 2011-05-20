@@ -151,13 +151,13 @@ public class DepNode
 			buff.append(srlInfo.toString());
 		}
 		
-		if (pbLoc != null)
+	/*	if (pbLoc != null)
 		{
 			buff.append(AbstractReader.FIELD_DELIM);
 			buff.append(pbLoc[0].terminalId);
 			buff.append(";");
 			buff.append(pbLoc[1].toString());
-		}
+		}*/
 		
 		return buff.toString();
 	}
@@ -261,6 +261,14 @@ public class DepNode
 		this.deprel  = deprel;
 		this.score   = score;
 		this.hasHead = true;
+	}
+	
+	public void clearDepHead()
+	{
+		headId  = DepLib.NULL_HEAD_ID;
+		deprel  = FtrLib.TAG_NULL;
+		score   = 0d;
+		hasHead = false;
 	}
 	
 	public void setRolesetId(String rolesetId)

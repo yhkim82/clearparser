@@ -69,6 +69,10 @@ public class DepPredict extends AbstractCommon
 	private String s_modelFile  = null;
 	/** Morphological dictionary directory */
 	private String s_morphDict  = null;
+	/** Part-of-speech tagging modelFile */
+	private String s_posModel   = null;
+	/** Tokenizing modelFile */
+	private String s_tokModel   = null;
 	
 	public DepPredict(String[] args)
 	{
