@@ -7,7 +7,7 @@
 
 {{{
 java clear.engine.MorphAnalyze -i <input file> -o <output file> -d <dictionary jar-file>
-java clear.engine.MorphAnalyze -i dat/morph.in -o dat/morph.out -d lib/en_dict-1.0.jar
+java clear.engine.MorphAnalyze -i dat/morph.in -o dat/morph.out -d model/en_dict-1.0.jar
 }}}
 
 == Input file  ==
