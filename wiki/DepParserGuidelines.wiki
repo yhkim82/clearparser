@@ -1,29 +1,32 @@
 #summary Dependency parser: guidelines
 
-_Clear dependency parser_ uses Choi-Nicolov's approach of Nivre's list-based dependency parsing algorithm. The parser gives options of customizing feature templates and choosing different learning algorithms. Clear dependency parser has been imported to several organizations such as CLEAR, J.D. Power & Association, Mayo Clinic. 
+*Clear dependency parser* gives an option of choosing between two transition-based dependency parsing algorithms, shift-eager algorithm and shift-pop algorithm (default). The parser also gives options of customizing feature templates and choosing different learning algorithms (RRM and Liblinear). Clear dependency parser has been used in several organizations such as CLEAR, J.D. Power & Association, and Mayo Clinic.
 
 == Training ==
 
 {{{
-java clear.engine.DepTrain -c <configuration file> -i <train file> -m <model file> -t <feature template file>
-java -Xms8g clear.engine.DepTrain -c config/en_dep_config.xml -i dat/sample.dep -m sample.mod -t config/en_dep_feature.xml
+java clear.engine.DepTrain -c <configuration file> -t <feature template file> -i <train file> -m <model file> [-n <bootstrapping level>]
+java -XX:+UseConcMarkSweepGC -Xmx4g clear.engine.DepTrain -c config/config_dep_en.xml -t config/feature_dep_en_conll09.xml -i dat/sample.dep -m dat/sample.mod
 }}}
 
- * <*configuration file*>: name of a file specifying [ConfigGuidelines configurations] ([http://code.google.com/p/clearparser/source/browse/trunk/config/en_dep_config.xml config/en_dep_config.xml])
- * <*train file*>: name of a file containing dependency trees for training in either [DataFormat dep or conll format] ([http://code.google.com/p/clearparser/source/browse/trunk/dat/sample.dep dat/sample.dep]).
- * <*model file*>: name of a file to contain trained models.
- * <*feature template file*>: name of a file containing [FeatureGuidelines feature templates] ([http://code.google.com/p/clearparser/source/browse/trunk/config/en_dep_feature.xml config/en_dep_feature.xml]).
+ * <*configuration file*>: name of a file specifying [ConfigGuidelines configurations] ([http://code.google.com/p/clearparser/source/browse/trunk/config/config_dep_en.xml config/config_dep_en.xml])
+ * <*feature template file*>: name of a file containing [FeatureGuidelines feature templates] ([http://code.google.com/p/clearparser/source/browse/trunk/config/feature_dep_en_conll09.xml config/feature_dep_en_conll09.xml]).
+ * <*train file*>: name of a file containing dependency trees in [DataFormat dep format] ([http://code.google.com/p/clearparser/source/browse/trunk/dat/sample.dep dat/sample.dep]) for training.
+ * <*model file*>: name of a file to contain a trained model.
+ * <*bootstrapping level*>: number of iterations for bootstrapping (default = 2)
+
+After running the command, it will generate _n+1_ models, where _n_ is the bootstrapping level: <model file> is a model trained without using bootstrapping and <model file>.boot_n is a model generated from the _n_'th level of bootstrapping.  See Choi & Palmer (2011a) for more details about the bootstrapping.
 
 == Decoding ==
 
 {{{
 java clear.engine.DepPredict -c <configuration file> -m <model file> -i <input file> -o <output file>
-java -Xms8g clear.engine.DepPredict -c config/en_dep_config.xml -m wsj-onto.mod -i dat/sample.dep -o dat/sample.out
+java -XX:+UseConcMarkSweepGC -Xmx6g clear.engine.DepPredict -c config/config_dep_en.xml -m sample.mod -i dat/sample.dep -o dat/sample.out
 }}}
 
- * <*configuration file*>: name of a file specifying [ConfigGuidelines configurations] ([http://code.google.com/p/clearparser/source/browse/trunk/config/en_dep_config.xml config/en_dep_config.xml])
- * <*model file*>: name of a file containing trained models.  A pre-trained model can be downloaded from [http://verbs.colorado.edu/~choijd/models/wsj-onto.mod wsj-onto.mod].  It is trained on the Wall Street Journal sections 2 - 21 in the OntoNotes Treeank, which is a subset of the entire Penn Treebank.
- * <*input file*>: name of a file containing dependency trees for decoding in either [DataFormat pos, dep or conll format].  The HEAD and DEPREL columns do not need to have values or can be filled with any values.
+ * <*configuration file*>: name of a file specifying [ConfigGuidelines configurations] ([http://code.google.com/p/clearparser/source/browse/trunk/config/config_dep_en.xml config/config_dep_en.xml])
+ * <*model file*>: name of a file containing a trained model.  Pre-trained models can be downloaded from the [TrainedModels this] page.
+ * <*input file*>: name of a file containing dependency trees in either [DataFormat raw, pos, dep, or conll-x format] for decoding.  The HEAD and DEPREL columns do not need to have values or can be filled with any values.
  * <*output file*>: name of a file containing system dependency trees in [DataFormat dep format] ([http://code.google.com/p/clearparser/source/browse/trunk/dat/sample.dep dat/sample.dep]).
 
 == Evaluating ==
