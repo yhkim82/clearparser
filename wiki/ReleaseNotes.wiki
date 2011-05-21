@@ -1,15 +1,15 @@
 #summary Release notes
 
-== ClearParser v0.3 ==
+=== ClearParser v0.3 ===
 
  * Clear semantic role labeler is added.
  * Clear prop-to-dep analyzer is added.
 
-== ClearParser v0.2 ==
+=== ClearParser v0.2 ===
 
  * The shift-pop algorithm is added.
 
-== ClearParser v0.1 ==
+=== ClearParser v0.1 ===
 
  * Clear dependency parser, using the shift-eager algorithm, is added.
  * Clear penn-to-dep converter is added.
