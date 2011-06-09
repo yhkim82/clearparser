@@ -1,3 +1,26 @@
+/**
+* Copyright (c) 2011, Regents of the University of Colorado
+* All rights reserved.
+*
+* Redistribution and use in source and binary forms, with or without
+* modification, are permitted provided that the following conditions are met:
+*
+* Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+* Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+* Neither the name of the University of Colorado at Boulder nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+*
+* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+* AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+* IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+* ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+* LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+* CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+* SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+* INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+* CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+* ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+* POSSIBILITY OF SUCH DAMAGE.
+*/
 package clear.engine;
 
 import java.io.File;
@@ -33,6 +56,11 @@ import clear.util.JSet;
 
 import com.carrotsearch.hppc.IntOpenHashSet;
 
+/**
+ * Compare two dependency trees.
+ * @author Jinho D. Choi
+ * <b>Last update:</b> 4/26/2010
+ */
 public class PropToDep
 {
 	@Option(name="-i", usage="name of a file containing PropBank instances", required=true, metaVar="REQUIRED")
@@ -138,8 +166,8 @@ public class PropToDep
 		MorphEnAnalyzer morph     = (s_dictFile != null) ? new MorphEnAnalyzer(s_dictFile) : null;
 		TBEnConvert     convert   = new TBEnConvert(headrules, morph, b_funcTag, b_ec, b_reverseVC);
 		
-		s_parseDir = s_parseDir  + File.separator;
-		s_srlDir   = s_srlDir + File.separator;
+		s_parseDir += File.separator;
+		s_srlDir   += File.separator;
 		
 		ArrayList<PBInstance> list;
 		
@@ -154,7 +182,7 @@ public class PropToDep
 			for (treeIndex=0; (tree = reader.nextTree()) != null; treeIndex++)
 			{
 				list = getPBInstances(treePath, treeIndex);
-			//	removeAdjectivalPredicates(tree, list);
+				removeAdjectivalPredicates(tree, list);
 				
 				if (list.isEmpty())
 				{
@@ -178,7 +206,7 @@ public class PropToDep
 				}
 				
 			//	fout.println(";"+treePath+" "+treeIndex);
-				if (dTree.size() >= n_length)	fout.println(dTree+"\n");
+				if (dTree.size() > n_length)	fout.println(dTree+"\n");
 			}
 			
 			fout.close();
@@ -193,7 +221,7 @@ public class PropToDep
 		for (PBInstance instance : instances)
 		{
 			node = tree.getNode(instance.predicateId, 1);
-			if (node.isPos(TBEnLib.POS_NP))
+			if (node.isPos(TBEnLib.POS_NP) || (node.isPos(TBEnLib.POS_ADJP) && node.getParent().isPos(TBEnLib.POS_NP) && !node.isPrior(TBEnLib.POS_NP)))
 				remove.add(instance);
 		}
 		
@@ -214,7 +242,7 @@ public class PropToDep
 		
 		for (PBArg pbArg : pbArgs)
 		{
-			if (!processEmtpyCategories(pbArg, tree))
+			if (!processEmtpyCategories(pbArg, tree, pred))
 				System.err.println("Wrong location in "+pbArg.label+": "+instance.toString());
 		}
 		
@@ -243,9 +271,11 @@ public class PropToDep
 		
 		if (!instance.rolesetId.endsWith(".DP"))
 			pred.rolesetId = instance.rolesetId;
-		
+
 		for (PBArg pbArg : pbArgs)
 		{
+			processEmtpyCategoriesSub(pbArg, tree, pred);
+			
 			if (!addPBArgToTBTree(pbArg, tree))
 				System.err.println("Wrong location in "+pbArg.label+": "+instance.toString());
 		}
@@ -267,15 +297,15 @@ public class PropToDep
 	}
 	
 	/** Merges LINK-argument with its anchor-argument. */
-	private boolean processLink(ArrayList<PBArg> pbArgs, PBArg currArg, TBTree tree)
+	private boolean processLink(ArrayList<PBArg> pbArgs, PBArg linkArg, TBTree tree)
 	{
 		PBLoc  anchor = new PBLoc(null, -1, -1);
 		TBNode node;
 		
-		if (currArg.isLabel("LINK-SLC"))
+		if (linkArg.isLabel("LINK-SLC"))
 		{
 			// find antecedent
-			for (PBLoc pbLoc : currArg.getLocs())
+			for (PBLoc pbLoc : linkArg.getLocs())
 			{
 				node = tree.getNode(pbLoc.terminalId, pbLoc.height);
 				if (node == null)	return false;
@@ -290,7 +320,7 @@ public class PropToDep
 			// find antecedent in height 1
 			if (anchor.terminalId == -1)
 			{
-				for (PBLoc pbLoc : currArg.getLocs())
+				for (PBLoc pbLoc : linkArg.getLocs())
 				{
 					node = tree.getNode(pbLoc.terminalId, 1);
 					
@@ -305,7 +335,7 @@ public class PropToDep
 		}
 		else if (anchor.terminalId == -1)	// normalize empty categories
 		{
-			for (PBLoc pbLoc : currArg.getLocs())
+			for (PBLoc pbLoc : linkArg.getLocs())
 			{
 				node = tree.getNode(pbLoc.terminalId, 0);
 				if (node == null)	return false;
@@ -317,18 +347,18 @@ public class PropToDep
 		
 		for (PBArg pbArg : pbArgs)
 		{
-			if (!pbArg.isLabel("LINK.*") && pbArg.overlapsLocs(currArg))
+			if (!pbArg.isLabel("LINK.*") && pbArg.overlapsLocs(linkArg))
 			{
-				processLinkAux(currArg, pbArg, anchor, tree);
+				processLinkAux(linkArg, pbArg, anchor, tree);
 				return true;
 			}
 		}
 		
 		for (PBArg pbArg : pbArgs)
 		{
-			if (!pbArg.isLabel("LINK.*") && pbArg.overlapsMildLocs(currArg))
+			if (!pbArg.isLabel("LINK.*") && pbArg.overlapsMildLocs(linkArg))
 			{
-				processLinkAux(currArg, pbArg, anchor, tree);
+				processLinkAux(linkArg, pbArg, anchor, tree);
 				return true;
 			}
 		}
@@ -336,10 +366,10 @@ public class PropToDep
 		return false;
 	}
 	
-	private void processLinkAux(PBArg currArg, PBArg pbArg, PBLoc anchor, TBTree tree)
+	private void processLinkAux(PBArg linkArg, PBArg pbArg, PBLoc anchor, TBTree tree)
 	{
 		TBNode node, comp;
-		pbArg.putLocs(currArg.getLocs());
+		pbArg.putLocs(linkArg.getLocs());
 		
 		// find antecedents of complementizer
 		if (anchor.terminalId != -1)
@@ -363,7 +393,7 @@ public class PropToDep
 	}
 	
 	/** Finds empty categories' antecedents. */
-	private boolean processEmtpyCategories(PBArg pbArg, TBTree tree)
+	private boolean processEmtpyCategories(PBArg pbArg, TBTree tree, TBNode pred)
 	{
 		ArrayList<PBLoc> addLocs = new ArrayList<PBLoc>();
 	//	ArrayList<PBLoc> delLocs = new ArrayList<PBLoc>();
@@ -406,7 +436,7 @@ public class PropToDep
 				
 			/*	if (curr.isForm("\\*T\\*.*"))
 				{
-					delLocs.add(pbLoc);
+				//	delLocs.add(pbLoc);
 					if (curr.hasAntecedent())	addLocs.add(curr.antecedent.pbLoc);
 				}
 				else if (curr.isForm("\\*PRO\\*.*|\\*|\\*-\\d"))
@@ -416,8 +446,8 @@ public class PropToDep
 						if (curr.hasAntecedent())
 							addLocs.add(curr.antecedent.pbLoc);
 					}
-					else
-						delLocs.add(pbLoc);
+				//	else
+				//		delLocs.add(pbLoc);
 				}*/
 			}
 		}
@@ -428,55 +458,92 @@ public class PropToDep
 	//	for (PBLoc pbLoc: delLocs)
 	//		pbArg.removeLocs(pbLoc);
 		
-	//	trimEmptyCategories(pbArg, tree);
+		trimEmptyCategories(pbArg, tree, pred);
 		
 		return true;
 	}
 	
-	void trimEmptyCategories(PBArg pbArg, TBTree tree)
+	private void processEmtpyCategoriesSub(PBArg pbArg, TBTree tree, TBNode pred)
+	{
+		ArrayList<SRLHead> heads;
+ 		TBNode curr, node, term;
+		
+		for (PBLoc pbLoc : pbArg.getLocs())
+		{
+			curr = tree.getNode(pbLoc.terminalId, pbLoc.height);
+			
+			if (curr.isPos("S"))
+			{
+				for (TBNode child : curr.getChildren())
+				{
+					if (child.isEmptyCategoryRec() && (node = child.getIncludedEmptyCategory("\\*|\\*-\\d")) != null && node.hasAntecedent() && node.terminalId > pred.terminalId)
+					{
+						node = node.antecedent;
+						term = tree.getTerminalNode(node.pbLoc.terminalId);
+						if (term.isPos("EX") || term.form.equalsIgnoreCase("it"))	return;
+						
+						if ((heads = node.getPBHeads()) != null)
+						{
+							for (SRLHead head : heads)
+							{
+								if (head.equals(pred.terminalId+1))
+									return;
+							}					
+						}
+						
+						node.pbLoc.type = "";
+						pbArg.putLoc(node.pbLoc);
+						
+						return;
+					}
+				}
+			}
+		}
+	}
+	
+	void trimEmptyCategories(PBArg pbArg, TBTree tree, TBNode pred)
 	{
 		ArrayList<PBLoc> pbLocs  = pbArg.getLocs();
 		ArrayList<PBLoc> delLocs = new ArrayList<PBLoc>();
-		PBLoc pbLoc;
-		TBNode curr, ante;
 		Collections.sort(pbLocs);
+
+		TBNode ante = tree.getNode(pbLocs.get(0));
 		
-		int i, size = pbLocs.size();
+		if (ante.isEmptyCategoryRec())
+		{
+			ante.antecedent = null;
+			ante = null;
+		}
+		else
+		{
+			ante.pbLoc.type = PBLib.PROP_OP_ANTE;
+		}
+		
 		boolean isFound = false;
+		PBLoc pbLoc;
+		TBNode curr;
 		
-		for (i=size-1; i>=0; i--)
+		for (int i=pbLocs.size()-1; i>=0; i--)
 		{
 			pbLoc = pbLocs.get(i);
 			curr  = tree.getNode(pbLoc);
-			if (!curr.isEmptyCategoryRec())	continue;
-			
+			if (!curr.isEmptyCategoryRec()) continue;
+            
 			if (curr.isPhrase())
 				curr = tree.getNode(pbLoc.terminalId, 0);
 			
 			if (curr.isForm("\\*PRO\\*.*|\\*|\\*-\\d"))
 			{
-				if (isFound)
-					delLocs.add(pbLoc);
-				else
+				if (!isFound && pbLoc.terminalId < pred.terminalId)
 				{
 					isFound = true;
-					
-					if (!curr.hasAntecedent())
-					{
-						pbLoc = pbLocs.get(0);
-						ante  = tree.getNode(pbLoc);
-						
-						if (!ante.isEmptyCategoryRec())
-						{
-							ante.pbLoc.type = PBLib.PROP_OP_ANTE;
-							curr.antecedent = ante;
-						}
-					}
+					curr.antecedent = ante;
 				}
+				else	delLocs.add(pbLoc);
 			}
 		}
-		
-		pbLocs.removeAll(delLocs);
+        
+		if (isFound)	pbLocs.removeAll(delLocs);
 	}
 	
 	protected boolean isCyclic(ArrayList<PBInstance> pbInstances, TBTree tree)
@@ -580,9 +647,16 @@ public class PropToDep
 				if (node == null || !JSet.isSubset(addIDs, node.getSubTermainlIDs()))
 				{
 					node = tree.getNode(terminalId, height);
-					node.addPBHead(new SRLHead(pbArg.predicateId+1, prefix+label));
+					
+					if (node.isEmptyCategoryRec())
+						node.addPBHead(new SRLHead(pbArg.predicateId+1, label));
+					else if (!TBEnLib.isPunctuation(node.pos))
+						node.addPBHead(new SRLHead(pbArg.predicateId+1, prefix+label));
+					
 					addIDs.removeAll(node.getSubTermainlIDs());
-					if (!node.isEmptyCategoryRec() && !label.startsWith("AM"))	prefix = "C-";
+					if (!node.isEmptyCategoryRec() && !TBEnLib.isPunctuation(node.pos) && !label.startsWith("AM"))
+						prefix = "C-";
+					
 					break;
 				}
 				
@@ -595,10 +669,9 @@ public class PropToDep
 		if (rLoc != null)
 		{
 			node = tree.getNode(rLoc);
-			ids  = node.getSubTermainlIDs().toArray();
-			Arrays.sort(ids);
+		//	ids  = node.getSubTermainlIDs().toArray();
+		//	Arrays.sort(ids);
 		//	pred.addPBArg(new SRLArg(prefix+label, ids));
-			
 			node.addPBHead(new SRLHead(pbArg.predicateId+1, prefix+label));
 		}
 		

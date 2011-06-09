@@ -35,6 +35,8 @@ import java.util.HashMap;
 @SuppressWarnings("serial")
 public class DepFeat extends HashMap<String,String>
 {
+	public DepFeat() {}
+	
 	public DepFeat(String feats)
 	{
 		set(feats);

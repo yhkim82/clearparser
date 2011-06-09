@@ -77,6 +77,19 @@ public class SRLHead implements Comparable<SRLHead>
 		this.score  = score;
 	}
 	
+	public String stripCLabel(String label)
+	{
+		if (label.startsWith("C-"))
+			return label.substring(2);
+		
+		return label;
+	}
+	
+	public boolean equals(SRLHead head)
+	{
+		return equals(head.headId, head.label);
+	}
+	
 	public boolean equals(int headId)
 	{
 		return this.headId == headId; 
@@ -84,7 +97,7 @@ public class SRLHead implements Comparable<SRLHead>
 	
 	public boolean equals(String label)
 	{
-		return this.label.equals(label);
+		return stripCLabel(this.label).equals(stripCLabel(label));
 	}
 	
 	public boolean equals(int headId, String label)
