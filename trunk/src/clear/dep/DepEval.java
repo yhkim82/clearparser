@@ -77,6 +77,9 @@ public class DepEval
 			if (b_skip == 1 && sNode.headId == DepLib.NULL_HEAD_ID)
 				continue;
 			
+			if (gNode.isPos("-NONE-"))
+				continue;
+			
 			measure(gNode, sNode, acc);
 		}
 		

@@ -66,6 +66,8 @@ public class DepNode
 	public DepNode rightSibling;
 	/** For Czech: conjunction head */
 	public DepNode coordHead;
+	/** Antecedent of this node */
+	public DepNode antecedent;
 	/** Skip this node if it is true */
 	public boolean isSkip;
 	/** SRL information */
@@ -76,7 +78,7 @@ public class DepNode
 	/** Initializes the node as a null node. */
 	public DepNode()
 	{
-		init(DepLib.NULL_ID, FtrLib.TAG_NULL, FtrLib.TAG_NULL, FtrLib.TAG_NULL, null, DepLib.NULL_HEAD_ID, FtrLib.TAG_NULL, 0, false, null, null, null, null, null, false, null);
+		init(DepLib.NULL_ID, FtrLib.TAG_NULL, FtrLib.TAG_NULL, FtrLib.TAG_NULL, null, DepLib.NULL_HEAD_ID, FtrLib.TAG_NULL, 0, false, null, null, null, null, null, null, false, null);
 	}
 	
 //	==================================== Construct ====================================
@@ -91,7 +93,7 @@ public class DepNode
 		deprel = DepLib.ROOT_TAG;
 	}
 		
-	private void init(int id, String form, String lemma, String pos, DepFeat feats, int headId, String deprel, double score, boolean hasHead, DepNode leftMostDep, DepNode rightMostDep, DepNode leftSibling, DepNode rightSibling, DepNode coordHead, boolean isSkip, SRLInfo srlInfo)
+	private void init(int id, String form, String lemma, String pos, DepFeat feats, int headId, String deprel, double score, boolean hasHead, DepNode leftMostDep, DepNode rightMostDep, DepNode leftSibling, DepNode rightSibling, DepNode coordHead, DepNode antecedent, boolean isSkip, SRLInfo srlInfo)
 	{
 		this.id     = id;
 		this.form   = form;
@@ -108,6 +110,7 @@ public class DepNode
 		this.leftSibling  = leftSibling;
 		this.rightSibling = rightSibling;
 		this.coordHead    = coordHead;
+		this.antecedent   = antecedent;
 		this.isSkip       = isSkip;
 		
 		this.srlInfo = (srlInfo != null) ? srlInfo.clone() : null;
@@ -115,7 +118,7 @@ public class DepNode
 	
 	public void copy(DepNode node)
 	{
-		init(node.id, node.form, node.lemma, node.pos, node.feats, node.headId, node.deprel, node.score, node.hasHead, node.leftMostDep, node.rightMostDep, node.leftSibling, node.rightSibling, node.coordHead, node.isSkip, node.srlInfo);
+		init(node.id, node.form, node.lemma, node.pos, node.feats, node.headId, node.deprel, node.score, node.hasHead, node.leftMostDep, node.rightMostDep, node.leftSibling, node.rightSibling, node.coordHead, node.antecedent, node.isSkip, node.srlInfo);
 	}
 	
 	public DepNode clone()
@@ -133,6 +136,7 @@ public class DepNode
 	public String toString()
 	{
 		StringBuilder buff = new StringBuilder();
+		organizeFeats();
 		
 		buff.append(id);		buff.append(AbstractReader.FIELD_DELIM);
 		buff.append(form);		buff.append(AbstractReader.FIELD_DELIM);
@@ -160,6 +164,15 @@ public class DepNode
 		}*/
 		
 		return buff.toString();
+	}
+	
+	private void organizeFeats()
+	{
+		if (antecedent != null)
+		{
+			if (feats == null)	feats = new DepFeat();
+			feats.put("at", Integer.toString(antecedent.id));
+		}
 	}
 	
 //	==================================== Boolean ====================================

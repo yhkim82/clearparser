@@ -119,7 +119,7 @@ public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
 	public boolean isAncestor(int nodeId1, int nodeId2)
 	{
 		DepNode node2 = get(nodeId2);
-		
+
 		if (!node2.hasHead)				return false;
 		if ( node2.headId == nodeId1)	return true;
 		
@@ -131,7 +131,7 @@ public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
 	{
 		if (!node2.hasHead)				return false;
 		if ( node2.headId == node1.id)	return true;
-		
+	
 		return isAncestor(node1, get(node2.headId));
 	}
 	
@@ -692,8 +692,17 @@ public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
 					else
 						node.headId = curr.id;
 				}
-					
 			}
 		}
+	}
+	
+	public void swap(int id1, int id2)
+	{
+		DepNode node1 = get(id1);
+		DepNode node2 = get(id2);
+		DepNode tNode = node1.clone();
+		
+		node1.copy(node2);
+		node2.copy(tNode);
 	}
 }

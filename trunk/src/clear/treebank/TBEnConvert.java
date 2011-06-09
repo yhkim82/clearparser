@@ -36,6 +36,8 @@ import clear.dep.srl.SRLInfo;
 import clear.morph.MorphEnAnalyzer;
 import clear.propbank.PBLoc;
 
+import com.carrotsearch.hppc.IntIntOpenHashMap;
+
 /**
  * This class provides APIs to convert phrase structure trees to dependency trees in English.
  * @author Jinho D. Choi
@@ -67,20 +69,13 @@ public class TBEnConvert extends AbstractTBConvert
 		setDepHeads(pTree.getRootNode());
 		setDepRoot();
 		
-		if (b_ec)
-		{
-			d_tree.checkTree();
-			return d_tree;
-		}
-		else
-		{
-			remapEmptyCategory();
-			DepTree copy = removeEmptyCategories();
-			copy.projectizePunc();
-			copy.checkTree();
-			
-			return copy;
-		}
+		remapEmptyCategory();
+		DepTree copy = removeEmptyCategories();
+	//	if (b_ec)	relocatePROs(copy);
+		copy.projectizePunc();
+		copy.checkTree();
+		
+		return copy;
 	}
 	
 	/** @return a semantic role labeling tree converted from <code>pTree</code>. */
@@ -94,24 +89,17 @@ public class TBEnConvert extends AbstractTBConvert
 		setDepHeads(pTree.getRootNode());
 		setDepRoot();
 		
-		if (b_ec)
-		{
-			p_tree.mapSRLTree(d_tree);
-			mapPBLocToDep();
-			d_tree.checkTree();
-			return d_tree;
-		}
-		else
-		{
-			remapEmptyCategory();
-			p_tree.mapSRLTree(d_tree);
-			mapPBLocToDep();
-			DepTree copy = removeEmptyCategories();
-			copy.projectizePunc();
-			copy.checkTree();
-			
-			return copy;
-		}
+		remapEmptyCategory();
+		p_tree.mapSRLTree(d_tree);
+	//	mapPBLocToDep();
+		
+		DepTree copy = removeEmptyCategories();
+	//	if (b_ec)	relocatePROs(copy);
+		postProcess(copy);
+		copy.projectizePunc();
+		copy.checkTree();
+		
+		return copy;
 	}
 	
 	/** Initializes <code>tree</code> using the subtree of <code>curr</code>. */
@@ -129,13 +117,6 @@ public class TBEnConvert extends AbstractTBConvert
 			node.id    = curr.terminalId + 1;
 			node.form  = curr.form;
 			node.pos   = curr.pos;
-			
-		/*	if (node.isPos("-NONE-"))
-			{
-				int idx = node.form.lastIndexOf("-");
-				if (idx > 0)	node.form = node.form.substring(0, idx);
-			}*/
-			
 			node.lemma = (g_morph != null) ? g_morph.getLemma(node.form, curr.pos) : node.form.toLowerCase();
 			
 			d_tree.add(node);
@@ -641,7 +622,7 @@ public class TBEnConvert extends AbstractTBConvert
 			if (antecedent == null)	continue;
 			
 			DepNode ante = d_tree.get(antecedent.headId+1);
-			if (ante.isPos(TBLib.POS_NONE))	continue;
+		//	if (ante.isPos(TBLib.POS_NONE))	continue;
 			if (ante.id == ec.headId)		continue;
 			
 			if (ec.form.startsWith(TBEnLib.EC_EXP))
@@ -700,16 +681,16 @@ public class TBEnConvert extends AbstractTBConvert
 		{
 			DepNode node = d_tree.get(i);
 			map.put(i, j);
-			if (!node.isPos(TBLib.POS_NONE))	j++;
+			if (isNodeInclude(node, false))	j++;
 		}
-		
+
 		DepTree copy = new DepTree();
 		
 		for (int i=1; i<d_tree.size(); i++)
 		{
 			DepNode node = d_tree.get(i);
 			
-			if (!node.isPos(TBLib.POS_NONE))
+			if (isNodeInclude(node, true))
 			{
 				node.id     = map.get(node.id);
 				node.headId = map.get(node.headId);
@@ -725,6 +706,95 @@ public class TBEnConvert extends AbstractTBConvert
 		}
 		
 		return copy;
+	}
+	
+	private boolean isNodeInclude(DepNode node, boolean isChange)
+	{
+		if (!node.isPos(TBLib.POS_NONE))	return true;
+		if (!b_ec)							return false;
+
+		if (node.form.matches("\\*PRO\\*.*|\\*|\\*-\\d"))
+		{
+			DepNode head = d_tree.get(node.headId);
+			
+			if (head.isPosx("VB.*|TO") && node.id < head.id)
+			{
+			/*	if (isChange && node.form.startsWith("*PRO*"))
+					node.lemma = "*PRO*";
+				else
+					node.lemma = "*MOV*";*/
+				
+				return true;
+			}
+		}
+		
+		if (node.form.startsWith("0"))
+		{
+			TBNode parent = p_tree.getTerminalNode(node.id-1).getParent();
+			
+			if (parent.isPos(TBEnLib.POS_WHNP))
+			{
+			//	node.lemma = "*REL*";
+				return true;
+			}
+		}
+		
+	/*	if (node.form.startsWith("*T*"))
+		{
+			TBNode ante = p_tree.getAntecedent(Integer.parseInt(node.form.substring(node.form.lastIndexOf("-")+1)));
+		//	System.out.println(node.id+" "+ante.pbLoc+" "+d_tree.toString()+"\n");
+		//	try {System.in.read();} catch (IOException e) {}
+
+			if (ante != null && ante.isPos(TBEnLib.POS_WHNP))
+			{
+				if (ante.isPhrase())	ante = ante.getChildren().get(0);
+				
+				if (ante.isPos(TBEnLib.POS_NONE) && ante.isForm("0"))
+				{
+					System.out.println(node.id+" "+d_tree+"\n");
+					try {System.in.read();} catch (IOException e) {}
+					return true;
+				}
+			}
+		}*/
+			
+		return false;
+	}
+	
+	private void postProcess(DepTree tree)
+	{
+		HashSet<String> set = new HashSet<String>();
+		DepNode node;
+		String  sub;
+		
+		for (int i=1; i<tree.size(); i++)
+		{
+			node = tree.get(i);
+			
+		//	if (node.isPos(TBEnLib.POS_NONE))
+		//		node.form = node.lemma;
+			
+			if (node.srlInfo != null)
+			{
+				for (SRLHead head : node.srlInfo.heads)
+				{
+					if (head.label.equals("C-V"))
+						continue;
+					if (head.label.startsWith("C-"))
+					{
+						sub = head.label.substring(2);
+						
+						if (!set.contains(head.headId+":"+sub))
+						{
+							head.label = sub;
+							set.add(sub);
+						}
+					}
+					else if (!head.label.startsWith("R-"))
+						set.add(head.headId+":"+head.label);
+				}
+			}
+		}
 	}
 	
 	/** Assigns the dependency head of the current node. */
@@ -751,7 +821,7 @@ public class TBEnConvert extends AbstractTBConvert
 		{
 			node = terminalNodes.get(i);
 			if (!node.hasAntecedent())	continue;
-			
+				
 			ante = node.antecedent;
 			
 			while (ante.isEmptyCategoryRec())
@@ -769,7 +839,8 @@ public class TBEnConvert extends AbstractTBConvert
 		}
 	}
 	
-	private void mapPBLocToDep()
+	/** Saves the original propbank locations. */
+	void mapPBLocToDep()
 	{
 		setPBLocInDepAux(p_tree.getRootNode());
 	}
@@ -807,5 +878,81 @@ public class TBEnConvert extends AbstractTBConvert
 		}
 		
 		return false;
+	}
+	
+	void relocatePROs(DepTree tree)
+	{
+		DepNode node, head, inte;
+		int i, j, size = tree.size();
+		ArrayList<DepNode> delList = new ArrayList<DepNode>();
+		
+		for (i=1; i<size; i++)
+		{
+			node = tree.get(i);
+			if (!node.form.startsWith("*PRO*"))	continue;
+			node.form = node.lemma = (node.antecedent == null) ? "*pro*" : "*PRO*";
+			
+			head = tree.get(node.headId);
+			if (head.isPosx("VB.*") && head.id == node.id+1)	continue;
+			
+			if (node.srlInfo != null)
+			{
+				for (SRLHead tmp : node.srlInfo.heads)
+				{
+					if (node.id < tmp.headId)
+					{
+						head = tree.get(tmp.headId);
+						break;
+					}
+				}
+			}
+			
+			if (head.isPos("TO"))
+			{
+				for (j=head.id+1; j<size; j++)
+				{
+					inte = tree.get(j);
+					
+					if (inte.headId == head.id && inte.isPosx("VB.*"))
+					{
+						head = inte;
+						break;
+					}
+				}
+			}
+			
+			if (!head.isPosx("VB.*") || head.id < node.id)
+				delList.add(node);
+			else
+			{
+				node.headId = head.id;
+				tree.add(head.id, node);
+				tree.remove(i);
+				i = head.id;
+			}
+		}
+		
+		tree.removeAll(delList);
+		IntIntOpenHashMap map = new IntIntOpenHashMap();
+		
+		for (i=1; i<tree.size(); i++)
+		{
+			node = tree.get(i);
+			map.put(node.id, i);
+		}
+		
+		for (i=1; i<tree.size(); i++)
+		{
+			node = tree.get(i);
+			
+			node.id = i;
+			node.headId = map.get(node.headId);
+			
+			if (node.srlInfo != null)
+			{
+				for (SRLHead tmp : node.srlInfo.heads)
+					tmp.headId = map.get(tmp.headId);
+			}
+		}
 	}
 }

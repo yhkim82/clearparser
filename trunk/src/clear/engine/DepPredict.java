@@ -49,6 +49,7 @@ import clear.reader.AbstractReader;
 import clear.reader.CoNLLXReader;
 import clear.reader.DepReader;
 import clear.reader.PosReader;
+import clear.reader.RawReader;
 import clear.util.IOUtil;
 
 /**
@@ -59,6 +60,8 @@ import clear.util.IOUtil;
 public class DepPredict extends AbstractCommon
 {
 	protected final String TAG_PREDICT            = "predict";
+	protected final String TAG_PREDICT_TOK_MODEL  = "tok_model";
+	protected final String TAG_PREDICT_POS_MODEL  = "pos_model";
 	protected final String TAG_PREDICT_MORPH_DICT = "morph_dict";
 
 	@Option(name="-i", usage="input file", required=true, metaVar="REQUIRED")
@@ -157,7 +160,8 @@ public class DepPredict extends AbstractCommon
 		
 		AbstractReader<DepNode, DepTree> reader = null;
 		
-		if 		(s_format.equals(AbstractReader.FORMAT_POS))	reader = new PosReader   (s_inputFile, s_language, s_morphDict);
+		if (s_format.equals(AbstractReader.FORMAT_RAW))	reader = new RawReader(s_inputFile, s_language, s_tokModel, s_posModel, s_morphDict);
+		else if (s_format.equals(AbstractReader.FORMAT_POS))	reader = new PosReader   (s_inputFile, s_language, s_morphDict);
 		else if (s_format.equals(AbstractReader.FORMAT_DEP))	reader = new DepReader   (s_inputFile, false);
 		else if (s_format.equals(AbstractReader.FORMAT_CONLLX))	reader = new CoNLLXReader(s_inputFile, false);
 		
@@ -206,7 +210,21 @@ public class DepPredict extends AbstractCommon
 	
 	protected void initElements()
 	{
-		if (s_format.equals(AbstractReader.FORMAT_POS))
+		if (s_format.equals(AbstractReader.FORMAT_RAW) || s_format.equals(AbstractReader.FORMAT_POS))
+		{
+			Element ePredict = getElement(e_config, TAG_PREDICT);
+			Element element;
+			
+			if ((element = getElement(ePredict, TAG_PREDICT_TOK_MODEL)) != null)
+				s_tokModel = element.getTextContent().trim();
+			
+			if ((element = getElement(ePredict, TAG_PREDICT_POS_MODEL)) != null)
+				s_posModel = element.getTextContent().trim();
+			
+			if ((element = getElement(ePredict, TAG_PREDICT_MORPH_DICT)) != null)
+				s_morphDict = element.getTextContent().trim();
+		}
+		else if (s_format.equals(AbstractReader.FORMAT_POS))
 		{
 			Element ePredict = getElement(e_config, TAG_PREDICT);
 			Element element;

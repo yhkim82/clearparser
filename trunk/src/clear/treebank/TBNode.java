@@ -547,6 +547,11 @@ public class TBNode
 		return pb_heads.add(sHead);
 	}
 	
+	public ArrayList<SRLHead> getPBHeads()
+	{
+		return pb_heads;
+	}
+	
 /*	public boolean addPBArg(SRLArg sArg)
 	{
 		if (pb_args == null)
@@ -574,6 +579,21 @@ public class TBNode
 		return getSentenceGroupAux(node.getParent());
 	}
 	
+	public boolean isPrior(String pos)
+	{
+		if (nd_parent == null)		return false;
+		
+		TBNode parent = getParent();
+		ArrayList<TBNode> siblings = parent.getChildren();
+		
+		for (int i=childId-1; i>=0; i--)
+		{
+			if (siblings.get(i).isPos(pos))	return true;
+		}
+		
+		return false;
+	}
+	
 	public boolean isFollowedBy(String pos)
 	{
 		if (nd_parent == null)		return false;
@@ -595,8 +615,6 @@ public class TBNode
 	 */
 	public TBNode getComplementizer()
 	{
-		if (isPos("WH.*"))
-			return this;
 		
 		for (TBNode node : getSubTerminalNodes())
 		{
@@ -604,7 +622,7 @@ public class TBNode
 				return node;
 		}
 		
-		return null;
+		return isPos("WH.*") ? this : null;
 	}
 	
 	public TBNode getIncludedEmptyCategory(String regex)

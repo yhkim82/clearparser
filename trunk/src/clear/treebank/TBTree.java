@@ -24,7 +24,9 @@
 package clear.treebank;
 
 import java.util.ArrayList;
+import java.util.Collections;
 
+import clear.dep.DepLib;
 import clear.dep.DepNode;
 import clear.dep.DepTree;
 import clear.dep.srl.SRLHead;
@@ -283,11 +285,18 @@ public class TBTree
 			if (tNode.pb_heads != null)
 			{
 				dNode.addSRLHeads(tNode.pb_heads);
+				Collections.sort(dNode.srlInfo.heads);
 			}
 			else if (tNode.rolesetId != null)
 			{
 				dNode.setRolesetId(tNode.rolesetId);
-			}			
+			}
+			
+			if (tNode.antecedent != null)
+			{
+				TBNode ante = getNode(tNode.antecedent.pbLoc);
+				dNode.antecedent = tree.get(ante.headId+1);
+			}				
 		}
 		
 		if (tNode.isPhrase())
@@ -310,7 +319,14 @@ public class TBTree
 			
 			while (!head.isRoot())
 			{
-				list.addAll(head.srlInfo.heads);
+				for (SRLHead tmp : head.srlInfo.heads)
+				{
+					if (!tree.isAncestor(head.id, tmp.headId))
+						list.add(tmp);
+					else if (tree.get(tmp.headId).isDeprel(DepLib.DEPREL_PRN))
+						list.add(tmp);
+				}
+				
 				head = tree.get(head.headId);
 			}
 			
