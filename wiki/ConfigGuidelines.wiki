@@ -57,5 +57,8 @@ The <*predict*> element is required for decoding.  It consists of 4 elements (*t
   * Specifies a model file ([https://clearparser.googlecode.com/svn/trunk/model/en_tok_opennlp.jar model/en_tok_opennlp.jar]) for the OpenNLP tokenizer (required for the [DataFormat raw] format).
  * <*pos_model*> ::= absolute or relative path
   * Specifies a model file ([http://verbs.colorado.edu/~choijd/clearparser/models/en_pos_ontonotes.jar model/en_pos_ontonotes.jar]) for the OpenNLP part-of-speech tagger (required for the [DataFormat raw] format).
+ * <*dep_model*> ::= absolute or relative path
+  * Specifies a model file ([http://verbs.colorado.edu/~choijd/clearparser/models/en_dep_ontonotes.jar model/en_dep_ontonotes.jar]) for the [DepParserGuidelines Clear dependency parser] (required for the [DataFormat raw, pos] format).
+  * This element is required only for semantic role labeling.
  * <*morph_dict*> ::= absolute or relative path
-  * Specifies a dictionary file ([http://verbs.colorado.edu/~choijd/clearparser/models/en_dict-1.0.jar model/en_dict-1.0.jar]) for the [MorphAnalyzerGuidelines Clear morphological analyzer] (required for the [DataFormat raw, pos] format).
+  * Specifies a dictionary file ([http://clearparser.googlecode.com/svn/trunk/model/en_dict-1.0.jar model/en_dict-1.0.jar]) for the [MorphAnalyzerGuidelines Clear morphological analyzer] (required for the [DataFormat raw, pos] format).
