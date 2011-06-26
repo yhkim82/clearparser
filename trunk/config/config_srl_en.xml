@@ -1,7 +1,7 @@
 <configuration>
 	<common>
 		<language>en</language>
-		<format>dep</format>
+		<format>srl</format>
 	</common>
 	<classify>
 		<algorithm name="lib" l="1" c="0.2" e="0.1" b="-1"/>
