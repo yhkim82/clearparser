@@ -51,11 +51,11 @@ The <*train*> element is required for training.  It consists of 1 required eleme
 
 == <*predict*> ==
 
-The <*predict*> element is required for decoding in [DataFormat raw, pos] format.  It consists of 3 elements (*tok_model*, *pos_model*, *morph_dict*).
+The <*predict*> element is required for decoding.  It consists of 4 elements (*tok_model*, *pos_model*, *dep_model*, *morph_dict*).
 
  * <*tok_model*> ::= absolute or relative path
-  * Specifies a model file ([https://clearparser.googlecode.com/svn/trunk/model/en_tok_opennlp.jar model/en_tok_opennlp.jar]) for the OpenNLP tokenizer.
+  * Specifies a model file ([https://clearparser.googlecode.com/svn/trunk/model/en_tok_opennlp.jar model/en_tok_opennlp.jar]) for the OpenNLP tokenizer (required for the [DataFormat raw] format).
  * <*pos_model*> ::= absolute or relative path
-  * Specifies a model file ([http://verbs.colorado.edu/~choijd/clearparser/models/en_pos_ontonotes.jar model/en_pos_ontonotes.jar]) for the OpenNLP part-of-speech tagger.
+  * Specifies a model file ([http://verbs.colorado.edu/~choijd/clearparser/models/en_pos_ontonotes.jar model/en_pos_ontonotes.jar]) for the OpenNLP part-of-speech tagger (required for the [DataFormat raw] format).
  * <*morph_dict*> ::= absolute or relative path
-  * Specifies a dictionary file for [MorphAnalyzerGuidelines Clear morphological analyzer].
+  * Specifies a dictionary file ([http://verbs.colorado.edu/~choijd/clearparser/models/en_dict-1.0.jar model/en_dict-1.0.jar]) for the [MorphAnalyzerGuidelines Clear morphological analyzer] (required for the [DataFormat raw, pos] format).
