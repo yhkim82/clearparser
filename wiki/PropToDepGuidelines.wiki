@@ -9,7 +9,7 @@
 On the terminal, type the following command.
 
 {{{
-java clear.engine.PropToDep -i <input file> -o <output directory> -p <parse directory> -h <headrule file> [-m <dictionary-file> -n <minimum sentence length> -f -e]
+java clear.engine.PropToDep -i <input file> -o <output directory> -p <parse directory> -h <headrule file> [-m <dictionary-file> -n <minimum sentence length> -f -e -j]
 java clear.engine.PropToDep -i dat/sample.prop -o dat/ -p dat/ -h config/headrule_en_ontonotes.txt -m model/en_dict-1.0.jar -n 2 -f
 }}}
 
@@ -21,6 +21,7 @@ java clear.engine.PropToDep -i dat/sample.prop -o dat/ -p dat/ -h config/headrul
  * *minimum sentence length* (optional) - minimum number of word-tokens in each sentence (inclusive, default = 1).
  * *-f* (optional) - if set, use function tags as dependency labels.
  * *-e* (optional) - if set, include empty categories.
+ * *-j* (optional) - if set, consider adjectival predicates as verbal predicates.
 
 == Input file ==
 
