@@ -2,11 +2,11 @@
 
 == [http://www.ldc.upenn.edu/Catalog/docs/LDC2011T03/OntoNotes-Release-4.0.pdf OntoNotes v4.0] ==
 
- * Broadcasting news: 14,413 sentences
- * Broadcasting conversations:11,812 sentences
- * News magazines: 7,568 sentences
- * Newswires: 38,112 sentences
- * Web-texts: 10,487 sentences
+ * Broadcasting news: 12,832 sentences
+ * Broadcasting conversations: 10,544 sentences
+ * News magazines: 6,656 sentences
+ * Newswires: 33,792 sentences
+ * Web-texts: 9,732 sentences
 
 || *Language* || *Usage* || *Algorithm* || *HDD* || *RAM* || *Date* || *Download* ||
 || English || POS tagging || maxent || 6.4MB || 100MB || 06/13/2011 || [http://verbs.colorado.edu/~choijd/clearparser/models/en_pos_ontonotes.jar en_pos_ontonotes.jar] ||
