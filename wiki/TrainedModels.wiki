@@ -9,6 +9,6 @@
  * Web-texts: 10,487 sentences
 
 || *Language* || *Usage* || *Algorithm* || *HDD* || *RAM* || *Date* || *Download* ||
-|| English || POS tagging || maxent || 6.4MB || 100MB || 06/13/2011 || [http://verbs.colorado.edu/~choijd/clearparser/models/en-pos-ontonotes.jar en_pos_ontonotes.jar] ||
+|| English || POS tagging || maxent || 6.4MB || 100MB || 06/13/2011 || [http://verbs.colorado.edu/~choijd/clearparser/models/en_pos_ontonotes.jar en_pos_ontonotes.jar] ||
 || English || Dependency parsing || shift-pop || 250MB || 6GB || 06/13/2011 || [http://verbs.colorado.edu/~choijd/clearparser/models/en_dep_ontonotes.jar en_dep_ontonotes.jar] ||
 || English || Semantic role labeling || transition-based || 45MB || 1GB || 06/13/2011 || [http://verbs.colorado.edu/~choijd/clearparser/models/en_srl_ontonotes.jar en_srl_ontonotes.jar] ||
