@@ -26,19 +26,19 @@ The following shows a default configuration file for English ('[http://code.goog
 
 == <*common*> ==
 
-The <*common*> element is required for both training and decoding.  It consists of 2 required elements (*language*, *format*).
+The <*common*> element is required for both training and decoding.  It consists of 2 required elements (*language*, *format*) and 1 optional element (*parser*).
 
  * <*language*> ::= cz | en | kr
   * Specifies a language (cz: Czech, en: English, kr: Korean)
  * <*format*> ::= raw | pos | dep | conll | srl
   * Specifies a [DataFormat data format]
-
-== <*train*> ==
-
-The <*train*> element is required for training.  It consists of 2 required element (*algorithm*, *parser*) and 1 optional element (*threads*).
-
  * <*parser*> ::= shift-eager | shift-pop
-  * Specifies a dependency parsing algorithm (required only for dependency parsing)
+  * Specifies a dependency parsing algorithm (required only for training a dependency parsing)
+
+== <*classify*> ==
+
+The <*classify*> element is required for training.  It consists of 2 required element (*algorithm*, *parser*) and 1 optional element (*threads*).
+
  * <*algorithm*> specifies a learning algorithm.  It requires an attribute *name*.
   * *name* ::= lib (LibLinear L2-SVM; default) | rrm (Robust Risk Minimization)
   * *l* ::= lib: 1 (L1-loss; default) | 2 (L2-loss)
