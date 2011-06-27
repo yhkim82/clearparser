@@ -2,9 +2,9 @@
 
 ClearParser currently supports 5 data formats: raw, part-of-speech, dependency, CoNLL-X, and semantic role formats.
 
-== Part-of-speech format (raw) ==
+== Raw format (raw) ==
 
-The raw format requires each sentence per line.
+The raw format requires one sentence per line.
 
 {{{
 Pricing details weren't immediately available.
