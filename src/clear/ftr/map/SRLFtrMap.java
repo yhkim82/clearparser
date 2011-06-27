@@ -23,6 +23,8 @@
 */
 package clear.ftr.map;
 
+import java.io.BufferedReader;
+
 import clear.ftr.xml.SRLFtrXml;
 
 /**
@@ -42,5 +44,10 @@ public class SRLFtrMap extends AbstractFtrMap
 	public SRLFtrMap(String lexiconFile)
 	{
 		super(lexiconFile);
+	}
+	
+	public SRLFtrMap(BufferedReader fin)
+	{
+		super(fin);
 	}
 }
