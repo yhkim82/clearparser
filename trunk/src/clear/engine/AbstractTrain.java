@@ -240,7 +240,11 @@ abstract public class AbstractTrain extends AbstractCommon
 		
 		if (zout != null)
 		{
-			zout.putArchiveEntry(new JarArchiveEntry(ENTRY_MODEL));
+			if (a_yx.size() == 1)
+				zout.putArchiveEntry(new JarArchiveEntry(ENTRY_MODEL));
+			else
+				zout.putArchiveEntry(new JarArchiveEntry(ENTRY_MODEL+"."+index));
+			
 			fout = new PrintStream(zout);
 		}
 
@@ -254,7 +258,11 @@ abstract public class AbstractTrain extends AbstractCommon
 		System.out.printf("- duration: %d h, %d m\n", time/(1000*3600), time/(1000*60));
 		
 		if (zout != null)	zout.closeArchiveEntry();
-		if (fout != null)	fout.close();
+		if (fout != null)
+		{
+			if (index == a_yx.size()-1)	fout.close();
+			else						fout.flush();
+		}
 		
 		return trainer.getModel();
 	}

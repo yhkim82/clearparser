@@ -50,9 +50,16 @@ abstract public class AbstractCommon
 	protected final String TAG_COMMON_FORMAT   = "format";
 	protected final String TAG_COMMON_PARSER   = "parser";
 	
-	protected final String ENTRY_LEXICA  = "lexica";
-	protected final String ENTRY_MODEL   = "model";
-	protected final String ENTRY_FEATURE = "feature";
+	protected final String TAG_PREDICT            = "predict";
+	protected final String TAG_PREDICT_TOK_MODEL  = "tok_model";
+	protected final String TAG_PREDICT_POS_MODEL  = "pos_model";
+	protected final String TAG_PREDICT_DEP_MODEL  = "dep_model";
+	protected final String TAG_PREDICT_MORPH_DICT = "morph_dict";
+	
+	static protected final String ENTRY_PARSER    = "parser";
+	static protected final String ENTRY_LEXICA    = "lexica";
+	static protected final String ENTRY_MODEL     = "model";
+	static protected final String ENTRY_FEATURE   = "feature";
 
 	/** Language */
 	protected String  s_language  = AbstractReader.LANG_EN;

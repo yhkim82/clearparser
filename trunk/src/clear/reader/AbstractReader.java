@@ -106,7 +106,8 @@ abstract public class AbstractReader<NodeType, TreeType>
 	/** @return true if <code>line</code> is empty */
 	protected boolean isSkip(String line)
 	{
-		return line.startsWith(";") || line.trim().isEmpty();
+	//	return line.startsWith(";") || line.trim().isEmpty();
+		return line.trim().isEmpty();
 	}
 	
 	/** 

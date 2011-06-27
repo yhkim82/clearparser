@@ -81,6 +81,8 @@ public class PropToDep
 	boolean b_ec = false;
 	@Option(name="-r", usage="if set, reverse dependencies of auxiliaries and modals", metaVar="OPTIONAL")
 	boolean b_reverseVC = false;
+	@Option(name="-j", usage="if set, consider adjectival predicates as verbal predicates", metaVar="OPTIONAL")
+	boolean b_adjPred = false;
 	
 //	final String PARSE_EXT = ".parse";
 	final String PARSE_EXT = "";
@@ -182,7 +184,7 @@ public class PropToDep
 			for (treeIndex=0; (tree = reader.nextTree()) != null; treeIndex++)
 			{
 				list = getPBInstances(treePath, treeIndex);
-				removeAdjectivalPredicates(tree, list);
+				if (!b_adjPred)	removeAdjectivalPredicates(tree, list);
 				
 				if (list.isEmpty())
 				{
