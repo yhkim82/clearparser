@@ -40,6 +40,7 @@ import clear.train.algorithm.LibLinearL2;
 import clear.train.algorithm.RRM;
 import clear.train.kernel.AbstractKernel;
 import clear.train.kernel.NoneKernel;
+import clear.util.tuple.JIntObjectTuple;
 import clear.util.tuple.JObjectObjectTuple;
 
 import com.carrotsearch.hppc.IntArrayList;
@@ -62,179 +63,18 @@ abstract public class AbstractTrain extends AbstractCommon
 	
 	protected ArrayList<JObjectObjectTuple<IntArrayList, ArrayList<int[]>>> a_yx;
 	
-	/** Trains the LibLinear classifier. */
-	protected AbstractModel trainModel(String instanceFile, JarArchiveOutputStream zout) throws Exception
-	{
-		Element eTrain  = getElement(e_config, TAG_CLASSIFY);
-		Element element = getElement(eTrain, TAG_CLASSIFY_ALGORITHM);
-		String  name    = element.getAttribute("name").trim();
-		
-		StringBuilder options   = new StringBuilder();
-		IAlgorithm    algorithm = null;		
-		String        tmp;
-		
-		if (name.equals(IAlgorithm.LIBLINEAR_L2))
-		{
-			byte lossType = 1;
-			double c = 0.1, eps = 0.1, bias = -1;
-			
-			if ((tmp = element.getAttribute("l").trim()).length() > 0)
-				lossType = Byte.parseByte(tmp);
-			
-			if ((tmp = element.getAttribute("c").trim()).length() > 0)
-				c = Double.parseDouble(tmp);
-			
-			if ((tmp = element.getAttribute("e").trim()).length() > 0)
-				eps = Double.parseDouble(tmp);
-			
-			if ((tmp = element.getAttribute("b").trim()).length() > 0)
-				bias = Double.parseDouble(tmp);
-			
-			algorithm = new LibLinearL2(lossType, c, eps, bias);
-			
-			options.append("loss_type = ");	options.append(lossType);
-			options.append(", c = ");		options.append(c);
-			options.append(", eps = ");		options.append(eps);
-			options.append(", bias = ");	options.append(bias);
-		}
-		else if (name.equals(IAlgorithm.RRM))
-		{
-			int k = 40;
-			double mu = 1.0, eta = 0.001, c = 0.1;
-			
-			if ((tmp = element.getAttribute("k").trim()).length() > 0)
-				k = Integer.parseInt(tmp);
-			
-			if ((tmp = element.getAttribute("m").trim()).length() > 0)
-				mu = Double.parseDouble(tmp);
-			
-			if ((tmp = element.getAttribute("e").trim()).length() > 0)
-				eta = Double.parseDouble(tmp);
-			
-			if ((tmp = element.getAttribute("c").trim()).length() > 0)
-				c = Double.parseDouble(tmp);
-			
-			algorithm = new RRM(k, mu, eta, c);
-			
-			options.append("K = ");		options.append(k);
-			options.append(", mu = ");	options.append(mu);
-			options.append(", eta = ");	options.append(eta);
-			options.append(", c = ");	options.append(c);
-		}
-		
-		if (algorithm == null)
-		{
-			System.err.println("Learning algorithm is not specified in the feature template");
-			return null;
-		}
-		
-		int numThreads = 1;
-		
-		element = getElement(eTrain, "threads");
-		if (element != null)	numThreads = Integer.parseInt(element.getTextContent().trim());
-		
-		System.out.println("\n* Train model");
-		System.out.println("- algorithm: "+name);
-		System.out.println("- options  : "+options.toString());
-		System.out.println("- threads  : "+numThreads);
-		System.out.println();
-		
-		PrintStream fout = null;
-		if (zout != null)
-		{
-			zout.putArchiveEntry(new JarArchiveEntry(ENTRY_MODEL));
-			fout = new PrintStream(zout);
-		}
-		
-		long st = System.currentTimeMillis();
-		
-		AbstractKernel  kernel  = null;
-		if      (kernel_type == AbstractKernel.KERNEL_NONE)	kernel = new NoneKernel (instanceFile);
-		AbstractTrainer trainer = (trainer_type == AbstractTrainer.ST_BINARY) ? new BinaryTrainer(fout, algorithm, kernel, numThreads) : new OneVsAllTrainer(fout, algorithm, kernel, numThreads);
-		
-		long time = System.currentTimeMillis() - st;
-		System.out.printf("- duration: %d hours, %d minutes\n", time/(1000*3600), time/(1000*60));
-		
-		if (zout != null)	zout.closeArchiveEntry();
-		
-		return trainer.getModel();
-	}
-	
 	protected AbstractModel trainModel(int index, JarArchiveOutputStream zout) throws Exception
 	{
-		Element eTrain  = getElement(e_config, TAG_CLASSIFY);
-		Element element = getElement(eTrain, TAG_CLASSIFY_ALGORITHM);
-		String  name    = element.getAttribute("name").trim();
+		JIntObjectTuple<IAlgorithm> tup = getAlgorithm();
 		
-		StringBuilder options   = new StringBuilder();
-		IAlgorithm    algorithm = null;		
-		String        tmp;
-		
-		if (name.equals(IAlgorithm.LIBLINEAR_L2))
-		{
-			byte lossType = 1;
-			double c = 0.1, eps = 0.1, bias = -1;
-			
-			if ((tmp = element.getAttribute("l").trim()).length() > 0)
-				lossType = Byte.parseByte(tmp);
-			
-			if ((tmp = element.getAttribute("c").trim()).length() > 0)
-				c = Double.parseDouble(tmp);
-			
-			if ((tmp = element.getAttribute("e").trim()).length() > 0)
-				eps = Double.parseDouble(tmp);
-			
-			if ((tmp = element.getAttribute("b").trim()).length() > 0)
-				bias = Double.parseDouble(tmp);
-			
-			algorithm = new LibLinearL2(lossType, c, eps, bias);
-			
-			options.append("loss_type = ");	options.append(lossType);
-			options.append(", c = ");		options.append(c);
-			options.append(", eps = ");		options.append(eps);
-			options.append(", bias = ");	options.append(bias);
-		}
-		else if (name.equals(IAlgorithm.RRM))
-		{
-			int k = 40;
-			double mu = 1.0, eta = 0.001, c = 0.1;
-			
-			if ((tmp = element.getAttribute("k").trim()).length() > 0)
-				k = Integer.parseInt(tmp);
-			
-			if ((tmp = element.getAttribute("m").trim()).length() > 0)
-				mu = Double.parseDouble(tmp);
-			
-			if ((tmp = element.getAttribute("e").trim()).length() > 0)
-				eta = Double.parseDouble(tmp);
-			
-			if ((tmp = element.getAttribute("c").trim()).length() > 0)
-				c = Double.parseDouble(tmp);
-			
-			algorithm = new RRM(k, mu, eta, c);
-			
-			options.append("K = ");		options.append(k);
-			options.append(", mu = ");	options.append(mu);
-			options.append(", eta = ");	options.append(eta);
-			options.append(", c = ");	options.append(c);
-		}
-		
-		if (algorithm == null)
+		if (tup.object == null)
 		{
 			System.err.println("Learning algorithm is not specified in the feature template");
 			return null;
 		}
 		
-		int numThreads = 1;
-		
-		element = getElement(eTrain, "threads");
-		if (element != null)	numThreads = Integer.parseInt(element.getTextContent().trim());
-		
-		System.out.println("\n* Train model");
-		System.out.println("- algorithm: "+name);
-		System.out.println("- options  : "+options.toString());
-		System.out.println("- threads  : "+numThreads);
-		System.out.println();
+		IAlgorithm algorithm = tup.object;		
+		int numThreads = tup.index;
 		
 		PrintStream fout = null;
 		
@@ -265,5 +105,78 @@ abstract public class AbstractTrain extends AbstractCommon
 		}
 		
 		return trainer.getModel();
+	}
+	
+	private JIntObjectTuple<IAlgorithm> getAlgorithm()
+	{
+		Element eTrain  = getElement(e_config, TAG_CLASSIFY);
+		Element element = getElement(eTrain, TAG_CLASSIFY_ALGORITHM);
+		String  name    = element.getAttribute("name").trim();
+		
+		StringBuilder options   = new StringBuilder();
+		IAlgorithm    algorithm = null;		
+		String        tmp;
+		
+		if (name.equals(IAlgorithm.LIBLINEAR_L2))
+		{
+			byte lossType = 1;
+			double c = 0.1, eps = 0.1, bias = -1;
+			
+			if ((tmp = element.getAttribute("l").trim()).length() > 0)
+				lossType = Byte.parseByte(tmp);
+			
+			if ((tmp = element.getAttribute("c").trim()).length() > 0)
+				c = Double.parseDouble(tmp);
+			
+			if ((tmp = element.getAttribute("e").trim()).length() > 0)
+				eps = Double.parseDouble(tmp);
+			
+			if ((tmp = element.getAttribute("b").trim()).length() > 0)
+				bias = Double.parseDouble(tmp);
+			
+			algorithm = new LibLinearL2(lossType, c, eps, bias);
+			
+			options.append("loss_type = ");	options.append(lossType);
+			options.append(", c = ");		options.append(c);
+			options.append(", eps = ");		options.append(eps);
+			options.append(", bias = ");	options.append(bias);
+		}
+		else if (name.equals(IAlgorithm.RRM))
+		{
+			int k = 40;
+			double mu = 1.0, eta = 0.001, c = 0.1;
+			
+			if ((tmp = element.getAttribute("k").trim()).length() > 0)
+				k = Integer.parseInt(tmp);
+			
+			if ((tmp = element.getAttribute("m").trim()).length() > 0)
+				mu = Double.parseDouble(tmp);
+			
+			if ((tmp = element.getAttribute("e").trim()).length() > 0)
+				eta = Double.parseDouble(tmp);
+			
+			if ((tmp = element.getAttribute("c").trim()).length() > 0)
+				c = Double.parseDouble(tmp);
+			
+			algorithm = new RRM(k, mu, eta, c);
+			
+			options.append("K = ");		options.append(k);
+			options.append(", mu = ");	options.append(mu);
+			options.append(", eta = ");	options.append(eta);
+			options.append(", c = ");	options.append(c);
+		}
+		
+		int numThreads = 1;
+		
+		element = getElement(eTrain, "threads");
+		if (element != null)	numThreads = Integer.parseInt(element.getTextContent().trim());
+		
+		System.out.println("\n* Train model");
+		System.out.println("- algorithm: "+name);
+		System.out.println("- options  : "+options.toString());
+		System.out.println("- threads  : "+numThreads);
+		System.out.println();
+		
+		return new JIntObjectTuple<IAlgorithm>(numThreads, algorithm);
 	}
 }

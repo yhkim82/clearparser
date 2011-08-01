@@ -25,6 +25,7 @@ package clear.parse;
 
 import java.util.ArrayList;
 
+import clear.decode.AbstractMultiDecoder;
 import clear.decode.OneVsAllDecoder;
 import clear.dep.DepLib;
 import clear.dep.DepNode;
@@ -70,7 +71,7 @@ public class ShiftEagerParser extends AbstractDepParser
 	}
 	
 	/** {@link ShiftEagerParser#FLAG_PREDICT} or {@link ShiftEagerParser#FLAG_TRAIN_BOOST}. */
-	public ShiftEagerParser(byte flag, DepFtrXml xml, DepFtrMap map, OneVsAllDecoder decoder)
+	public ShiftEagerParser(byte flag, DepFtrXml xml, DepFtrMap map, AbstractMultiDecoder decoder)
 	{
 		super(flag, xml, map, decoder);
 	}

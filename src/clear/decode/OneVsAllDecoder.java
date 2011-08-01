@@ -88,6 +88,7 @@ public class OneVsAllDecoder extends AbstractMultiDecoder
 			if (scores[i] > max.d)	max.set(aLabels[i], scores[i]);
 		}
 
+	//	max.d = AbstractModel.logistic(max.d);
 		return max;
 	}
 	

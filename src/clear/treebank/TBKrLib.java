@@ -58,6 +58,7 @@ public class TBKrLib extends TBLib
 	static final public String TAG_SBJ = "SBJ";
 	
 	static final public String DEP_P    = "P";
+	static final public String DEP_ADV  = "ADV";
 	static final public String DEP_MOD  = "MOD";
 	static final public String DEP_AMOD = "AMOD";
 	static final public String DEP_DMOD = "DMOD";

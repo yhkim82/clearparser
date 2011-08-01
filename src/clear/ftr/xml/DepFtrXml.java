@@ -53,7 +53,8 @@ public class DepFtrXml extends AbstractFtrXml
 	static public final Pattern P_FIELD = Pattern.compile(F_FORM+"|"+F_LEMMA+"|"+F_POS+"|"+F_DEPREL); 
 	static public final Pattern P_FEAT  = Pattern.compile("^ft=(.+)$");		
 	static public final Pattern P_TRANS = Pattern.compile("^tr(\\d+)$");	// transition
-
+	static public final Pattern P_KR    = Pattern.compile("^kr(.)(\\d*)$");
+	
 	public DepFtrXml(String featureXml)
 	{
 		super(featureXml);
@@ -80,6 +81,7 @@ public class DepFtrXml extends AbstractFtrXml
 	{
 		return P_FIELD.matcher(field).matches() ||  
 			   P_FEAT .matcher(field).matches() ||
-			   P_TRANS.matcher(field).matches();
+			   P_TRANS.matcher(field).matches() ||
+			   P_KR   .matcher(field).matches();
 	}
 }

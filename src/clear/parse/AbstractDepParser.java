@@ -27,7 +27,7 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.regex.Matcher;
 
-import clear.decode.OneVsAllDecoder;
+import clear.decode.AbstractMultiDecoder;
 import clear.dep.DepFeat;
 import clear.dep.DepLib;
 import clear.dep.DepNode;
@@ -35,6 +35,7 @@ import clear.dep.DepTree;
 import clear.ftr.map.DepFtrMap;
 import clear.ftr.xml.DepFtrXml;
 import clear.ftr.xml.FtrToken;
+import clear.morph.MorphKr;
 import clear.reader.DepReader;
 import clear.util.IOUtil;
 import clear.util.tuple.JObjectObjectTuple;
@@ -58,7 +59,7 @@ abstract public class AbstractDepParser extends AbstractParser
 	/** Feature mappings */
 	protected DepFtrMap       t_map;
 	/** ML decoder */
-	protected OneVsAllDecoder c_dec;
+	protected AbstractMultiDecoder c_dec;
 	/** Prints transitions */
 	protected PrintStream     f_out;
 	
@@ -71,6 +72,7 @@ abstract public class AbstractDepParser extends AbstractParser
 	
 	/** Previous transitions */
 	protected ArrayList<String> prev_trans;
+	public int i_trainIndex = 0;
 
 //	=============================== Constructors ===============================
 	
@@ -101,7 +103,7 @@ abstract public class AbstractDepParser extends AbstractParser
 	}
 	
 	/** {@link AbstractDepParser#FLAG_PREDICT} or {@link AbstractDepParser#FLAG_TRAIN_BOOST}. */
-	public AbstractDepParser(byte flag, DepFtrXml xml, DepFtrMap map, OneVsAllDecoder decoder)
+	public AbstractDepParser(byte flag, DepFtrXml xml, DepFtrMap map, AbstractMultiDecoder decoder)
 	{
 		i_flag = flag;
 		t_xml  = xml;
@@ -142,6 +144,8 @@ abstract public class AbstractDepParser extends AbstractParser
 			preProcessEn(tree);
 		else if (s_language.equals(DepReader.LANG_CZ))
 			preProcessCz(tree);
+		else if (s_language.equals(DepReader.LANG_KR))
+			preProcessKr(tree);
 	}
 	
 	protected void preProcessEn(DepTree tree)
@@ -259,6 +263,22 @@ abstract public class AbstractDepParser extends AbstractParser
 		}
 	}
 	
+	protected void preProcessKr(DepTree tree)
+	{
+		DepNode node;
+		int i, size = tree.size();
+		
+		MorphKr root = new MorphKr();
+		node = tree.get(DepLib.ROOT_ID);
+		node.morphKr = root;
+		
+		for (i=1; i<size; i++)
+		{
+			node = tree.get(i);
+			node.morphKr = new MorphKr(node.lemma);
+		}
+	}
+	
 //	=============================== Instance ===============================
 	
 	protected void trainInstance(String label)
@@ -274,7 +294,8 @@ abstract public class AbstractDepParser extends AbstractParser
 	
 	protected void saveInstance(String label, IntArrayList ftr)
 	{
-		saveInstance(label, ftr, t_map, 0);
+	//	if (ftr.isEmpty())	System.err.println(d_tree.get(i_lambda).lemma+" "+d_tree.get(i_beta).lemma);
+		saveInstance(label, ftr, t_map, i_trainIndex);
 	}
 	
 	/**
@@ -379,6 +400,10 @@ abstract public class AbstractDepParser extends AbstractParser
 			addCzCoordFeatures      (arr, beginIndex);
 		//	addCzCaseFeatures       (arr, beginIndex);
 		}
+		else if (s_language.equals(DepReader.LANG_KR))
+		{
+			addKrCaseFeatures(arr, beginIndex);
+		}
 	}
 	
 	/**
@@ -464,7 +489,28 @@ abstract public class AbstractDepParser extends AbstractParser
 		
 		beginIndex[0] += 6;
 	}
+	
+	private void addKrCaseFeatures(IntArrayList arr, int[] beginIndex)
+	{
+		DepNode lambda = d_tree.get(i_lambda);
+		DepNode beta   = d_tree.get(i_beta);
+		MorphKr lMorph = lambda.morphKr;
+		MorphKr bMorph = beta  .morphKr;
 		
+		if (lMorph.isX)	arr.add(beginIndex[0]);
+		if (bMorph.isX)	arr.add(beginIndex[0]+1);
+		
+		beginIndex[0] += 2;
+		
+	/*	if (!lambda.isRoot() && i_beta - i_lambda == 1)
+		{
+			if (lMorph.getLastMorphem().pos.matches("NN.*") && bMorph.getFirstMorphem().pos.matches("NN.*"))
+				arr.add(beginIndex[0]);
+		}
+			
+		beginIndex[0] += 1;*/
+	}
+	
 	/** @return field retrieved from <code>token</code> */
 	protected String getField(FtrToken token)
 	{
@@ -508,6 +554,13 @@ abstract public class AbstractDepParser extends AbstractParser
 		{
 			int idx = prev_trans.size() - Integer.parseInt(m.group(1)) - 1;
 			return (idx >= 0) ? prev_trans.get(idx) : null;
+		}
+		else if ((m = DepFtrXml.P_KR.matcher(token.field)).find())
+		{
+			String type = m.group(1);
+			int    loc  = Integer.parseInt(m.group(2));
+			
+			return node.morphKr.getMorphem(loc, type);
 		}
 		
 	//	System.err.println("Error: unspecified feature '"+token.field+"'");

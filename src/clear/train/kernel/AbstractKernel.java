@@ -39,6 +39,7 @@ abstract public class AbstractKernel
 {
 	static public final byte KERNEL_NONE       = 0;
 	static public final byte KERNEL_POLYNOMIAL = 1;
+	static public final byte KERNEL_DAEM       = 2;
 	
 	/** Delimiter between index and value (e.g. 3:0.12) */
 	static public final String FTR_DELIM = ":";

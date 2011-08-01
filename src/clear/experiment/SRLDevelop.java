@@ -96,7 +96,7 @@ public class SRLDevelop extends AbstractTrain
 		{
 			currAcc = trainSRLParser(AbstractParser.FLAG_PREDICT, new String[]{s_devFile+".label."+i}, null);
 			if (currAcc <= prevAcc)	break;
-			
+		//	if (i == 2)	break;
 			prevAcc = currAcc;
 			trainSRLParser(AbstractParser.FLAG_TRAIN_BOOST, null, null);
 			

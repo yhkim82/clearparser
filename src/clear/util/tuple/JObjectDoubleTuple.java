@@ -42,7 +42,7 @@ public class JObjectDoubleTuple<ObjectType> implements Comparable<Object>
 	
 	public String toString()
 	{
-		return object+":"+value;
+		return object+","+value;
 	}
 
 	@Override
