@@ -1,5 +1,10 @@
 #summary Release notes
 
+
+=== ClearParser v0.31 (8/1/2011) ===
+
+ * Bugfix: hyphenated words are not correctly delimited.
+
 === ClearParser v0.3 (5/20/2011) ===
 
  * Clear semantic role labeler is implemented.
