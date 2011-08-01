@@ -320,7 +320,7 @@ public class TBKrConvert extends AbstractTBConvert
 			return deprel;
 		if ((deprel = getTagDeprel(child)) != null)
 			return deprel;
-		if ((deprel = getInferredDeprel(p)) != null)
+		if ((deprel = getInferredDeprel(p, c)) != null)
 			return deprel;
 		
 		return DepLib.DEPREL_DEP;
@@ -350,8 +350,10 @@ public class TBKrConvert extends AbstractTBConvert
 		return null;
 	}
 	
-	private String getInferredDeprel(TBNode p)
+	private String getInferredDeprel(TBNode p, TBNode c)
 	{
+		if (c.isPos(TBKrLib.POS_AP))
+			return TBKrLib.DEP_ADV;
 		if (p.isPos(TBKrLib.POS_AP))
 			return TBKrLib.DEP_AMOD;
 		if (p.isPos(TBKrLib.POS_DP))

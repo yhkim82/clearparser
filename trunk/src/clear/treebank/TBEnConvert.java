@@ -71,6 +71,7 @@ public class TBEnConvert extends AbstractTBConvert
 		
 		remapEmptyCategory();
 		DepTree copy = removeEmptyCategories();
+		if (b_ec)	lemmatizeEC(copy);
 	//	if (b_ec)	relocatePROs(copy);
 		copy.projectizePunc();
 		copy.checkTree();
@@ -95,7 +96,8 @@ public class TBEnConvert extends AbstractTBConvert
 		
 		DepTree copy = removeEmptyCategories();
 	//	if (b_ec)	relocatePROs(copy);
-		postProcess(copy);
+		if (b_ec)	lemmatizeEC(copy);
+		postProp(copy);
 		copy.projectizePunc();
 		copy.checkTree();
 		
@@ -719,22 +721,17 @@ public class TBEnConvert extends AbstractTBConvert
 			
 			if (head.isPosx("VB.*|TO") && node.id < head.id)
 			{
-			/*	if (isChange && node.form.startsWith("*PRO*"))
-					node.lemma = "*PRO*";
-				else
-					node.lemma = "*MOV*";*/
-				
+				node.lemma = "*PRO*";				
 				return true;
 			}
 		}
-		
-		if (node.form.startsWith("0"))
+		else if (node.form.startsWith("0"))
 		{
 			TBNode parent = p_tree.getTerminalNode(node.id-1).getParent();
 			
 			if (parent.isPos(TBEnLib.POS_WHNP))
 			{
-			//	node.lemma = "*REL*";
+				node.lemma = "*REL*";
 				return true;
 			}
 		}
@@ -761,7 +758,22 @@ public class TBEnConvert extends AbstractTBConvert
 		return false;
 	}
 	
-	private void postProcess(DepTree tree)
+	private void lemmatizeEC(DepTree tree)
+	{
+		DepNode node;
+		
+		for (int i=1; i<tree.size(); i++)
+		{
+			node = tree.get(i);
+			
+			if (node.isPos(TBEnLib.POS_NONE))
+			{	node.form = node.lemma;
+			
+			}
+		}
+	}
+	
+	private void postProp(DepTree tree)
 	{
 		HashSet<String> set = new HashSet<String>();
 		DepNode node;
@@ -770,9 +782,6 @@ public class TBEnConvert extends AbstractTBConvert
 		for (int i=1; i<tree.size(); i++)
 		{
 			node = tree.get(i);
-			
-		//	if (node.isPos(TBEnLib.POS_NONE))
-		//		node.form = node.lemma;
 			
 			if (node.srlInfo != null)
 			{

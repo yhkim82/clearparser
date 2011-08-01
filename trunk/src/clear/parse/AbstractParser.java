@@ -73,9 +73,12 @@ public abstract class AbstractParser
 	protected void initTrainArrays(int size)
 	{
 		a_trans = new ArrayList<JObjectObjectTuple<IntArrayList, ArrayList<int[]>>>(size);
-		
-		for (int i=0; i<size; i++)
-			a_trans.add(new JObjectObjectTuple<IntArrayList, ArrayList<int[]>>(new IntArrayList(), new ArrayList<int[]>()));
+		for (int i=0; i<size; i++)	addTrainArrays();
+	}
+	
+	public void addTrainArrays()
+	{
+		a_trans.add(new JObjectObjectTuple<IntArrayList, ArrayList<int[]>>(new IntArrayList(), new ArrayList<int[]>()));
 	}
 	
 	/** Saves a training instance. */
@@ -84,11 +87,35 @@ public abstract class AbstractParser
 		int index = tmap.labelToIndex(label);
 		if (index < 0)	return;
 		
-		JObjectObjectTuple<IntArrayList, ArrayList<int[]>> yx;
-		yx = a_trans.get(trainIndex);
-
+		JObjectObjectTuple<IntArrayList, ArrayList<int[]>> yx = a_trans.get(trainIndex);
+		int[] ftrArr = ftr.toArray();
+		
+	//	System.err.println(label+" "+index+" "+ftr);
 		yx.o1.add(index);
-		yx.o2.add(ftr.toArray());
+		yx.o2.add(ftrArr);
+	}
+	
+	protected boolean existInstance(JObjectObjectTuple<IntArrayList, ArrayList<int[]>> yx, int index, int[] ftrArr)
+	{
+		int i, size = yx.o1.size();
+		
+		for (i=0; i<size; i++)
+		{
+			if (yx.o1.get(i) == index && equals(yx.o2.get(i), ftrArr))
+				return true;
+		}
+		
+		return false;
+	}
+	
+	protected boolean equals(int[] x1, int[] x2)
+	{
+		if (x1.length != x2.length)	return false;
+		
+		for (int i=0; i<x1.length; i++)
+			if (x1[i] != x2[i])	return false;
+		
+		return true;
 	}
 	
 	/** Add n-gram lexica. */

@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import clear.dep.srl.SRLHead;
 import clear.dep.srl.SRLInfo;
 import clear.ftr.FtrLib;
+import clear.morph.MorphKr;
 import clear.propbank.PBLoc;
 import clear.reader.AbstractReader;
 
@@ -74,11 +75,13 @@ public class DepNode
 	public SRLInfo srlInfo;
 	/** For PropToDep only */
 	public PBLoc[] pbLoc = null;
+	/** For Korean: morphems */
+	public MorphKr morphKr = null;
 	
 	/** Initializes the node as a null node. */
 	public DepNode()
 	{
-		init(DepLib.NULL_ID, FtrLib.TAG_NULL, FtrLib.TAG_NULL, FtrLib.TAG_NULL, null, DepLib.NULL_HEAD_ID, FtrLib.TAG_NULL, 0, false, null, null, null, null, null, null, false, null);
+		init(DepLib.NULL_ID, FtrLib.TAG_NULL, FtrLib.TAG_NULL, FtrLib.TAG_NULL, null, DepLib.NULL_HEAD_ID, FtrLib.TAG_NULL, 0, false, null, null, null, null, null, null, false, null, null);
 	}
 	
 //	==================================== Construct ====================================
@@ -93,7 +96,7 @@ public class DepNode
 		deprel = DepLib.ROOT_TAG;
 	}
 		
-	private void init(int id, String form, String lemma, String pos, DepFeat feats, int headId, String deprel, double score, boolean hasHead, DepNode leftMostDep, DepNode rightMostDep, DepNode leftSibling, DepNode rightSibling, DepNode coordHead, DepNode antecedent, boolean isSkip, SRLInfo srlInfo)
+	private void init(int id, String form, String lemma, String pos, DepFeat feats, int headId, String deprel, double score, boolean hasHead, DepNode leftMostDep, DepNode rightMostDep, DepNode leftSibling, DepNode rightSibling, DepNode coordHead, DepNode antecedent, boolean isSkip, SRLInfo srlInfo, MorphKr morphKr)
 	{
 		this.id     = id;
 		this.form   = form;
@@ -114,11 +117,12 @@ public class DepNode
 		this.isSkip       = isSkip;
 		
 		this.srlInfo = (srlInfo != null) ? srlInfo.clone() : null;
+		this.morphKr = morphKr;
 	}
 	
 	public void copy(DepNode node)
 	{
-		init(node.id, node.form, node.lemma, node.pos, node.feats, node.headId, node.deprel, node.score, node.hasHead, node.leftMostDep, node.rightMostDep, node.leftSibling, node.rightSibling, node.coordHead, node.antecedent, node.isSkip, node.srlInfo);
+		init(node.id, node.form, node.lemma, node.pos, node.feats, node.headId, node.deprel, node.score, node.hasHead, node.leftMostDep, node.rightMostDep, node.leftSibling, node.rightSibling, node.coordHead, node.antecedent, node.isSkip, node.srlInfo, node.morphKr);
 	}
 	
 	public DepNode clone()

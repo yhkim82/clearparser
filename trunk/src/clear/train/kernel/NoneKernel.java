@@ -135,15 +135,15 @@ public class NoneKernel extends AbstractKernel
 		IntOpenHashSet sLabels = new IntOpenHashSet();
 		int y, i;	int[] x;
 		
+		System.out.println("* Initializing  : " + N);
+		
 		for (i=0; i<N; i++)
 		{
 			y = a_ys.get(i);
 			x = a_xs.get(i);
 			D = Math.max(D, x[x.length-1]);
 			sLabels.add(y);
-			
-			if (N%100000 == 0)	System.out.print("\r* Initializing  : "+(i/1000)+"K");
-		}	System.out.println("\r* Initializing  : " + N);
+		}
 		
 		a_ys.trimToSize();
 		a_xs.trimToSize();
@@ -176,14 +176,14 @@ public class NoneKernel extends AbstractKernel
 		
 		for (i=0; i<D; i++)	x[i] = i+1;
 		
+		System.out.println("* Initializing  : " + N);
+		
 		for (i=0; i<N; i++)
 		{
 			a_xs.add(x);
 			y = a_ys.get(i);
 			sLabels.add(y);
-			
-			if (N%100000 == 0)	System.out.print("\r* Initializing  : "+(i/1000)+"K");
-		}	System.out.println("\r* Initializing  : " + N);
+		}	
 		
 		a_ys.trimToSize();
 		a_xs.trimToSize();

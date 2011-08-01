@@ -594,6 +594,19 @@ public class TBNode
 		return false;
 	}
 	
+	public boolean isSucceededBy(String pos)
+	{
+		if (nd_parent == null)		return false;
+		
+		TBNode parent = getParent();
+		ArrayList<TBNode> siblings = parent.getChildren();
+		
+		if (childId-1 >=0 && siblings.get(childId-1).isPos(pos))
+			return true;
+		
+		return false;
+	}
+	
 	public boolean isFollowedBy(String pos)
 	{
 		if (nd_parent == null)		return false;

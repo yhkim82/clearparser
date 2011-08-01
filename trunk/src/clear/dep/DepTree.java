@@ -315,6 +315,19 @@ public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
 		return list;
 	}
 	
+	public ArrayList<DepNode> getRightDependentsLR(int currId)
+	{
+		ArrayList<DepNode> list = new ArrayList<DepNode>();
+		
+		for (int i=currId+1; i<size(); i++)
+		{
+			DepNode node = get(i);
+			if (node.hasHead && node.headId == currId)	list.add(node);
+		}
+		
+		return list;
+	}
+	
 	public HashSet<String> getLeftDependencies(int currId)
 	{
 		HashSet<String> set = new HashSet<String>();
@@ -740,5 +753,16 @@ public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
 		}
 		
 		return true;
+	}
+	
+	public void setHasHeads()
+	{
+		DepNode node;
+		
+		for (int i=1; i<size(); i++)
+		{
+			node = get(i);
+			if (node.headId >= 0)	node.hasHead = true;
+		}
 	}
 }

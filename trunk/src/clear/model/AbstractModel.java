@@ -77,10 +77,15 @@ abstract public class AbstractModel
 	
 	protected void readWeights(BufferedReader fin) throws Exception
 	{
+		readVector(fin, d_weights);
+	}
+	
+	protected void readVector(BufferedReader fin, double[] vector) throws Exception
+	{
 		int[] buffer = new int[128];
 		int   i, b;
 		
-		for (i=0; i < d_weights.length; i++)
+		for (i=0; i < vector.length; i++)
 		{
 			b = 0;
 			
@@ -92,7 +97,7 @@ abstract public class AbstractModel
 				else			buffer[b++] = ch;
 			}
 
-			d_weights[i] = Double.parseDouble((new String(buffer, 0, b)));
+			vector[i] = Double.parseDouble((new String(buffer, 0, b)));
 		}
 	}
 	
@@ -113,16 +118,21 @@ abstract public class AbstractModel
 	
 	protected void printWeights(PrintStream fout) throws Exception
 	{
+		printVector(fout, d_weights);
+	}
+	
+	protected void printVector(PrintStream fout, double[] vector) throws Exception
+	{
 		StringBuilder build;
 		int i = 0, j;
 		
-		while (i < d_weights.length)
+		while (i < vector.length)
 		{
 			build = new StringBuilder();
 			
 			for (j=0; j<n_features; j++)
 			{
-				build.append(d_weights[i++]);
+				build.append(vector[i++]);
 				build.append(' ');
 			}
 		

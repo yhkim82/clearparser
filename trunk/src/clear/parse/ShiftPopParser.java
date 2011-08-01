@@ -23,7 +23,7 @@
 */
 package clear.parse;
 
-import clear.decode.OneVsAllDecoder;
+import clear.decode.AbstractMultiDecoder;
 import clear.dep.DepLib;
 import clear.dep.DepNode;
 import clear.dep.DepTree;
@@ -57,7 +57,7 @@ public class ShiftPopParser extends ShiftEagerParser
 	}
 	
 	/** {@link ShiftPopParser#FLAG_PREDICT} or {@link ShiftPopParser#FLAG_TRAIN_BOOST}. */
-	public ShiftPopParser(byte flag, DepFtrXml xml, DepFtrMap map, OneVsAllDecoder decoder)
+	public ShiftPopParser(byte flag, DepFtrXml xml, DepFtrMap map, AbstractMultiDecoder decoder)
 	{
 		super(flag, xml, map, decoder);
 	}
