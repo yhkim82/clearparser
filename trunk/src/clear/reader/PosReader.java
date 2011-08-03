@@ -27,7 +27,6 @@ import java.io.IOException;
 
 import clear.dep.DepNode;
 import clear.dep.DepTree;
-import clear.morph.MorphEnAnalyzer;
 
 /**
  * Part-of-speech dependency reader.
@@ -36,17 +35,13 @@ import clear.morph.MorphEnAnalyzer;
  */
 public class PosReader extends AbstractReader<DepNode,DepTree>
 {
-	private MorphEnAnalyzer morph_analyzer = null;
-	
 	/**
 	 * Initializes the dependency reader for <code>filename</code>.
 	 * @param filename name of the file containing dependency trees
 	 */
-	public PosReader(String filename, String language, String morphDict)
+	public PosReader(String filename)
 	{
 		super(filename);
-		
-		if ((language.equals(LANG_EN)))	morph_analyzer = new MorphEnAnalyzer(morphDict);
 	}
 	
 	/** 
@@ -74,7 +69,6 @@ public class PosReader extends AbstractReader<DepNode,DepTree>
 		node.id      = id;
 		node.form    = str[0];
 		node.pos     = str[1];
-		node.lemma   = (morph_analyzer != null) ? morph_analyzer.getLemma(node.form, node.pos) : node.form;
 		
 		return node;
 	}

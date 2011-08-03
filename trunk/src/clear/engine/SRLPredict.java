@@ -24,27 +24,21 @@
 package clear.engine;
 
 
-import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.FileInputStream;
-import java.io.InputStreamReader;
+import java.io.File;
 import java.io.PrintStream;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
 import org.w3c.dom.Element;
 
-import clear.decode.OneVsAllDecoder;
 import clear.dep.DepNode;
 import clear.dep.DepTree;
-import clear.ftr.map.SRLFtrMap;
-import clear.ftr.xml.SRLFtrXml;
+import clear.helper.POSTagger;
+import clear.helper.Tokenizer;
 import clear.parse.AbstractDepParser;
 import clear.parse.AbstractSRLParser;
-import clear.parse.SRLParser;
+import clear.parse.Lemmatizer;
 import clear.reader.AbstractReader;
 import clear.reader.CoNLLXReader;
 import clear.reader.DepReader;
@@ -63,19 +57,21 @@ public class SRLPredict extends AbstractCommon
 	protected final String TAG_PREDICT = "predict";
 
 	@Option(name="-i", usage="input file", required=true, metaVar="REQUIRED")
-	private String s_inputFile  = null;
+	private String s_inputPath  = null;
 	@Option(name="-o", usage="output file", required=true, metaVar="REQUIRED")
 	private String s_outputFile = null;
 	@Option(name="-m", usage="model file", required=true, metaVar="REQUIRED")
 	private String s_modelFile  = null;
 	/** Tokenizing modelFile */
-	private String s_tokModel   = null;
+	private Tokenizer  g_tokenizer  = null;
 	/** Part-of-speech tagging modelFile */
-	private String s_posModel   = null;
-	/** Dependency parsing tagging modelFile */
-	private String s_depModel   = null;
+	private POSTagger  g_postagger   = null;
 	/** Morphological dictionary directory */
-	private String s_morphDict  = null;
+	private Lemmatizer g_lemmatizer = null;
+	/** Dependency parser */
+	private AbstractDepParser g_parser = null;
+	/** Semantic role labeler */
+	private AbstractSRLParser g_labeler = null;
 
 	public SRLPredict(String[] args)
 	{
@@ -85,7 +81,23 @@ public class SRLPredict extends AbstractCommon
 		{
 			cmd.parseArgument(args);
 			init();
-			predict();
+			printConfig();
+			
+			g_labeler = getSRLabeler(s_modelFile);
+			g_labeler.setLanguage(s_language);
+			
+			File file = new File(s_inputPath);
+			
+			if (file.isFile())
+				predict(s_inputPath, s_outputFile);
+			else
+			{
+				for (String inputFile : file.list())
+				{
+					inputFile = s_inputPath + File.separator + inputFile;
+					predict(inputFile, inputFile+".label");
+				}
+			}
 		}
 		catch (CmdLineException e)
 		{
@@ -95,105 +107,52 @@ public class SRLPredict extends AbstractCommon
 		catch (Exception e) {e.printStackTrace();}
 	}
 	
-	public SRLPredict(String configFile, String inputFile, String outputFile, String modelFile, String morphDict)
+	public void predict(String inputFile, String outputFile) throws Exception
 	{
-		s_configFile = configFile;
-		s_inputFile  = inputFile;
-		s_outputFile = outputFile;
-		s_modelFile  = modelFile;
-		
-		try
-		{
-			init();
-			predict();
-		}
-		catch (Exception e) {e.printStackTrace();}
-	}
-	
-	public void predict() throws Exception
-	{
-		ZipInputStream zin = new ZipInputStream(new FileInputStream(s_modelFile));
-		ZipEntry zEntry;	String entry;
-		
-		SRLFtrXml         xml     = null;
-		SRLFtrMap[]       map     = new SRLFtrMap[2];
-		OneVsAllDecoder[] decoder = new OneVsAllDecoder[2];
-		
-		printConfig();
-		System.out.println("\n* Predict");
-		
-		while ((zEntry = zin.getNextEntry()) != null)
-		{
-			if (zEntry.getName().equals(ENTRY_FEATURE))
-			{
-				System.out.println("- loading feature template");
-				
-				BufferedReader reader = new BufferedReader(new InputStreamReader(zin));
-				StringBuilder  build  = new StringBuilder();
-				String string;
-
-				while ((string = reader.readLine()) != null)
-				{
-					build.append(string);
-					build.append("\n");
-				}
-				
-				xml = new SRLFtrXml(new ByteArrayInputStream(build.toString().getBytes()));
-			}
-			else if ((entry = zEntry.getName()).startsWith(ENTRY_LEXICA))
-			{
-				int i = Integer.parseInt(entry.substring(entry.lastIndexOf(".")+1));
-				System.out.println("- loading lexica");
-				map[i] = new SRLFtrMap(new BufferedReader(new InputStreamReader(zin)));
-			}
-			else if (zEntry.getName().startsWith(ENTRY_MODEL))
-			{
-				int i = Integer.parseInt(entry.substring(entry.lastIndexOf(".")+1));
-				System.out.println("- loading model");
-				decoder[i] = new OneVsAllDecoder(new BufferedReader(new InputStreamReader(zin)));
-			}
-		}
-		
 		AbstractReader<DepNode, DepTree> reader = null;
 		
-		if      (s_format.equals(AbstractReader.FORMAT_RAW))	reader = new RawReader   (s_inputFile, s_language, s_tokModel, s_posModel, s_morphDict);
-		else if (s_format.equals(AbstractReader.FORMAT_POS))	reader = new PosReader   (s_inputFile, s_language, s_morphDict);
-		else if (s_format.equals(AbstractReader.FORMAT_DEP))	reader = new DepReader   (s_inputFile, true);
-		else if (s_format.equals(AbstractReader.FORMAT_CONLLX))	reader = new CoNLLXReader(s_inputFile, true);
-		else if (s_format.equals(AbstractReader.FORMAT_SRL))	reader = new SRLReader   (s_inputFile, false);
-		
-		AbstractDepParser parser = null;
-		
-		if (s_format.equals(AbstractReader.FORMAT_RAW) || s_format.equals(AbstractReader.FORMAT_POS))
-			parser = DepPredict.getDepParser(s_depModel);
-		
-		AbstractSRLParser labeler = new SRLParser(AbstractSRLParser.FLAG_PREDICT, xml, map, decoder);
+		if      (s_format.equals(AbstractReader.FORMAT_RAW))	reader = new RawReader   (inputFile, g_tokenizer);
+		else if (s_format.equals(AbstractReader.FORMAT_POS))	reader = new PosReader   (inputFile);
+		else if (s_format.equals(AbstractReader.FORMAT_DEP))	reader = new DepReader   (inputFile, true);
+		else if (s_format.equals(AbstractReader.FORMAT_CONLLX))	reader = new CoNLLXReader(inputFile, true);
+		else if (s_format.equals(AbstractReader.FORMAT_SRL))	reader = new SRLReader   (inputFile, false);
 		
 		reader.setLanguage(s_language);
-		labeler.setLanguage(s_language);
 		
-		PrintStream fout = IOUtil.createPrintFileStream(s_outputFile);
+		PrintStream fout = IOUtil.createPrintFileStream(outputFile);
 		DepTree     tree;
 		
 		int n = 0;
 
+		System.out.println("\n* Predict");
+		
 		while (true)
 		{
 			tree = reader.nextTree();
 			if (tree == null)	break;
 			
-			if (s_format.equals(AbstractReader.FORMAT_RAW) || s_format.equals(AbstractReader.FORMAT_POS))
-				parser.parse(tree);
+			if (s_format.equals(AbstractReader.FORMAT_RAW))
+			{
+				g_postagger.postag(tree);
+				g_lemmatizer.lemmatize(tree);
+				g_parser.parse(tree);
+			}
+			else if (s_format.equals(AbstractReader.FORMAT_POS))
+			{
+				g_lemmatizer.lemmatize(tree);
+				g_parser.parse(tree);
+			}
 			
 			if (!s_format.equals(AbstractReader.FORMAT_SRL))
 				tree.setPredicates(s_language);
 			
-			labeler.parse(tree);	n++;
+			g_labeler.parse(tree);	n++;
 			fout.println(tree+"\n");
 			if (n%100 == 0)	System.out.print("\r- labeling: "+n);
 		}	System.out.println("\r- labeling: "+n);
 		
-		fout.flush(); 	fout.close();
+		fout.close();
+		reader.close();
 	}
 	
 	protected void initElements()
@@ -204,16 +163,19 @@ public class SRLPredict extends AbstractCommon
 			Element element;
 			
 			if ((element = getElement(ePredict, TAG_PREDICT_TOK_MODEL)) != null)
-				s_tokModel = element.getTextContent().trim();
+				g_tokenizer = new Tokenizer(element.getTextContent().trim());
 			
 			if ((element = getElement(ePredict, TAG_PREDICT_POS_MODEL)) != null)
-				s_posModel = element.getTextContent().trim();
-			
-			if ((element = getElement(ePredict, TAG_PREDICT_DEP_MODEL)) != null)
-				s_depModel = element.getTextContent().trim();
+				g_postagger = new POSTagger(element.getTextContent().trim());
 			
 			if ((element = getElement(ePredict, TAG_PREDICT_MORPH_DICT)) != null)
-				s_morphDict = element.getTextContent().trim();
+				g_lemmatizer = new Lemmatizer(element.getTextContent().trim());
+			
+			if ((element = getElement(ePredict, TAG_PREDICT_DEP_MODEL)) != null)
+			{
+				try {g_parser = getDepParser(element.getTextContent().trim());}
+				catch (Exception e) {e.printStackTrace();}
+			}
 		}
 	}
 	
@@ -223,7 +185,7 @@ public class SRLPredict extends AbstractCommon
 		System.out.println("- language   : "+s_language);
 		System.out.println("- format     : "+s_format);
 		System.out.println("- model_file : "+s_modelFile);
-		System.out.println("- input_file : "+s_inputFile);
+		System.out.println("- input_file : "+s_inputPath);
 		System.out.println("- output_file: "+s_outputFile);
 	}
 	

@@ -23,18 +23,11 @@
 */
 package clear.reader;
 
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.ArrayList;
 
-import opennlp.tools.postag.POSModel;
-import opennlp.tools.postag.POSTaggerME;
-import opennlp.tools.tokenize.TokenizerME;
-import opennlp.tools.tokenize.TokenizerModel;
 import clear.dep.DepNode;
 import clear.dep.DepTree;
-import clear.morph.MorphEnAnalyzer;
-
+import clear.helper.Tokenizer;
 
 /**
  * Part-of-speech dependency reader.
@@ -43,26 +36,17 @@ import clear.morph.MorphEnAnalyzer;
  */
 public class RawReader extends AbstractReader<DepNode,DepTree>
 {
-	private TokenizerME     tokenizer;
-	private POSTaggerME     tagger;
-	private MorphEnAnalyzer morph_analyzer = null;
+	protected Tokenizer g_tokenizer;
 	
 	/**
 	 * Initializes the dependency reader for <code>filename</code>.
 	 * @param filename name of the file containing dependency trees
 	 */
-	public RawReader(String filename, String language, String tokenModel, String posModel, String morphDict)
+	public RawReader(String filename, Tokenizer tokenizer)
 	{
 		super(filename);
 		
-		try
-		{
-			tokenizer = new TokenizerME(new TokenizerModel(new FileInputStream(tokenModel)));
-			tagger    = new POSTaggerME(new POSModel(new FileInputStream(posModel)));
-		}
-		catch (Exception e) {e.printStackTrace();}
-		
-		if ((language.equals(LANG_EN)))	morph_analyzer = new MorphEnAnalyzer(morphDict);
+		g_tokenizer = tokenizer;
 	}
 	
 	/** 
@@ -77,43 +61,12 @@ public class RawReader extends AbstractReader<DepNode,DepTree>
 		{
 			String line = f_in.readLine();
 			if (line == null)	return null;
-			
-			String tokens[] = tokenize(line);
-			String tags  [] = tagger.tag(tokens);
-			
-			tree = new DepTree();
-			DepNode node;
-			
-			for (int i=0; i<tokens.length; i++)
-			{
-				node = new DepNode();
-				node.id    = i+1;
-				node.form  = tokens[i];
-				node.pos   = tags[i];
-				node.lemma = (morph_analyzer != null) ? morph_analyzer.getLemma(node.form, node.pos) : node.form;
-				
-				tree.add(node);
-			}
+
+			tree = g_tokenizer.tokenize(line);
 		}
 		catch (IOException e1) {e1.printStackTrace();}
 
 		return tree;
-	}
-	
-	private String[] tokenize(String line)
-	{
-		ArrayList<String> list = new ArrayList<String>();
-		
-		for (String token : tokenizer.tokenize(line))
-		{
-			for (String tok : token.split("-|/"))
-				list.add(tok);
-		}
-		
-		String[] tokens = new String[list.size()];
-		list.toArray(tokens);
-		
-		return tokens;
 	}
 	
 	protected DepNode toNode(String line, int id)
