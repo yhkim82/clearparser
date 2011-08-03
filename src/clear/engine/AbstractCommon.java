@@ -23,7 +23,13 @@
 */
 package clear.engine;
 
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStreamReader;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -33,7 +39,16 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
+import clear.decode.OneVsAllDecoder;
+import clear.ftr.map.DepFtrMap;
+import clear.ftr.map.SRLFtrMap;
+import clear.ftr.xml.DepFtrXml;
+import clear.ftr.xml.SRLFtrXml;
 import clear.parse.AbstractDepParser;
+import clear.parse.AbstractSRLParser;
+import clear.parse.SRLParser;
+import clear.parse.ShiftEagerParser;
+import clear.parse.ShiftPopParser;
 import clear.reader.AbstractReader;
 
 /**
@@ -112,5 +127,105 @@ abstract public class AbstractCommon
 	{
 		NodeList list = parent.getElementsByTagName(name);
 		return (list.getLength() > 0) ? (Element)list.item(0) : null;
+	}
+	
+	protected AbstractDepParser getDepParser(String modelFile) throws Exception
+	{
+		ZipInputStream zin = new ZipInputStream(new FileInputStream(modelFile));
+		ZipEntry zEntry;
+		String   algorithm = AbstractDepParser.ALG_SHIFT_POP;
+		
+		DepFtrXml       xml     = null;
+		DepFtrMap       map     = null;
+		OneVsAllDecoder decoder = null;
+		
+		while ((zEntry = zin.getNextEntry()) != null)
+		{
+			if (zEntry.getName().equals(ENTRY_FEATURE))
+			{
+				System.out.println("- loading feature template");
+				
+				BufferedReader reader = new BufferedReader(new InputStreamReader(zin));
+				StringBuilder  build  = new StringBuilder();
+				String string;
+
+				while ((string = reader.readLine()) != null)
+				{
+					build.append(string);
+					build.append("\n");
+				}
+				
+				xml = new DepFtrXml(new ByteArrayInputStream(build.toString().getBytes()));
+			}
+			else if (zEntry.getName().equals(ENTRY_LEXICA))
+			{
+				System.out.println("- loading lexica");
+				map = new DepFtrMap(new BufferedReader(new InputStreamReader(zin)));
+			}
+			else if (zEntry.getName().equals(ENTRY_MODEL))
+			{
+				System.out.println("- loading model");
+				decoder = new OneVsAllDecoder(new BufferedReader(new InputStreamReader(zin)));
+			}
+			else if (zEntry.getName().equals(ENTRY_PARSER))
+			{
+				BufferedReader reader = new BufferedReader(new InputStreamReader(zin));
+				algorithm = reader.readLine().trim();
+			}
+		}
+		
+		if      (algorithm.equals(AbstractDepParser.ALG_SHIFT_EAGER))
+			return new ShiftEagerParser(AbstractDepParser.FLAG_PREDICT, xml, map, decoder);
+		else if (algorithm.equals(AbstractDepParser.ALG_SHIFT_POP))
+			return new ShiftPopParser  (AbstractDepParser.FLAG_PREDICT, xml, map, decoder);
+		
+		return null;
+	}
+	
+	protected AbstractSRLParser getSRLabeler(String modelFile) throws Exception
+	{
+		ZipInputStream zin = new ZipInputStream(new FileInputStream(modelFile));
+		ZipEntry zEntry;	String entry;
+		
+		SRLFtrXml         xml     = null;
+		SRLFtrMap[]       map     = new SRLFtrMap[2];
+		OneVsAllDecoder[] decoder = new OneVsAllDecoder[2];
+		
+		while ((zEntry = zin.getNextEntry()) != null)
+		{
+			if (zEntry.getName().equals(ENTRY_FEATURE))
+			{
+				System.out.println("- loading feature template");
+				
+				BufferedReader reader = new BufferedReader(new InputStreamReader(zin));
+				StringBuilder  build  = new StringBuilder();
+				String string;
+
+				while ((string = reader.readLine()) != null)
+				{
+					build.append(string);
+					build.append("\n");
+				}
+				
+				xml = new SRLFtrXml(new ByteArrayInputStream(build.toString().getBytes()));
+			}
+			else if ((entry = zEntry.getName()).startsWith(ENTRY_LEXICA))
+			{
+				int i = Integer.parseInt(entry.substring(entry.lastIndexOf(".")+1));
+				System.out.println("- loading lexica");
+				map[i] = new SRLFtrMap(new BufferedReader(new InputStreamReader(zin)));
+			}
+			else if (zEntry.getName().startsWith(ENTRY_MODEL))
+			{
+				int i = Integer.parseInt(entry.substring(entry.lastIndexOf(".")+1));
+				System.out.println("- loading model");
+				decoder[i] = new OneVsAllDecoder(new BufferedReader(new InputStreamReader(zin)));
+			}
+		}
+		
+		AbstractSRLParser labeler = new SRLParser(AbstractSRLParser.FLAG_PREDICT, xml, map, decoder);
+		labeler.setLanguage(s_language);
+		
+		return labeler;
 	}
 }

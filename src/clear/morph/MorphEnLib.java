@@ -23,6 +23,8 @@
 */
 package clear.morph;
 
+import java.util.HashSet;
+
 /**
  * English morph library.
  * @author Jinho D. Choi
@@ -30,6 +32,15 @@ package clear.morph;
  */
 public class MorphEnLib
 {
+	static public final String[] STR_PUNCTUATION = {"!","#","\"","%","$","'","&",")","(","+","*","-",",","/",".",";",":","=","<","?",">","@","[","]", "\\","_","^","`", "{","}","|","~"};
+	
+	@SuppressWarnings("serial")
+	static public final HashSet<String> SET_PUNCTUATION = new HashSet<String>()
+	{{
+		for (String str : STR_PUNCTUATION)
+			add(str);
+	}};
+	
 	static public boolean isBe(String form)
 	{
 		form = form.toLowerCase();
@@ -44,5 +55,10 @@ public class MorphEnLib
 		form = form.toLowerCase();
 		
 		return form.equals("have") || form.equals("has") || form.equals("had") || form.equals("having");
+	}
+	
+	static public boolean isPunctuation(String form)
+	{
+		return SET_PUNCTUATION.contains(form);
 	}
 }

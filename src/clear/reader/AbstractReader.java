@@ -49,6 +49,8 @@ abstract public class AbstractReader<NodeType, TreeType>
 	
 	/** Flag for raw format */
 	static public final String FORMAT_RAW    = "raw";
+	/** Flag for tok format */
+	static public final String FORMAT_TOK    = "tok";
 	/** Flag for part-of-speech format */
 	static public final String FORMAT_POS    = "pos";
 	/** Flag for dependency format */

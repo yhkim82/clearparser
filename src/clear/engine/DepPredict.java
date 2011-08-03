@@ -24,27 +24,20 @@
 package clear.engine;
 
 
-import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.FileInputStream;
-import java.io.InputStreamReader;
+import java.io.File;
 import java.io.PrintStream;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
 import org.w3c.dom.Element;
 
-import clear.decode.OneVsAllDecoder;
 import clear.dep.DepNode;
 import clear.dep.DepTree;
-import clear.ftr.map.DepFtrMap;
-import clear.ftr.xml.DepFtrXml;
+import clear.helper.POSTagger;
+import clear.helper.Tokenizer;
 import clear.parse.AbstractDepParser;
-import clear.parse.ShiftEagerParser;
-import clear.parse.ShiftPopParser;
+import clear.parse.Lemmatizer;
 import clear.reader.AbstractReader;
 import clear.reader.CoNLLXReader;
 import clear.reader.DepReader;
@@ -60,17 +53,24 @@ import clear.util.IOUtil;
 public class DepPredict extends AbstractCommon
 {
 	@Option(name="-i", usage="input file", required=true, metaVar="REQUIRED")
-	private String s_inputFile  = null;
+	private String s_inputPath  = null;
 	@Option(name="-o", usage="output file", required=true, metaVar="REQUIRED")
 	private String s_outputFile = null;
 	@Option(name="-m", usage="model file", required=true, metaVar="REQUIRED")
 	private String s_modelFile  = null;
 	/** Tokenizing modelFile */
-	private String s_tokModel   = null;
+	private Tokenizer  g_tokenizer  = null;
 	/** Part-of-speech tagging modelFile */
-	private String s_posModel   = null;
+	private POSTagger  g_postagger   = null;
 	/** Morphological dictionary directory */
-	private String s_morphDict  = null;
+	private Lemmatizer g_lemmatizer = null;
+	/** Dependency parser */
+	private AbstractDepParser g_parser = null;
+	
+	private int[]    n_size_total = new int[10];
+	private double[] d_time       = new double[10];
+	private double   d_time_total;
+	private int      n_total;
 	
 	public DepPredict(String[] args)
 	{
@@ -80,7 +80,26 @@ public class DepPredict extends AbstractCommon
 		{
 			cmd.parseArgument(args);
 			init();
-			predict();
+			initTime();
+			printConfig();
+			
+			g_parser = getDepParser(s_modelFile);
+			g_parser.setLanguage(s_language);
+			
+			File file = new File(s_inputPath);
+			
+			if (file.isFile())
+				predict(s_inputPath, s_outputFile);
+			else
+			{
+				for (String inputFile : file.list())
+				{
+					inputFile = s_inputPath + File.separator + inputFile;
+					predict(inputFile, inputFile+".parse");
+				}
+			}
+			
+			printTime();
 		}
 		catch (CmdLineException e)
 		{
@@ -90,56 +109,43 @@ public class DepPredict extends AbstractCommon
 		catch (Exception e) {e.printStackTrace();}
 	}
 	
-	public DepPredict(String configFile, String inputFile, String outputFile, String modelFile, String morphDict)
+	public void predict(String inputFile, String outputFile) throws Exception
 	{
-		s_configFile = configFile;
-		s_inputFile  = inputFile;
-		s_outputFile = outputFile;
-		s_modelFile  = modelFile;
-		s_morphDict  = morphDict;
-		
-		try
-		{
-			init();
-			predict();
-		}
-		catch (Exception e) {e.printStackTrace();}
-	}
-	
-	public void predict() throws Exception
-	{
-		int[]    n_size_total = new int[10];
-		double[] d_time       = new double[10];
-		double   d_time_total = 0;
-		
-		printConfig();
-		System.out.println("\n* Predict");
-		
 		AbstractReader<DepNode, DepTree> reader = null;
 		
-		if      (s_format.equals(AbstractReader.FORMAT_RAW))	reader = new RawReader   (s_inputFile, s_language, s_tokModel, s_posModel, s_morphDict);
-		else if (s_format.equals(AbstractReader.FORMAT_POS))	reader = new PosReader   (s_inputFile, s_language, s_morphDict);
-		else if (s_format.equals(AbstractReader.FORMAT_DEP))	reader = new DepReader   (s_inputFile, false);
-		else if (s_format.equals(AbstractReader.FORMAT_CONLLX))	reader = new CoNLLXReader(s_inputFile, false);
-		
-		AbstractDepParser parser = getDepParser(s_modelFile);
+		if      (s_format.equals(AbstractReader.FORMAT_RAW))	reader = new RawReader   (inputFile, g_tokenizer);
+		else if (s_format.equals(AbstractReader.FORMAT_POS))	reader = new PosReader   (inputFile);
+		else if (s_format.equals(AbstractReader.FORMAT_DEP))	reader = new DepReader   (inputFile, false);
+		else if (s_format.equals(AbstractReader.FORMAT_CONLLX))	reader = new CoNLLXReader(inputFile, false);
 		
 		reader.setLanguage(s_language);
-		parser.setLanguage(s_language);
 		
-		PrintStream      fout   = IOUtil.createPrintFileStream(s_outputFile);
-	//	PrintStream      fplot  = IOUtil.createPrintFileStream("plot.txt");
+		PrintStream fout  = IOUtil.createPrintFileStream(outputFile);
+	//	PrintStream fplot = IOUtil.createPrintFileStream("plot.txt");
 		DepTree     tree;
 		
 		long st, et;
 		int  n = 0;
+		
+		System.out.println("\n* Predict: "+inputFile);
 
 		while (true)
 		{
 			st   = System.currentTimeMillis();
 			tree = reader.nextTree();
 			if (tree == null)	break;
-			parser.parse(tree);	n++;
+			
+			if (s_format.equals(AbstractReader.FORMAT_RAW))
+			{
+				g_postagger.postag(tree);
+				g_lemmatizer.lemmatize(tree);
+			}
+			else if (s_format.equals(AbstractReader.FORMAT_POS))
+			{
+				g_lemmatizer.lemmatize(tree);
+			}
+
+			g_parser.parse(tree);	n++;
 			et   = System.currentTimeMillis();
 			fout.println(tree+"\n");
 			if (n%100 == 0)	System.out.print("\r- parsing: "+n);
@@ -151,66 +157,10 @@ public class DepPredict extends AbstractCommon
 	//		fplot.println(tree.size()+"\t"+tree.n_trans);
 		}	System.out.println("\r- parsing: "+n);
 		
-		System.out.println("\n* Parsing time per sentence length");
-		for (int i=0; i<d_time.length; i++)
-			System.out.printf("<= %3d: %4.2f (%f/%d)\n", (i+1)*10, d_time[i]/n_size_total[i], d_time[i], n_size_total[i]);
-		
-		System.out.printf("\nAverage parsing time: %4.2f (ms) (%f/%d)\n", d_time_total/n, d_time_total, n);
-		fout.flush(); 	fout.close();
+		n_total += n;
+		fout.close();
+		reader.close();
 	//	fplot.flush();	fplot.close();
-	}
-	
-	static public AbstractDepParser getDepParser(String modelFile) throws Exception
-	{
-		ZipInputStream zin = new ZipInputStream(new FileInputStream(modelFile));
-		ZipEntry zEntry;
-		String   algorithm = AbstractDepParser.ALG_SHIFT_POP;
-		
-		DepFtrXml       xml     = null;
-		DepFtrMap       map     = null;
-		OneVsAllDecoder decoder = null;
-		
-		while ((zEntry = zin.getNextEntry()) != null)
-		{
-			if (zEntry.getName().equals(ENTRY_FEATURE))
-			{
-				System.out.println("- loading feature template");
-				
-				BufferedReader reader = new BufferedReader(new InputStreamReader(zin));
-				StringBuilder  build  = new StringBuilder();
-				String string;
-
-				while ((string = reader.readLine()) != null)
-				{
-					build.append(string);
-					build.append("\n");
-				}
-				
-				xml = new DepFtrXml(new ByteArrayInputStream(build.toString().getBytes()));
-			}
-			else if (zEntry.getName().equals(ENTRY_LEXICA))
-			{
-				System.out.println("- loading lexica");
-				map = new DepFtrMap(new BufferedReader(new InputStreamReader(zin)));
-			}
-			else if (zEntry.getName().equals(ENTRY_MODEL))
-			{
-				System.out.println("- loading model");
-				decoder = new OneVsAllDecoder(new BufferedReader(new InputStreamReader(zin)));
-			}
-			else if (zEntry.getName().equals(ENTRY_PARSER))
-			{
-				BufferedReader reader = new BufferedReader(new InputStreamReader(zin));
-				algorithm = reader.readLine().trim();
-			}
-		}
-		
-		if (algorithm.equals(AbstractDepParser.ALG_SHIFT_EAGER))
-			return new ShiftEagerParser(AbstractDepParser.FLAG_PREDICT, xml, map, decoder);
-		else if (algorithm.equals(AbstractDepParser.ALG_SHIFT_POP))
-			return new ShiftPopParser  (AbstractDepParser.FLAG_PREDICT, xml, map, decoder);
-		
-		return null;
 	}
 	
 	protected void initElements()
@@ -221,13 +171,13 @@ public class DepPredict extends AbstractCommon
 			Element element;
 			
 			if ((element = getElement(ePredict, TAG_PREDICT_TOK_MODEL)) != null)
-				s_tokModel = element.getTextContent().trim();
+				g_tokenizer = new Tokenizer(element.getTextContent().trim());
 			
 			if ((element = getElement(ePredict, TAG_PREDICT_POS_MODEL)) != null)
-				s_posModel = element.getTextContent().trim();
+				g_postagger = new POSTagger(element.getTextContent().trim());
 			
 			if ((element = getElement(ePredict, TAG_PREDICT_MORPH_DICT)) != null)
-				s_morphDict = element.getTextContent().trim();
+				g_lemmatizer = new Lemmatizer(element.getTextContent().trim());
 		}
 	}
 	
@@ -238,8 +188,26 @@ public class DepPredict extends AbstractCommon
 		System.out.println("- format     : "+s_format);
 		System.out.println("- parser     : "+s_depParser);
 		System.out.println("- model_file : "+s_modelFile);
-		System.out.println("- input_file : "+s_inputFile);
+		System.out.println("- input_file : "+s_inputPath);
 		System.out.println("- output_file: "+s_outputFile);
+	}
+	
+	protected void initTime()
+	{
+		n_size_total = new int[10];
+		d_time       = new double[10];
+		d_time_total = 0;
+		n_total      = 0;
+	}
+	
+	protected void printTime()
+	{
+		System.out.println("\n* Parsing time per sentence length");
+		
+		for (int i=0; i<d_time.length; i++)
+			System.out.printf("<= %3d: %4.2f (%f/%d)\n", (i+1)*10, d_time[i]/n_size_total[i], d_time[i], n_size_total[i]);
+		
+		System.out.printf("\nAverage parsing time: %4.2f (ms) (%f/%d)\n", d_time_total/n_total, d_time_total, n_total);
 	}
 	
 	static public void main(String[] args)
