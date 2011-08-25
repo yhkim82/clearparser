@@ -9,8 +9,8 @@
  * Web-texts: 9,732 sentences
 
 || *Language* || *Usage* || *Algorithm* || *HDD* || *RAM* || *Date* || *Download* ||
-|| English || POS tagging || maxent || 6.4MB || 100MB || 06/13/2011 || [http://verbs.colorado.edu/~choijd/clearparser/models/en_pos_ontonotes.jar en_pos_ontonotes.jar] ||
-|| English || Dependency parsing || shift-pop || 250MB || 6GB || 06/13/2011 || [http://verbs.colorado.edu/~choijd/clearparser/models/en_dep_ontonotes.jar en_dep_ontonotes.jar] ||
+|| English || POS tagging || maxent || 5.7MB || 100MB || 06/13/2011 || [http://verbs.colorado.edu/~choijd/clearparser/models/en_pos_ontonotes.jar en_pos_ontonotes.jar] ||
+|| English || Dependency parsing || shift-pop || 227MB || 6GB || 06/13/2011 || [http://verbs.colorado.edu/~choijd/clearparser/models/en_dep_ontonotes.jar en_dep_ontonotes.jar] ||
 || English || Semantic role labeling || transition-based || 45MB || 1GB || 06/13/2011 || [http://verbs.colorado.edu/~choijd/clearparser/models/en_srl_ontonotes.jar en_srl_ontonotes.jar] ||
 
 == Medical Corpora ==
@@ -21,5 +21,5 @@
  * Mipacq corpus: 2,454 sentences
 
 || *Language* || *Usage* || *Algorithm* || *HDD* || *RAM* || *Date* || *Download* ||
-|| English || POS tagging || maxent || 2MB || 55MB || 06/13/2011 || [http://verbs.colorado.edu/~choijd/clearparser/models/en_pos_medical.jar en_pos_medical.jar] ||
-|| English || Dependency parsing || shift-pop || 250MB || 6GB || 06/13/2011 || [http://verbs.colorado.edu/~choijd/clearparser/models/en_dep_medical.jar en_dep_medical.jar] ||
+|| English || POS tagging || maxent || 1.2MB || 55MB || 06/13/2011 || [http://verbs.colorado.edu/~choijd/clearparser/models/en_pos_medical.jar en_pos_medical.jar] ||
+|| English || Dependency parsing || shift-pop || 66MB || 1.5GB || 06/13/2011 || [http://verbs.colorado.edu/~choijd/clearparser/models/en_dep_medical.jar en_dep_medical.jar] ||
