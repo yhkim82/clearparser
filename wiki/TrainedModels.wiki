@@ -21,5 +21,13 @@
  * Mipacq corpus: 2,454 sentences
 
 || *Language* || *Usage* || *Algorithm* || *HDD* || *RAM* || *Date* || *Download* ||
-|| English || POS tagging || maxent || 1.2MB || 55MB || 06/13/2011 || [http://verbs.colorado.edu/~choijd/clearparser/models/en_pos_medical.jar en_pos_medical.jar] ||
-|| English || Dependency parsing || shift-pop || 66MB || 1.5GB || 06/13/2011 || [http://verbs.colorado.edu/~choijd/clearparser/models/en_dep_medical.jar en_dep_medical.jar] ||
+|| English || POS tagging || maxent || 1.2MB || 55MB || 08/25/2011 || [http://verbs.colorado.edu/~choijd/clearparser/models/en_pos_medical.jar en_pos_medical.jar] ||
+|| English || Dependency parsing || shift-pop || 66MB || 1.5GB || 08/25/2011 || [http://verbs.colorado.edu/~choijd/clearparser/models/en_dep_medical.jar en_dep_medical.jar] ||
+
+== BioNLP Corpora ==
+
+ * Craft Treebank: 17,368 sentences
+
+|| *Language* || *Usage* || *Algorithm* || *HDD* || *RAM* || *Date* || *Download* ||
+|| English || POS tagging || maxent || 1.9MB || 81MB || 08/25/2011 || [http://verbs.colorado.edu/~choijd/clearparser/models/en_pos_bionlp.jar en_pos_bionlp.jar] ||
+|| English || Dependency parsing || shift-pop || 82MB || 2GB || 08/25/2011 || [http://verbs.colorado.edu/~choijd/clearparser/models/en_dep_bionlp.jar en_dep_bionlp.jar] ||
