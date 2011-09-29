@@ -25,7 +25,10 @@ package clear.morph;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -86,25 +89,45 @@ public class MorphEnAnalyzer
 	HashMap<String, String> m_abbr_rule;
 	
 	/**
-	 * Calls {@link MorphEnAnalyzer#init(String)}.
+	 * Calls {@link MorphEnAnalyzer#init}.
 	 * @param zipFile "en_dict.jar"
 	 */
 	public MorphEnAnalyzer(String zipFile)
 	{
-		try
-		{
-			init(zipFile);
+		try {
+		  InputStream inputStream = new FileInputStream(zipFile);
+		  try {
+		    this.init(inputStream);
+		  } finally {
+		    inputStream.close();
+		  }
+		} catch (Exception e) {
+		  throw new RuntimeException(e);
 		}
-		catch (Exception e) {e.printStackTrace();}
+	}
+	
+	public MorphEnAnalyzer(URL zipFileURL) throws IOException
+	{
+	  InputStream inputStream = zipFileURL.openStream(); 
+	  try {
+	    this.init(inputStream);
+	  } finally {
+	    inputStream.close();
+	  }
+	}
+	
+	public MorphEnAnalyzer(InputStream inputStream) throws IOException
+	{
+	  this.init(inputStream);
 	}
 	
 	/**
 	 * Initializes a morphological analyzer.
-	 * @param zipFile "en_dict.jar"
+	 * @param inputStream "en_dict.jar"
 	 */
-	public void init(String zipFile) throws Exception
+	public void init(InputStream inputStream) throws IOException
 	{
-		ZipInputStream zin = new ZipInputStream(new FileInputStream(zipFile));
+		ZipInputStream zin = new ZipInputStream(inputStream);
 		ZipEntry zEntry;
 		String filename;
 		
@@ -130,7 +153,7 @@ public class MorphEnAnalyzer
 	}
 	
 	/** @return HashMap taking exceptions as keys and their base-forms as values. */
-	private HashMap<String,String> getExcecptionMap(ZipInputStream zin) throws Exception
+	private HashMap<String,String> getExcecptionMap(ZipInputStream zin) throws IOException
 	{
 		HashMap<String, String> map = new HashMap<String, String>();
 		BufferedReader          fin = new BufferedReader(new InputStreamReader(zin));
@@ -155,7 +178,7 @@ public class MorphEnAnalyzer
 	}
 	
 	/** @return HashSet containing base-forms.*/
-	private HashSet<String> getBaseSet(ZipInputStream zin) throws Exception
+	private HashSet<String> getBaseSet(ZipInputStream zin) throws IOException
 	{
 		HashSet<String> set = new HashSet<String>();
 		BufferedReader  fin = new BufferedReader(new InputStreamReader(zin));
@@ -168,7 +191,7 @@ public class MorphEnAnalyzer
 	}
 	
 	/** @return List containing rules. */
-	private ArrayList<JObjectObjectTuple<String,String>> getRuleList(ZipInputStream zin) throws Exception
+	private ArrayList<JObjectObjectTuple<String,String>> getRuleList(ZipInputStream zin) throws IOException
 	{
 		ArrayList<JObjectObjectTuple<String,String>> list = new ArrayList<JObjectObjectTuple<String,String>>();
 		BufferedReader fin = new BufferedReader(new InputStreamReader(zin));
@@ -189,7 +212,7 @@ public class MorphEnAnalyzer
 	}
 	
 	/** @return HashMap taking (abbreviation and pos-tag) as the key and its base-form as the value. */
-	private HashMap<String,String> getAbbreviationMap(ZipInputStream zin) throws Exception
+	private HashMap<String,String> getAbbreviationMap(ZipInputStream zin) throws IOException
 	{
 		HashMap<String, String> map = new HashMap<String, String>();
 		BufferedReader          fin = new BufferedReader(new InputStreamReader(zin));

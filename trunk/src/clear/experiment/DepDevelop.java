@@ -92,7 +92,7 @@ public class DepDevelop extends AbstractTrain
 		{
 			currAcc = trainDepParser(AbstractParser.FLAG_PREDICT, s_devFile+".parse."+i, null);
 			if (currAcc <= prevAcc)	break;
-			if (i == 0)	break;
+		//	if (i == 0)	break;
 			prevAcc = currAcc;
 			trainDepParser(AbstractParser.FLAG_TRAIN_BOOST, null, null);
 			

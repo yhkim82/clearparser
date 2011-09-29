@@ -110,11 +110,6 @@ public class TBReader
 				
 				if (!curr.isEmptyCategory())
 					curr.tokenId = tokenIndex++;
-			/*	else if (curr.isForm("\\*T\\*|\\*ICH\\*|\\*RNR\\*") && curr.getParent().coIndex != -1)
-				{
-					curr.form += "-"+curr.getParent().coIndex;
-					curr.getParent().coIndex = -1;
-				}*/
 					
 				tree.addTerminalNode(curr);					// add 'curr' as a leaf
 			}
@@ -153,7 +148,7 @@ public class TBReader
 		for (int key : keys)
 		{
 			list    = map.get(key);
-			isFirst = false;
+			isFirst = true;
 			
 			for (i=list.size()-1; i>=0; i--)
 			{
