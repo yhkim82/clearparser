@@ -663,5 +663,19 @@ public class TBNode
 		}
 		
 		return null;
-	}	
+	}
+	
+	public int getMaxHeight()
+	{
+		TBNode curr = nd_parent;
+		int height = 0;
+		
+		while (curr != null)
+		{
+			height++;
+			curr = curr.getParent();
+		}
+		
+		return height;
+	}
 }

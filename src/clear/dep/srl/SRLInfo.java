@@ -24,6 +24,7 @@
 package clear.dep.srl;
 
 import java.util.ArrayList;
+import java.util.Collections;
 
 import clear.dep.DepLib;
 import clear.reader.AbstractReader;
@@ -123,6 +124,24 @@ public class SRLInfo
 		return false;
 	}
 	
+	public SRLHead getHead(int headId, String label)
+	{
+		for (SRLHead head : heads)
+			if (head.equals(headId, label))
+				return head;
+		
+		return null;
+	}
+	
+	public SRLHead getHead(int headId)
+	{
+		for (SRLHead head : heads)
+			if (head.equals(headId))
+				return head;
+		
+		return null;
+	}
+	
 	public boolean labelMatches(String regex)
 	{
 		for (SRLHead head : heads)
@@ -164,6 +183,7 @@ public class SRLInfo
 		}
 		else
 		{
+			Collections.sort(heads);
 			build.append(heads.get(0).toString());
 			
 			for (int i=1; i<heads.size(); i++)

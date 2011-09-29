@@ -25,6 +25,7 @@ package clear.dep;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 
 import clear.dep.srl.SRLInfo;
@@ -523,6 +524,74 @@ public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
 		return (node.id == currId) ? null : node;
 	}
 	
+	public DepNode getFirstVC(int currId)
+	{
+		DepNode node;
+		
+		for (int i=1; i<size(); i++)
+		{
+			node = get(i);
+			
+			if (node.headId == currId && node.isDeprel(DepLib.DEPREL_VC))
+				return node;
+		}
+		
+		return null;
+	}
+	
+	/** Including the current node. */
+	public ArrayList<DepNode> getVCList(int currId)
+	{
+		ArrayList<DepNode> list = new ArrayList<DepNode>();
+		DepNode curr = get(currId);
+		if (curr.isPosx("VB.*"))	list.add(curr);
+		
+		getVCListAux(currId, list);
+		return list;
+	}
+	
+	private void getVCListAux(int currId, ArrayList<DepNode> list)
+	{
+		DepNode vc = getFirstVC(currId);
+		
+		if (vc != null)
+		{
+			list.add(vc);
+			getVCListAux(vc.id, list);
+		}
+	}
+	
+	public DepNode getRightNearestCoord(int currId, String regex)
+	{
+		int i, size = size();
+		DepNode node;
+		
+		for (i=currId+1; i<size; i++)
+		{
+			node = get(i);
+			
+			if (node.headId == currId && node.deprel.matches("COORD|CONJ"))
+			{
+				if (node.isPosx(regex))	return node;
+				return getRightNearestCoord(node.id, regex);
+			}
+		}
+		
+		return null;
+	}
+	
+	public boolean isReference(int currId)
+	{
+		if (get(currId).isPosx("W.*"))	return true;
+		if (currId-1 > 0 && get(currId+1).isPosx("W.*"))	return true;
+		
+	/*	for (DepNode node : getDependents(currId))
+		{
+		}*/
+		
+		return false;
+	}
+	
 	public IntOpenHashSet getVCIdSet(int currId)
 	{
 		IntArrayList list = new IntArrayList();
@@ -575,6 +644,22 @@ public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
 			set.add(node.id);
 			getSubIdSetAux(node.id, set);
 		}
+	}
+	
+	public String getSubstring(int currId)
+	{
+		int[] arr = getSubIdSet(currId).toArray();
+		Arrays.sort(arr);
+
+		StringBuilder build = new StringBuilder();
+		
+		for (int idx : arr)
+		{
+			build.append(get(idx).lemma);
+			build.append(" ");
+		}
+		
+		return build.toString().trim();
 	}
 		
 	/** @return the score of the tree. */
