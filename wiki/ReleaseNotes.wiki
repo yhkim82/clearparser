@@ -1,5 +1,8 @@
 #summary Release notes
 
+=== ClearParser v0.32 (10/11/2011) ===
+
+ * Bugfix: ";" is now treated properly.
 
 === ClearParser v0.31 (8/1/2011) ===
 
