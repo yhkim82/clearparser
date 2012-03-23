@@ -808,33 +808,46 @@ public class DepTree extends ArrayList<DepNode> implements ITree<DepNode>
 	
 	public void setPredicates(String language)
 	{
-		DepNode node;
+		DepNode node, head;
 		String  roleset;
 		
 		for (int i=1; i<size(); i++)
 		{
 			node = get(i);
-			if ((node.headId >= 0))	node.hasHead = true;
+			
+			if (node.headId >= 0)
+			{
+				node.hasHead = true;
+				head = get(node.headId);
+			}
+			else
+				head = null;
 			
 			if (language.equals(AbstractReader.LANG_EN))
 			{
-				roleset = isEnPredicate(node) ? node.lemma+".XX" : DepLib.FIELD_BLANK;
+				roleset = isEnPredicate(node, head) ? node.lemma+".XX" : DepLib.FIELD_BLANK;
 				node.srlInfo = new SRLInfo(roleset, DepLib.FIELD_BLANK);
 			}
 		}
 	}
 	
-	private boolean isEnPredicate(DepNode node)
+	private boolean isEnPredicate(DepNode node, DepNode head)
 	{
-		if (!node.isPosx("VB.*"))							return false;
-		if (node.headId > node.id && node.isDeprel("NMOD"))	return false;
+		if (!node.isPosx("VB.*"))
+			return false;
+		
+		if (node.headId > node.id && head != null && head.pos.startsWith("NN"))
+			return false;
+		
+		if (node.deprel.startsWith("aux"))
+			return false;
 		
 		DepNode dep;
 		
 		for (int i=node.id+1; i<size(); i++)
 		{
 			dep = get(i);
-			if (dep.headId == node.id && dep.isDeprel("VC"))	return false;			
+			if (dep.headId == node.id && dep.isDeprel("VC"))	return false;
 		}
 		
 		return true;
