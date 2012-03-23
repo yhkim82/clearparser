@@ -46,9 +46,9 @@ public class DepFeat extends HashMap<String,String>
 	{
 		String key, val;
 		
-		for (String feat : feats.split("\\|"))
+		for (String feat : feats.split(";"))
 		{
-			key = feat.split("=")[0];
+			key = feat.split(":")[0];
 			val = feat.substring(key.length()+1);
 			
 			put(key, val);
@@ -63,9 +63,9 @@ public class DepFeat extends HashMap<String,String>
 		
 		for (String key : keys)
 		{
-			build.append("|");
+			build.append(";");
 			build.append(key);
-			build.append("=");
+			build.append(":");
 			build.append(get(key));
 		}
 		
