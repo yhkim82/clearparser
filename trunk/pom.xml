@@ -1,11 +1,11 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>com.googlecode.clearparser</groupId>
+  <groupId>edu.colorado.clear</groupId>
   <artifactId>clearparser</artifactId>
   <version>0.3.3-SNAPSHOT</version>
   <packaging>jar</packaging>
 
-  <name>Clear Parser</name>
+  <name>ClearParser</name>
   <description>Provides several NLP tools such as a dependency parser, a semantic role labeler, a penn-to-dependency converter, a prop-to-dependency converter, and a morphological analyzer.</description>
   <url>http://code.google.com/p/clearparser/</url>
 
