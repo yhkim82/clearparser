@@ -45,12 +45,13 @@ public class DepFeat extends HashMap<String,String>
 	public void set(String feats)
 	{
 		String key, val;
+		int idx;
 		
-		for (String feat : feats.split("|"))
+		for (String feat : feats.split("\\|"))
 		{
-			key = feat.split("=")[0];
-			val = feat.substring(key.length()+1);
-			
+			idx = feat.indexOf("=");
+			key = feat.substring(0, idx);
+			val = feat.substring(idx+1);
 			put(key, val);
 		}
 	}
