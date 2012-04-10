@@ -64,9 +64,9 @@ public class DepFeat extends HashMap<String,String>
 		
 		for (String key : keys)
 		{
-			build.append(";");
+			build.append("|");
 			build.append(key);
-			build.append(":");
+			build.append("=");
 			build.append(get(key));
 		}
 		
