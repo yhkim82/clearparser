@@ -1,5 +1,10 @@
 #summary Release notes
 
+=== ClearParser v0.33b (4/14/2012) ===
+
+ * Bugfix: SRLEvaluate is fixed.
+ * Format: Dependency feat column accepts the Prague dependency format.
+
 === ClearParser v0.32 (10/11/2011) ===
 
  * Bugfix: ";" is now treated properly.
