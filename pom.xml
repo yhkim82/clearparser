@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>edu.colorado.clear</groupId>
   <artifactId>clearparser</artifactId>
-  <version>0.3.5</version>
+  <version>0.3.6-SNAPSHOT</version>
   <packaging>jar</packaging>
 
   <name>ClearParser</name>
@@ -17,9 +17,9 @@
   </licenses>
 
   <scm>
-    <url>http://clearparser.googlecode.com/svn/tags/clearparser-0.3.5</url>
-    <connection>scm:svn:http://clearparser.googlecode.com/svn/tags/clearparser-0.3.5</connection>
-    <developerConnection>scm:svn:https://clearparser.googlecode.com/svn/tags/clearparser-0.3.5</developerConnection>
+    <url>http://clearparser.googlecode.com/svn/tags/clearparser-0.3.4</url>
+    <connection>scm:svn:http://clearparser.googlecode.com/svn/tags/clearparser-0.3.4</connection>
+    <developerConnection>scm:svn:https://clearparser.googlecode.com/svn/tags/clearparser-0.3.4</developerConnection>
   </scm>
 
   <developers>
