@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>edu.colorado.clear</groupId>
   <artifactId>clearparser</artifactId>
-  <version>0.3.5-SNAPSHOT</version>
+  <version>0.3.4-SNAPSHOT</version>
   <packaging>jar</packaging>
 
   <name>ClearParser</name>
@@ -24,7 +24,7 @@
 
   <developers>
     <developer>
-      <id>jinho.d.choi</id>
+      <id>jdchoi77</id>
       <name>Jinho D. Choi</name>
       <email>jdchoi77@gmail.com</email>
     </developer>
