@@ -81,14 +81,12 @@ public class SRLEval
 					total[0]++;
 				//	local[0]++;
 					
-					if (sHead.equals(gHead.label))
+					if (sHead.label.equals(gHead.label))
 					{
 						total[1]++;
 				//		local[1]++;
 						gArg [0]++;
 					}
-					
-					break;
 				}
 			}
 			
